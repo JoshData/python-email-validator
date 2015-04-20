@@ -1,0 +1,2 @@
+include email_validator.py
+include LICENSE README.rst
