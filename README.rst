@@ -1,8 +1,15 @@
 email\_validator
 ================
 
-A robust email syntax and deliverability validation library for Python
-3.x by `Joshua Tauberer <https://razor.occams.info>`__.
+A robust email address syntax and deliverability validation library
+for Python 3.x by `Joshua Tauberer <https://razor.occams.info>`__.
+
+This library validates that address are of the form like ``x@y.com``,
+e.g. what you would want in a login form on a website. There are other
+forms of email addresses, like you would use when composing a message's
+To: line e.g. ``My Name <my@address.com>``, that this library does not
+accept. For that try `flanker  <https://github.com/mailgun/flanker>`__
+instead.
 
 This library is new and not well tested (and so *perhaps* not robust)
 yet, but the goal is to be modern and complete.
@@ -65,6 +72,12 @@ turn is a subclass of ``ValueError``.
 
 But when an email address is valid, a dict is returned containing
 information that might aid deliverability.
+
+The validator doesn't permit obsoleted forms of email addresses,
+although they are still valid and deliverable, since they will probably
+give you grief if you're using email for login. See later in the
+document about that. If you need validation against the specs exactly,
+you might like https://github.com/michaelherold/pyIsEmail.
 
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
