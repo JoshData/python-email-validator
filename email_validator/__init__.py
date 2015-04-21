@@ -74,7 +74,7 @@ def validate_email(
 	if check_deliverability:
 		# Validate the email address's deliverability and update the
 		# return dict with metadata.
-		ret.update(validate_email_deliverability(ret["domain"]))
+		ret.update(validate_email_deliverability(ret["domain"], ret["domain_internationalized"]))
 
 	# If the email address has an ASCII form, add it.
 	ret["email"] = ret["local"] + "@" + ret["domain_internationalized"]
@@ -154,8 +154,11 @@ def validate_email_domain_part(domain):
 	# that the domain actually conforms to IDNA. It could look like IDNA
 	# but not be actual IDNA. For ASCII-only domains, the conversion out
 	# of IDNA just gives the same thing back.
+	#
+	# This gives us the canonical internationalized form of the domain,
+	# which we should use in all error messages.
 	try:
-		domain.encode('ascii').decode("idna")
+		domain_internationalized = domain.encode('ascii').decode("idna")
 	except:
 		raise EmailSyntaxError("The domain name %s is not valid IDNA." % domain)		
 
@@ -175,9 +178,9 @@ def validate_email_domain_part(domain):
 	# All publicly deliverable addresses have domain named with at least
 	# one period. We also know that all TLDs end with a letter.
 	if "." not in domain:
-		raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain)
+		raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_internationalized)
 	if not re.search(r"[A-Za-z]$", domain):
-		raise EmailSyntaxError("The domain name %s is not valid. It is not within a valid top-level domain." % domain)
+		raise EmailSyntaxError("The domain name %s is not valid. It is not within a valid top-level domain." % domain_internationalized)
 
 	# Return the IDNA ASCII-encoded form of the domain, which is how it
 	# would be transmitted on the wire (except when used with SMTPUTF8
@@ -187,10 +190,10 @@ def validate_email_domain_part(domain):
 	# normalization to addresses.
 	return {
 		"domain": domain,
-		"domain_internationalized": domain.encode("ascii").decode("idna"),
+		"domain_internationalized": domain_internationalized,
 	}
 
-def validate_email_deliverability(domain):
+def validate_email_deliverability(domain, domain_internationalized):
 	# Check that the domain resolves to an MX record. If there is no MX record,
 	# try an A or AAAA record which is a deprecated fallback for deliverability.
 
@@ -220,7 +223,7 @@ def validate_email_deliverability(domain):
 					
 					# If there was no MX, A, or AAAA record, then mail to
 					# this domain is not deliverable.
-					raise EmailUndeliverableError("The domain name %s does not exist." % domain)
+					raise EmailUndeliverableError("The domain name %s does not exist." % domain_internationalized)
 
 	except dns.exception.Timeout:
 		# A timeout could occur for various reasons, so don't treat it as a failure.
