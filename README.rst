@@ -2,7 +2,7 @@ email\_validator
 ================
 
 A robust email address syntax and deliverability validation library
-for Python 3.x by `Joshua Tauberer <https://razor.occams.info>`__.
+for Python 2.7/3.x by `Joshua Tauberer <https://razor.occams.info>`__.
 
 This library validates that address are of the form like ``x@y.com``,
 e.g. what you would want in a login form on a website. There are other

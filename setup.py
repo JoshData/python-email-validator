@@ -1,20 +1,47 @@
 # -*- coding: utf-8 -*-
 
-# Note to self: To upload a new version to PyPI, run:
-# python setup.py sdist upload
+# To deploy:
+# rm -rf dist && python3 setup.py sdist && twine upload dist/*
 
+import sys
 from setuptools import setup, find_packages
+from codecs import open
 
 setup(
-    name='email_validator',
-    version='0.1.0',
-    author=u'Joshua Tauberer',
-    author_email=u'jt@occams.info',
-    packages = find_packages(),
-    url='https://github.com/JoshData/python-email-validator',
-    license='CC0 (copyright waived)',
-    description='A robust email syntax and deliverability validation library for Python 3.x.',
-    long_description=open("README.rst").read(),
-    keywords = "email address validator",
-    install_requires=["dnspython"],
+	name='email_validator',
+	version='0.1.0',
+
+	description='A robust email syntax and deliverability validation library for Python 2.x/3.x.',
+	long_description=open("README.rst", encoding='utf-8').read(),
+	url='https://github.com/JoshData/python-email-validator',
+
+	author=u'Joshua Tauberer',
+	author_email=u'jt@occams.info',
+	license='CC0 (copyright waived)',
+
+	# See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+	classifiers=[
+		'Development Status :: 4 - Beta',
+		'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
+
+		'Intended Audience :: Developers',
+		'Topic :: Software Development :: Libraries :: Python Modules',
+
+		'Programming Language :: Python :: 2.7',
+		'Programming Language :: Python :: 3',
+		'Programming Language :: Python :: 3.2',
+		'Programming Language :: Python :: 3.3',
+		'Programming Language :: Python :: 3.4',
+	],
+
+	keywords="email address validator",
+	
+	packages=find_packages(),
+	install_requires=["dnspython3" if sys.version_info > (3,) else "dnspython"],
+
+	entry_points={
+		'console_scripts': [
+			'email_validator=email_validator:main',
+		],
+	},
 )

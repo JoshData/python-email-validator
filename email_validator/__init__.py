@@ -241,7 +241,7 @@ def validate_email_deliverability(domain):
 		"mx-fallback": mx_fallback,
 	}
 
-if __name__ == "__main__":
+def main():
 	import sys, json
 
 	if sys.argv[-1] == "--test-pass":
@@ -272,3 +272,7 @@ if __name__ == "__main__":
 		allow_smtputf8 = True
 		result = validate_email(sys.argv[1], allow_smtputf8=allow_smtputf8)
 		print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+
+if __name__ == "__main__":
+	main()
+
