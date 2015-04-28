@@ -1,3 +1,4 @@
+import sys
 import re
 import unicodedata
 import dns.resolver, dns.exception
@@ -14,7 +15,7 @@ DOT_ATOM_TEXT = '[' + ATEXT + ']+(?:\\.[' + ATEXT + ']+)*'
 # addresses to also include three specific ranges of UTF8 defined in
 # RFC3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
-ATEXT_UTF8 = ATEXT + r"\u0080-\U0010FFFF"
+ATEXT_UTF8 = ATEXT + u"\u0080-\U0010FFFF"
 DOT_ATOM_TEXT_UTF8 = '[' + ATEXT_UTF8 + ']+(?:\\.[' + ATEXT_UTF8 + ']+)*'
 
 # The domain part of the email address, after IDNA (ASCII) encoding,
@@ -22,6 +23,17 @@ DOT_ATOM_TEXT_UTF8 = '[' + ATEXT_UTF8 + ']+(?:\\.[' + ATEXT_UTF8 + ']+)*'
 # the allowed characters of hostnames further. The hyphen cannot be at
 # the beginning or end of a *dot-atom component* of a hostname either.
 ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
+
+# ease compatibility in type checking
+if sys.version_info >= (3,):
+	unicode_class = str
+else:
+	unicode_class = unicode
+
+	# turn regexes to unicode (because 'ur' literals are not allowed in Py3)
+	ATEXT = ATEXT.decode("ascii")
+	DOT_ATOM_TEXT = DOT_ATOM_TEXT.decode("ascii")
+	ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")
 
 class EmailNotValidError(ValueError):
 	"""Parent class of all exceptions raised by this module."""
@@ -47,13 +59,11 @@ def validate_email(
 	# Allow email to be a str or bytes instance. If bytes,
 	# it must be ASCII because that's how the bytes work
 	# on the wire with SMTP.
-	if isinstance(email, bytes):
+	if not isinstance(email, (str, unicode_class)):
 		try:
 			email = email.decode("ascii")
-		except:
+		except ValueError:
 			raise EmailSyntaxError("The email address is not valid ASCII.")
-	elif not isinstance(email, str):
-		raise ValueError("email must be a str or bytes instance")
 
 	# At-sign.
 	parts = email.split('@')
@@ -254,6 +264,7 @@ def main():
 			try:
 				email = line.strip()
 				if email == "" or email[0] == "#": continue
+				if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
 				validate_email(email, check_deliverability=False)
 			except EmailNotValidError as e:
 				print(email, e)
@@ -267,13 +278,17 @@ def main():
 		for line in sys.stdin:
 			try:
 				email = line.strip()
+				if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
 				validate_email(email, allow_smtputf8=allow_smtputf8)
 			except EmailNotValidError as e:
 				print(email, e)
 	else:
 		# Validate the email address passed on the command line.
+		email = sys.argv[1]
 		allow_smtputf8 = True
-		result = validate_email(sys.argv[1], allow_smtputf8=allow_smtputf8)
+		check_deliverability = True
+		if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
+		result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
 		print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
 
 if __name__ == "__main__":
