@@ -129,7 +129,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 		m = re.match(DOT_ATOM_TEXT_UTF8 + "$", local)
 		if not m:
 			# It's not a valid internationalized address either. Report which characters were not valid.
-			bad_chars = ', '.join(sorted(set( c for c in local if not re.match(ATEXT if not allow_smtputf8 else ATEXT_UTF8, c) )))
+			bad_chars = ', '.join(sorted(set( c for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c) )))
 			raise EmailSyntaxError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
 
 		# It would be valid if internationalized characters were allowed by the caller.
@@ -316,8 +316,14 @@ def main():
 		allow_smtputf8 = True
 		check_deliverability = True
 		if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
-		result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
-		print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+		try:
+			result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
+			print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+		except EmailNotValidError as e:
+			if sys.version_info < (3,):
+				print(unicode(e).encode("utf8"))
+			else:
+				print(e)
 
 if __name__ == "__main__":
 	main()
