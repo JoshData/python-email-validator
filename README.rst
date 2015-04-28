@@ -2,7 +2,7 @@ email\_validator
 ================
 
 A robust email address syntax and deliverability validation library
-for Python 2.7/3.x by `Joshua Tauberer <https://razor.occams.info>`__.
+for Python 2.7/3.4 by `Joshua Tauberer <https://razor.occams.info>`__.
 
 This library validates that address are of the form like ``x@y.com``,
 e.g. what you would want in a login form on a website. There are other
@@ -116,7 +116,10 @@ names are converted into a special IDNA ASCII form starting with
 ``xn--``. When an email address has non-ASCII characters in its domain
 part, the domain part can and should be replaced with its IDNA ASCII
 form. Your mail submission library probably does this for you
-transparently.
+transparently. Note that most web browsers are currently in transition
+between IDNA 2003 (RFC 3490) and IDNA 2008 (RFC 5891). This library
+uses IDNA 2008 using the `idna <https://github.com/kjd/idna>`__ module
+by Kim Davies.
 
 The second sort of internationalization is internationalization in the
 *local* part of the address (before the @-sign). These email addresses
@@ -152,15 +155,45 @@ ASCII <https://tools.ietf.org/html/rfc5891>`__. (You probably should not
 do this at account creation time so you don't change the user's login
 information without telling them.)
 
-As noted earlier, you may want to replace addresses with their canonical
-form immediately prior to going to your database.
+Normalization
+-------------
+
+The use of Unicode in email addreses introduced a normalization problem.
+Different Unicode strings can look identical and have the same semantic
+meaning to the user, e.g. by using precomposed versus combining characters,
+glyphs that look alike, and full-width characters. IDNA 2008 (`RFC 5895 section 2 <http://www.ietf.org/rfc/rfc5895.txt>`__)
+requires the following normalizations:
+
+* The domain part of the address is converted to lowercase. Domain names
+  are case-insensitive by design and are necessarily casefolded before
+  encoding in IDNA.
+
+* `Fullwidth and halfwidth characters <https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms>`_,
+  mostly used in CJK writing, are replaced with their equivalent standard
+  characters in the domain part of the address, as required by IDNA.
+
+* The Ideographic Full Stop character, an alternative to the period (the
+  Full Stop character), is replaced with the period in the domain part of
+  the address, as required by IDNA.
+
+* `Unicode "NFC" normalization <https://en.wikipedia.org/wiki/Unicode_equivalence>`__
+  is applied to the whole address, as required by IDNA and suggested by
+  `RFC 6532 section 3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__.
+  This turns characters plus `combining characters <https://en.wikipedia.org/wiki/Combining_character>`__
+  into precomposed characters where possible. It may also replace certain
+  Unicode characters (such as angstrom and ohm) with other equivalent code
+  points (a-with-ring and omega, respectively).
+
+The ``email`` field returned on successful validation provides the normalized
+form of the given email address:
 
 ::
 
     email = validate_email(email)['email']
 
-See the examples below and the documentation of the ``email`` field for
-when normalization changes the address.
+Because you may get an email address in a variety of forms, you ought to replace
+it with its canonical form immediately prior to going into your database
+(during account creation and login) or into outbound mail.
 
 Examples
 --------
@@ -187,29 +220,37 @@ For the email address ``test@example.org``, the returned dict is:
       "mx-fallback": "A"
     }
 
-For the fictitious address ``me@ς.com``, which has an
+For the fictitious address ``example@良好Mail.中国``, which has an
 internationalized domain but ASCII local part, the returned dict is:
 
 ::
 
     {
-      "email": "me@σ.com",
-      "email_ascii": "me@xn--4xa.com",
-      "local": "me",
-      "domain": "xn--4xa.com",
-      "domain_i18n": "σ.com",
+      "email": "example@良好mail.中国",
+      "email_ascii": "example@xn--mail-p86gl01s.xn--fiqs8s",
+      "local": "example",
+      "domain": "xn--mail-p86gl01s.xn--fiqs8s",
+      "domain_i18n": "良好mail.中国",
 
-      "smtputf8": false
+      "smtputf8": false,
+
+      "mx": [
+        [
+          0,
+          "218.241.116.40"
+        ]
+      ],
+      "mx-fallback": "A"
     }
 
 Note that ``smtputf8`` is ``False`` even though the domain part is
 internationalized because
-`SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ is only strictly
+`SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ is only 
 needed if the local part of the address is internationalized (the domain
-part can be converted to IDNA ASCII). Also note that the ``email`` field
-provides a normalized form of the email address where the ς glyph has
-been replaced by its normalized form σ (the two glyphs are represented
-the same way in IDNA).
+part can be converted to IDNA ASCII). Also note that the ``email`` and
+``domain_i18n`` fields provide a normalized form of the email address
+and domain name (casefolding and Unicode normalization as required by
+IDNA 2008).
 
 For the fictitious address ``树大@occams.info``, which has an
 internationalized local part, the returned dict is:
@@ -256,20 +297,13 @@ are:
    of the email address contains internationalized characters,
    ``email_ascii`` will not be present.
 -  ``local``: The local part of the given email address (before the
-   @-sign) with Unicode NFC normalization applied, as suggested by `RFC
-   6532 section
-   3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__. NFC normalization
-   may replace certain Unicode characters (such as angstrom and ohm) with
-   other equivalent code points (a-with-ring and omega).
+   @-sign) with Unicode NFC normalization applied.
 -  ``domain``: The `IDNA
    ASCII <https://tools.ietf.org/html/rfc5891>`__-encoded form of the
    domain part of the given email address (after the @-sign), as it
    would be transmitted on the wire.
 -  ``domain_i18n``: The canonical internationalized form of
    the domain part of the address, by round-tripping through IDNA ASCII.
-   If the domain contains non-ASCII characters, the domain is casefolded
-   (normalized lowercase) which could result in some unexpected Unicode
-   character replacements.
    If the returned string contains non-ASCII characters, either the
    `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ feature of MTAs
    will be required to transmit the message or else the email address('s

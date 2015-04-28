@@ -9,7 +9,7 @@ from codecs import open
 
 setup(
 	name='email_validator',
-	version='0.1.0-rc2',
+	version='0.1.0-rc3',
 
 	description='A robust email syntax and deliverability validation library for Python 2.x/3.x.',
 	long_description=open("README.rst", encoding='utf-8').read(),
@@ -29,15 +29,15 @@ setup(
 
 		'Programming Language :: Python :: 2.7',
 		'Programming Language :: Python :: 3',
-		'Programming Language :: Python :: 3.2',
-		'Programming Language :: Python :: 3.3',
 		'Programming Language :: Python :: 3.4',
 	],
 
 	keywords="email address validator",
 	
 	packages=find_packages(),
-	install_requires=["dnspython3" if sys.version_info > (3,) else "dnspython"],
+	install_requires=[
+		"idna==1.1.*",
+		"dnspython3" if sys.version_info > (3,) else "dnspython"],
 
 	entry_points={
 		'console_scripts': [
