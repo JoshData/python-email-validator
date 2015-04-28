@@ -174,7 +174,7 @@ For the email address ``test@example.org``, the returned dict is:
       "email_ascii": "test@example.org",
       "local": "test",
       "domain": "example.org",
-      "domain_internationalized": "example.org",
+      "domain_i18n": "example.org",
 
       "smtputf8": false,
 
@@ -197,7 +197,7 @@ internationalized domain but ASCII local part, the returned dict is:
       "email_ascii": "me@xn--4xa.com",
       "local": "me",
       "domain": "xn--4xa.com",
-      "domain_internationalized": "σ.com",
+      "domain_i18n": "σ.com",
 
       "smtputf8": false
     }
@@ -220,7 +220,7 @@ internationalized local part, the returned dict is:
       "email": "树大@occams.info",
       "local": "树大",
       "domain": "occams.info",
-      "domain_internationalized": "occams.info",
+      "domain_i18n": "occams.info",
 
       "smtputf8": true,
 
@@ -247,7 +247,7 @@ are:
 
 -  ``email``: The canonical form of the email address, mostly useful for
    display purposes. This merely combines the ``local`` and
-   ``domain_internationalized`` fields.
+   ``domain_i18n`` fields.
 -  ``email_ascii``: If present, an ASCII-only form of the email address
    by replacing the domain part with `IDNA
    ASCII <https://tools.ietf.org/html/rfc5891>`__. This field will be
@@ -265,7 +265,7 @@ are:
    ASCII <https://tools.ietf.org/html/rfc5891>`__-encoded form of the
    domain part of the given email address (after the @-sign), as it
    would be transmitted on the wire.
--  ``domain_internationalized``: The canonical internationalized form of
+-  ``domain_i18n``: The canonical internationalized form of
    the domain part of the address, by round-tripping through IDNA ASCII.
    If the domain contains non-ASCII characters, the domain is casefolded
    (normalized lowercase) which could result in some unexpected Unicode
