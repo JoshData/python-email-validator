@@ -27,17 +27,21 @@ account, you might do this:
     email = "my+address@mydomain.tld"
 
     try:
-        validate_email(email)
-        # OK, it's valid.
+        email = validate_email(email)["email"]
+        # OK, it's valid. Replace with normalized form.
     except EmailNotValidError as e:
         print(str(e))
 
-Support for internationalized email addresses varies. Email addresses
-with non-ASCII characters in the *local* part of the address (before the
-@-sign) require the `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__
+This validates the address and gives you its normalized form. You should
+put the normalized form in your database and always normalize before
+checking if an address is in your database.
+
+The validator will accept internationalized email addresses, but email
+addresses with non-ASCII characters in the *local* part of the address
+(before the @-sign) require the `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__
 extension which may not be supported by your mail submission library or
 your outbound mail server. If you know ahead of time that SMTPUTF8 is
-not supported then **add the keyword argument ``allow_smtputf8=False``
+not supported then **add the keyword argument allow_smtputf8=False
 to fail validation for addresses that would require SMTPUTF8**:
 
 ::
@@ -54,8 +58,7 @@ line:
 Overview
 --------
 
-The module provides a function
-``validate_email(email_address, allow_smtputf8=True|False)`` which takes
+The module provides a function ``validate_email(email_address)`` which takes
 an email address (either a ``str`` or ASCII ``bytes``) and:
 
 -  Raise a ``EmailNotValidError`` with a helpful, human-readable error
@@ -77,7 +80,7 @@ The validator doesn't permit obsoleted forms of email addresses,
 although they are still valid and deliverable, since they will probably
 give you grief if you're using email for login. See later in the
 document about that. If you need validation against the specs exactly,
-you might like https://github.com/michaelherold/pyIsEmail.
+you might like `pyIsEmail  <https://github.com/michaelherold/pyIsEmail>`__.
 
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
@@ -85,6 +88,17 @@ reasons servers are good at not giving away whether an address is
 deliverable or not: accepted mail may still bounce, and bounced mail may
 indicate a temporary failure (sometimes an intentional failure, like
 greylisting).
+
+The function also accepts the following keyword arguments (default as
+shown):
+
+* ``allow_smtputf8=True``: Set to ``False`` to prohibit internationalized
+  addresses that would require the `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__
+  extension.
+* ``check_deliverability=True``: Set to ``False`` to skip the domain name
+  resolution check.
+* ``allow_empty_local=False``: Set to ``True`` to allow an empty local
+  part (i.e. ``@example.com``), e.g. for validating Postfix aliases.
 
 Internationalized email addresses
 ---------------------------------
@@ -138,14 +152,15 @@ ASCII <https://tools.ietf.org/html/rfc5891>`__. (You probably should not
 do this at account creation time so you don't change the user's login
 information without telling them.)
 
-If your mail submission library does support Unicode but doesn't
-canonicalize addresses, you may want to replace addresses with their
-canonical form immediately prior to mail submission or in other cases
-when address rewriting is permitted:
+As noted earlier, you may want to replace addresses with their canonical
+form immediately prior to going to your database.
 
 ::
 
     email = validate_email(email)['email']
+
+See the examples below and the documentation of the ``email`` field for
+when normalization changes the address.
 
 Examples
 --------
@@ -172,34 +187,29 @@ For the email address ``test@example.org``, the returned dict is:
       "mx-fallback": "A"
     }
 
-For the fictitious address ``example@良好mail.中国``, which has an
+For the fictitious address ``me@ς.com``, which has an
 internationalized domain but ASCII local part, the returned dict is:
 
 ::
 
     {
-      "email": "example@良好mail.中国",
-      "email_ascii": "example@xn--mail-p86gl01s.xn--fiqs8s",
-      "local": "example",
-      "domain": "xn--mail-p86gl01s.xn--fiqs8s",
-      "domain_internationalized": "良好mail.中国",
+      "email": "me@σ.com",
+      "email_ascii": "me@xn--4xa.com",
+      "local": "me",
+      "domain": "xn--4xa.com",
+      "domain_internationalized": "σ.com",
 
-      "smtputf8": false,
-
-      "mx": [
-        [
-          0,
-          "218.241.116.40"
-        ]
-      ],
-      "mx-fallback": "A"
+      "smtputf8": false
     }
 
 Note that ``smtputf8`` is ``False`` even though the domain part is
 internationalized because
 `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ is only strictly
 needed if the local part of the address is internationalized (the domain
-part can be converted to IDNA ASCII).
+part can be converted to IDNA ASCII). Also note that the ``email`` field
+provides a normalized form of the email address where the ς glyph has
+been replaced by its normalized form σ (the two glyphs are represented
+the same way in IDNA).
 
 For the fictitious address ``树大@occams.info``, which has an
 internationalized local part, the returned dict is:
@@ -207,10 +217,12 @@ internationalized local part, the returned dict is:
 ::
 
     {
+      "email": "树大@occams.info",
       "local": "树大",
       "domain": "occams.info",
-      "domain_internationalized": null,
-      "smtputf8": True,
+      "domain_internationalized": "occams.info",
+
+      "smtputf8": true,
 
       "mx": [
         [
@@ -218,11 +230,14 @@ internationalized local part, the returned dict is:
           "box.occams.info"
         ]
       ],
-      "mx-fallback": False
+      "mx-fallback": false
     }
 
 Now ``smtputf8`` is ``True`` and ``email_ascii`` is missing because the
-local part of the address is internationalized.
+local part of the address is internationalized. The ``local`` and ``email``
+fields return the normalized form of the address: certain Unicode characters
+(such as angstrom and ohm) may be replaced by other equivalent code points
+(a-with-ring and omega).
 
 Return value
 ------------
@@ -243,13 +258,18 @@ are:
 -  ``local``: The local part of the given email address (before the
    @-sign) with Unicode NFC normalization applied, as suggested by `RFC
    6532 section
-   3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__.
+   3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__. NFC normalization
+   may replace certain Unicode characters (such as angstrom and ohm) with
+   other equivalent code points (a-with-ring and omega).
 -  ``domain``: The `IDNA
    ASCII <https://tools.ietf.org/html/rfc5891>`__-encoded form of the
    domain part of the given email address (after the @-sign), as it
    would be transmitted on the wire.
 -  ``domain_internationalized``: The canonical internationalized form of
    the domain part of the address, by round-tripping through IDNA ASCII.
+   If the domain contains non-ASCII characters, the domain is casefolded
+   (normalized lowercase) which could result in some unexpected Unicode
+   character replacements.
    If the returned string contains non-ASCII characters, either the
    `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ feature of MTAs
    will be required to transmit the message or else the email address('s
