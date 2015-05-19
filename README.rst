@@ -160,40 +160,29 @@ Normalization
 
 The use of Unicode in email addreses introduced a normalization problem.
 Different Unicode strings can look identical and have the same semantic
-meaning to the user, e.g. by using precomposed versus combining characters,
-glyphs that look alike, and full-width characters. IDNA 2008 (`RFC 5895 section 2 <http://www.ietf.org/rfc/rfc5895.txt>`__)
-requires the following normalizations:
-
-* The domain part of the address is converted to lowercase. Domain names
-  are case-insensitive by design and are necessarily casefolded before
-  encoding in IDNA.
-
-* `Fullwidth and halfwidth characters <https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms>`_,
-  mostly used in CJK writing, are replaced with their equivalent standard
-  characters in the domain part of the address, as required by IDNA.
-
-* The Ideographic Full Stop character, an alternative to the period (the
-  Full Stop character), is replaced with the period in the domain part of
-  the address, as required by IDNA.
-
-* `Unicode "NFC" normalization <https://en.wikipedia.org/wiki/Unicode_equivalence>`__
-  is applied to the whole address, as required by IDNA and suggested by
-  `RFC 6532 section 3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__.
-  This turns characters plus `combining characters <https://en.wikipedia.org/wiki/Combining_character>`__
-  into precomposed characters where possible. It may also replace certain
-  Unicode characters (such as angstrom and ohm) with other equivalent code
-  points (a-with-ring and omega, respectively).
-
-The ``email`` field returned on successful validation provides the normalized
-form of the given email address:
+meaning to the user. The ``email`` field returned on successful validation
+provides the correctly normalized form of the given email address:
 
 ::
 
     email = validate_email(email)['email']
 
 Because you may get an email address in a variety of forms, you ought to replace
-it with its canonical form immediately prior to going into your database
-(during account creation and login) or into outbound mail.
+it with its normalized form immediately prior to going into your database
+(during account creation), querying your database (during login), or sending
+outbound mail.
+
+The normalizations include lowercasing the domain part of the email address
+(domain names are case-insensitive), `Unicode "NFC" normalization <https://en.wikipedia.org/wiki/Unicode_equivalence>`__
+of the whole address (which turns characters plus `combining characters <https://en.wikipedia.org/wiki/Combining_character>`__
+into precomposed characters where possible and replaces certain Unicode characters
+(such as angstrom and ohm) with other equivalent code points (a-with-ring and omega,
+respectively)), replacement of `fullwidth and halfwidth characters <https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms>`__
+in the domain part, and possibly other `UTS46 <http://unicode.org/reports/tr46>`__ mappings
+on the dommain part.
+
+(See `RFC 6532 (internationalized email) section 3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__
+and `RFC 5895 (IDNA 2008) section 2 <http://www.ietf.org/rfc/rfc5895.txt>`__.)
 
 Examples
 --------
@@ -347,5 +336,5 @@ them through the validator (without deliverability checks) like so:
 
 ::
 
-    python3 email_validator.py --test-pass < test_pass.txt
+    python3 email_validator/__init__.py --test-pass < test_pass.txt
 

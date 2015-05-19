@@ -29,10 +29,8 @@ ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 # ease compatibility in type checking
 if sys.version_info >= (3,):
 	unicode_class = str
-	chr_func = chr
 else:
 	unicode_class = unicode
-	chr_func = unichr
 
 	# turn regexes to unicode (because 'ur' literals are not allowed in Py3)
 	ATEXT = ATEXT.decode("ascii")
@@ -154,39 +152,18 @@ def validate_email_domain_part(domain):
 	if domain.endswith("."):
 		raise EmailSyntaxError("An email address cannot end with a period.")
 
-	# Prepare the domain name (application-level) for IDNA conversion
-	# (protocol-level) --- see RFC 5895 section 2:
-	#
-	# * Convert to lowercase.
-	# * Fullwidth and halfwidth characters are decomposed.
-	# * Unicode NFC normalization is applied.
-	# * IDEOGRAPHIC FULL STOP character (U+3002) can be mapped to the FULL
-	#   STOP before label separation occurs.
-	#
-	# These steps are not necessary for ASCII-only domain names, and
-	# lowercasing perhaps should not be applied because it isn't required.
-	# But we'll do it anyway for consistency and simplicity.
-
-	domain = domain.lower()
-	def wide_narrow(c):
-		decomp = unicodedata.decomposition(c)
-		m = re.match('<(?:narrow|wide)> ([A-Z0-9]+)$', decomp)
-		if m:
-			return chr_func(int(m.group(1), 16))
-		return c
-	domain = ''.join(wide_narrow(c) for c in domain)
-	domain = unicodedata.normalize("NFC", domain)
-	#domain = domain.replace('\u3002', '.') # handled by idna module
-
 	# Regardless of whether international characters are actually used,
 	# first convert to IDNA ASCII. For ASCII-only domains, the transformation
 	# does nothing. If internationalized characters are present, the MTA
 	# must either support SMTPUTF8 or the mail client must convert the
-	# domain name to IDNA before submission.
+	# domain name to IDNA before submission. uts46=True requests the UTS46
+	# application-level compatibility mapping (lowercasing, NFC normalization,
+	# etc., which are required to be performed prior to actual IDNA 2008
+	# processing.)
 	try:
-		domain = idna.encode(domain).decode("ascii")
-	except:
-		raise EmailSyntaxError("The domain name %s contains invalid characters." % domain)		
+		domain = idna.encode(domain, uts46=True).decode("ascii")
+	except idna.IDNAError as e:
+		raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
 
 	# We may have been given an IDNA ASCII domain to begin with. Check
 	# that the domain actually conforms to IDNA. It could look like IDNA
@@ -197,8 +174,8 @@ def validate_email_domain_part(domain):
 	# which we should use in all error messages.
 	try:
 		domain_i18n = idna.decode(domain.encode('ascii'))
-	except:
-		raise EmailSyntaxError("The domain name %s is not valid IDNA." % domain)		
+	except idna.IDNAError as e:
+		raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (domain, str(e)))
 
 	# RFC 5321 4.5.3.1.2
 	if len(domain) > 255:
