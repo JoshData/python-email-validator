@@ -179,7 +179,7 @@ into precomposed characters where possible and replaces certain Unicode characte
 (such as angstrom and ohm) with other equivalent code points (a-with-ring and omega,
 respectively)), replacement of `fullwidth and halfwidth characters <https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms>`__
 in the domain part, and possibly other `UTS46 <http://unicode.org/reports/tr46>`__ mappings
-on the dommain part.
+on the domain part.
 
 (See `RFC 6532 (internationalized email) section 3.1 <https://tools.ietf.org/html/rfc6532#section-3.1>`__
 and `RFC 5895 (IDNA 2008) section 2 <http://www.ietf.org/rfc/rfc5895.txt>`__.)
