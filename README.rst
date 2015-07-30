@@ -11,9 +11,6 @@ To: line e.g. ``My Name <my@address.com>``, that this library does not
 accept. For that try `flanker  <https://github.com/mailgun/flanker>`__
 instead.
 
-This library is new and not well tested (and so *perhaps* not robust)
-yet, but the goal is to be modern and complete.
-
 Usage
 -----
 
@@ -27,9 +24,10 @@ account, you might do this:
     email = "my+address@mydomain.tld"
 
     try:
-        email = validate_email(email)["email"]
-        # OK, it's valid. Replace with normalized form.
+        v = validate_email(email) # validate and get info
+        email = v["email"] # replace with normalized form
     except EmailNotValidError as e:
+        # email is not valid, exception message is human-readable
         print(str(e))
 
 This validates the address and gives you its normalized form. You should
@@ -48,20 +46,13 @@ to fail validation for addresses that would require SMTPUTF8**:
 
         validate_email(email, allow_smtputf8=False)
 
-For a quick test of the library, you can also run it from the command
-line:
-
-::
-
-    python3 email_validator.py example@良好mail.中国
-
 Overview
 --------
 
 The module provides a function ``validate_email(email_address)`` which takes
 an email address (either a ``str`` or ASCII ``bytes``) and:
 
--  Raise a ``EmailNotValidError`` with a helpful, human-readable error
+-  Raises a ``EmailNotValidError`` with a helpful, human-readable error
    message explaining why the email address is not valid, or
 
 -  Returns a dict with information about the deliverability of the email
@@ -74,11 +65,11 @@ exception classes are subclasses of ``EmailNotValidError``, which in
 turn is a subclass of ``ValueError``.
 
 But when an email address is valid, a dict is returned containing
-information that might aid deliverability.
+information that might aid deliverability (see below).
 
-The validator doesn't permit obsoleted forms of email addresses,
-although they are still valid and deliverable, since they will probably
-give you grief if you're using email for login. See later in the
+The validator doesn't permit obsoleted forms of email addresses that no one,
+uses anymore even though they are still valid and deliverable, since they
+will probably give you grief if you're using email for login. See later in the
 document about that. If you need validation against the specs exactly,
 you might like `pyIsEmail  <https://github.com/michaelherold/pyIsEmail>`__.
 
@@ -92,12 +83,16 @@ greylisting).
 The function also accepts the following keyword arguments (default as
 shown):
 
-* ``allow_smtputf8=True``: Set to ``False`` to prohibit internationalized
+``allow_smtputf8=True``
+  Set to ``False`` to prohibit internationalized
   addresses that would require the `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__
   extension.
-* ``check_deliverability=True``: Set to ``False`` to skip the domain name
-  resolution check.
-* ``allow_empty_local=False``: Set to ``True`` to allow an empty local
+
+``check_deliverability=True``
+  Set to ``False`` to skip the domain name resolution check.
+
+``allow_empty_local=False``
+  Set to ``True`` to allow an empty local
   part (i.e. ``@example.com``), e.g. for validating Postfix aliases.
 
 Internationalized email addresses
@@ -109,17 +104,21 @@ respectively. Each has adapted to internationalization in a separate
 way, creating two separate aspects to email address
 internationalization.
 
+### Internationalized domain names (IDN)
+
 The first is `internationalized domain names (RFC
 5891) <https://tools.ietf.org/html/rfc5891>`__. The DNS system has not
 been updated with Unicode support. Instead, internationalized domain
 names are converted into a special IDNA ASCII form starting with
 ``xn--``. When an email address has non-ASCII characters in its domain
-part, the domain part can and should be replaced with its IDNA ASCII
-form. Your mail submission library probably does this for you
-transparently. Note that most web browsers are currently in transition
-between IDNA 2003 (RFC 3490) and IDNA 2008 (RFC 5891). This library
-uses IDNA 2008 using the `idna <https://github.com/kjd/idna>`__ module
-by Kim Davies.
+part, the domain part is replaced with its IDNA ASCII equivalent form
+in the process of mail transmission. Your mail submission library probably
+does this for you transparently. Note that most web browsers are currently
+in transition between IDNA 2003 (RFC 3490) and IDNA 2008 (RFC 5891). This
+library uses IDNA 2008 using the `idna <https://github.com/kjd/idna>`__
+module by Kim Davies.
+
+### Internationalized local parts
 
 The second sort of internationalization is internationalization in the
 *local* part of the address (before the @-sign). These email addresses
@@ -129,24 +128,28 @@ support the `SMTPUTF8 (RFC
 6531) <https://tools.ietf.org/html/rfc6531>`__ extension. Support for
 SMTPUTF8 varies.
 
+### How this module works
+
 By default all internationalized forms are accepted by the validator.
 But if you know ahead of time that SMTPUTF8 is not supported by your
 mail submission stack, then you must filter out addresses that require
 SMTPUTF8 using the ``allow_smtputf8=False`` keyword argument (see
 above). This will cause the validation function to raise a
-``EmailSyntaxError`` if delivery would require SMTPUTF8. If you do not
-set ``allow_smtputf8=False``, you can also check the value of the
-``smtputf8`` field in the returned dict.
+``EmailSyntaxError`` if delivery would require SMTPUTF8. That's just
+in those cases where non-ASCII characters appear before the @-sign.
+If you do not set ``allow_smtputf8=False``, you can also check the
+value of the ``smtputf8`` field in the returned dict.
 
 If your mail submission library doesn't support Unicode at all --- even
 in the domain part of the address --- then immediately prior to mail
-submission you should replace the email address with the ASCII-ized
+submission you must replace the email address with its ASCII-ized
 form. This library gives you back the ASCII-ized form in the
 ``email_ascii`` field in the returned dict, which you can get like this:
 
 ::
 
-    email = validate_email(email, allow_smtputf8=False)['email_ascii']
+    v = validate_email(email, allow_smtputf8=False)
+    email = v['email_ascii']
 
 The local part is left alone (if it has internationalized characters
 ``allow_smtputf8=False`` will force validation to fail) and the domain
@@ -158,14 +161,15 @@ information without telling them.)
 Normalization
 -------------
 
-The use of Unicode in email addreses introduced a normalization problem.
+The use of Unicode in email addresses introduced a normalization problem.
 Different Unicode strings can look identical and have the same semantic
 meaning to the user. The ``email`` field returned on successful validation
 provides the correctly normalized form of the given email address:
 
 ::
 
-    email = validate_email(email)['email']
+    v = validate_email(email)
+    email = v['email']
 
 Because you may get an email address in a variety of forms, you ought to replace
 it with its normalized form immediately prior to going into your database
@@ -275,38 +279,53 @@ Return value
 When an email address passes validation, the fields in the returned dict
 are:
 
--  ``email``: The canonical form of the email address, mostly useful for
+``email``
+   The canonical form of the email address, mostly useful for
    display purposes. This merely combines the ``local`` and
-   ``domain_i18n`` fields.
--  ``email_ascii``: If present, an ASCII-only form of the email address
+   ``domain_i18n`` fields (see below).
+
+``email_ascii``
+   If present, an ASCII-only form of the email address
    by replacing the domain part with `IDNA
    ASCII <https://tools.ietf.org/html/rfc5891>`__. This field will be
    present when an ASCII-only form of the email address exists
    (including if the email address is already ASCII). If the local part
    of the email address contains internationalized characters,
    ``email_ascii`` will not be present.
--  ``local``: The local part of the given email address (before the
+
+``local``
+   The local part of the given email address (before the
    @-sign) with Unicode NFC normalization applied.
--  ``domain``: The `IDNA
-   ASCII <https://tools.ietf.org/html/rfc5891>`__-encoded form of the
+
+``domain``
+   The `IDNA ASCII <https://tools.ietf.org/html/rfc5891>`__-encoded form of the
    domain part of the given email address (after the @-sign), as it
    would be transmitted on the wire.
--  ``domain_i18n``: The canonical internationalized form of
+
+``domain_i18n``
+   The canonical internationalized form of
    the domain part of the address, by round-tripping through IDNA ASCII.
    If the returned string contains non-ASCII characters, either the
    `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ feature of MTAs
    will be required to transmit the message or else the email address('s
    domain part) must be converted to IDNA ASCII first (given in the
    returned ``domain`` field).
--  ``smtputf8`` is a boolean indicating that the
-   `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ feature of MTAs
-   will be required to transmit messages to this address because the
+
+``smtputf8``
+   A boolean indicating that the `SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__
+   feature of MTAs will be required to transmit messages to this address because the
    local part of the address has non-ASCII characters (the local part
-   cannot be IDNA-encoded).
--  ``mx`` is a list of (priority, domain) tuples of MX records specified
+   cannot be IDNA-encoded). If ``allow_smtputf8=False`` is passed as an
+   argument, this flag will always be false because an exception is raised
+   if it would have been true.
+
+``mx``
+   A list of `(priority, domain)` tuples of MX records specified
    in the DNS for the domain (see `RFC 5321 section
    5 <https://tools.ietf.org/html/rfc5321#section-5>`__).
--  ``mx-fallback`` is ``None`` if an ``MX`` record is found. If no MX
+
+``mx-fallback``
+   ``None`` if an ``MX`` record is found. If no MX
    records are actually specified in DNS and instead are inferred,
    through an obsolete mechanism, from A or AAAA records, the value is
    the type of DNS record used instead (``A`` or ``AAAA``).
