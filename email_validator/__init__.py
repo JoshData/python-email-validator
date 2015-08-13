@@ -151,6 +151,12 @@ def validate_email_domain_part(domain):
 		raise EmailSyntaxError("There must be something after the @-sign.")
 	if domain.endswith("."):
 		raise EmailSyntaxError("An email address cannot end with a period.")
+	if domain.startswith("."):
+		# See note next to idna.encode.
+		raise EmailSyntaxError("An email address cannot have a period immediately after the @-sign.")
+	if ".." in domain:
+		# See note next to idna.encode.
+		raise EmailSyntaxError("An email address cannot have two periods in a row.")
 
 	# Regardless of whether international characters are actually used,
 	# first convert to IDNA ASCII. For ASCII-only domains, the transformation
@@ -160,6 +166,12 @@ def validate_email_domain_part(domain):
 	# application-level compatibility mapping (lowercasing, NFC normalization,
 	# etc., which are required to be performed prior to actual IDNA 2008
 	# processing.)
+	#
+	# Unfortunately this step incorrectly 'fixes' domain names with leading
+	# periods by removing them, even though they are, once in IDNA, invalid
+	# DOT_ATOM_TEXT strings, so we have to check for this above. It also gives
+	# a funky error message ("No input") when there are two periods in a
+	# row, also checked separately above.
 	try:
 		domain = idna.encode(domain, uts46=True).decode("ascii")
 	except idna.IDNAError as e:
@@ -185,7 +197,8 @@ def validate_email_domain_part(domain):
 	# characters allowed in a hostname (see ATEXT_HOSTNAME above).
 	DOT_ATOM_TEXT = ATEXT_HOSTNAME + r'(?:\.' + ATEXT_HOSTNAME + r')*'
 
-	# Check the regular expression.
+	# Check the regular expression. This is probably entirely redundant
+	# with idna.decode, which also checks this format.
 	m = re.match(DOT_ATOM_TEXT + "$", domain)
 	if not m:
 		raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
