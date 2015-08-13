@@ -17,9 +17,13 @@ jeff@臺網中心.tw
 葉士豪@臺網中心.台灣
 jeff葉@臺網中心.tw
 
+my．name@domain.com
+my.name@domain．com
+
 [invalid]
 # These addresses should fail!
 my@.leadingdot.com
+my@．．leadingfwdot.com
 my@..twodots.com
 my@twodots..com
 my@baddash.-.com
@@ -28,3 +32,4 @@ my@baddash.b-.com
 .leadingdot@domain.com
 ..twodots@domain.com
 twodots..here@domain.com
+me@⒈wouldbeinvalid.com

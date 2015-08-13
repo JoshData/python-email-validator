@@ -147,33 +147,43 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 		}
 
 def validate_email_domain_part(domain):
+	# Empty?
 	if len(domain) == 0:
 		raise EmailSyntaxError("There must be something after the @-sign.")
+
+	# Perform UTS-46 normalization, which includes casefolding, NFC normalization,
+	# and converting all label separators (the period/full stop, fullwidth full stop,
+	# ideographic full stop, and halfwidth ideographic full stop) to basic periods.
+	# It will also raise an exception if there is an invalid character in the input,
+	# such as "⒈" which is invalid because it would expand to include a period.
+	try:
+		domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
+	except idna.IDNAError as e:
+		raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+
+	# Now we can perform basic checks on the use of periods (since equivalent
+	# symbols have been mapped to periods). These checks are needed because the
+	# IDNA library doesn't handle well domains that have empty labels (i.e. initial
+	# dot, trailing dot, or two dots in a row).
 	if domain.endswith("."):
 		raise EmailSyntaxError("An email address cannot end with a period.")
 	if domain.startswith("."):
-		# See note next to idna.encode.
 		raise EmailSyntaxError("An email address cannot have a period immediately after the @-sign.")
 	if ".." in domain:
-		# See note next to idna.encode.
 		raise EmailSyntaxError("An email address cannot have two periods in a row.")
 
 	# Regardless of whether international characters are actually used,
 	# first convert to IDNA ASCII. For ASCII-only domains, the transformation
 	# does nothing. If internationalized characters are present, the MTA
 	# must either support SMTPUTF8 or the mail client must convert the
-	# domain name to IDNA before submission. uts46=True requests the UTS46
-	# application-level compatibility mapping (lowercasing, NFC normalization,
-	# etc., which are required to be performed prior to actual IDNA 2008
-	# processing.)
+	# domain name to IDNA before submission.
 	#
 	# Unfortunately this step incorrectly 'fixes' domain names with leading
-	# periods by removing them, even though they are, once in IDNA, invalid
-	# DOT_ATOM_TEXT strings, so we have to check for this above. It also gives
+	# periods by removing them, so we have to check for this above. It also gives
 	# a funky error message ("No input") when there are two periods in a
 	# row, also checked separately above.
 	try:
-		domain = idna.encode(domain, uts46=True).decode("ascii")
+		domain = idna.encode(domain, uts46=False).decode("ascii")
 	except idna.IDNAError as e:
 		raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
 
