@@ -355,5 +355,5 @@ them through the validator (without deliverability checks) like so:
 
 ::
 
-    python3 email_validator/__init__.py --test-pass < test_pass.txt
+    python3 email_validator/__init__.py --tests < test_pass.txt
 
