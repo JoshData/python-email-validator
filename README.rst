@@ -4,12 +4,35 @@ email\_validator
 A robust email address syntax and deliverability validation library
 for Python 2.7/3.4 by `Joshua Tauberer <https://razor.occams.info>`__.
 
-This library validates that address are of the form like ``x@y.com``,
-e.g. what you would want in a login form on a website. There are other
-forms of email addresses, like you would use when composing a message's
-To: line e.g. ``My Name <my@address.com>``, that this library does not
-accept. For that try `flanker  <https://github.com/mailgun/flanker>`__
-instead.
+This library validates that address are of the form ``x@y.com``. This is
+the sort of validation you would want for a login form on a website.
+
+Key features:
+
+* Good for validating email addresses used for logins/identity.
+* Friendly error messages when validation fails (appropriate to show to end users).
+* Checks deliverability: Does the domain name resolve?
+* Supports internationalized domain names and, with a flag, internationalized local parts.
+* Normalizes email addresses (super import for internationalized addresses).
+
+The library is NOT for validation of an email's To: line (e.g.
+``My Name <my@address.com>``), which `flanker  <https://github.com/mailgun/flanker>`__
+is more appropriate for. And this library does NOT permit obsolete
+forms of email addresses, so if you need strict validation against the
+email specs exactly, use `pyIsEmail  <https://github.com/michaelherold/pyIsEmail>`__.
+
+The current version is 1.0 (September 5, 2015).
+
+Installation
+------------
+
+This package is on PyPI, so:
+
+::
+
+    pip install email_validator
+
+``pip3`` also works.
 
 Usage
 -----
@@ -67,12 +90,12 @@ turn is a subclass of ``ValueError``.
 But when an email address is valid, a dict is returned containing
 information that might aid deliverability (see below).
 
-The validator doesn't permit obsoleted forms of email addresses that no one,
+The validator doesn't permit obsoleted forms of email addresses that no one
 uses anymore even though they are still valid and deliverable, since they
-will probably give you grief if you're using email for login. See later in the
-document about that. If you need validation against the specs exactly,
-you might like `pyIsEmail  <https://github.com/michaelherold/pyIsEmail>`__.
+will probably give you grief if you're using email for login. (See later in the
+document about that.)
 
+The validator checks that the domain name in the email address resolves.
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
 reasons servers are good at not giving away whether an address is
@@ -104,7 +127,8 @@ respectively. Each has adapted to internationalization in a separate
 way, creating two separate aspects to email address
 internationalization.
 
-### Internationalized domain names (IDN)
+Internationalized domain names (IDN)
+''''''''''''''''''''''''''''''''''''
 
 The first is `internationalized domain names (RFC
 5891) <https://tools.ietf.org/html/rfc5891>`__. The DNS system has not
@@ -118,7 +142,8 @@ in transition between IDNA 2003 (RFC 3490) and IDNA 2008 (RFC 5891). This
 library uses IDNA 2008 using the `idna <https://github.com/kjd/idna>`__
 module by Kim Davies.
 
-### Internationalized local parts
+Internationalized local parts
+'''''''''''''''''''''''''''''
 
 The second sort of internationalization is internationalization in the
 *local* part of the address (before the @-sign). These email addresses
@@ -128,7 +153,8 @@ support the `SMTPUTF8 (RFC
 6531) <https://tools.ietf.org/html/rfc6531>`__ extension. Support for
 SMTPUTF8 varies.
 
-### How this module works
+How this module works
+'''''''''''''''''''''
 
 By default all internationalized forms are accepted by the validator.
 But if you know ahead of time that SMTPUTF8 is not supported by your
