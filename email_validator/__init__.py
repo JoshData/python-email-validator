@@ -49,7 +49,7 @@ class EmailUndeliverableError(EmailNotValidError):
 	"""Exception raised when an email address fails validation because its domain name does not appear deliverable."""
 	pass
 
-def validate_email_encoding(
+def _validate_email_encoding(
 	email):
     if not isinstance(email, (str, unicode_class)):
 		try:
@@ -58,7 +58,7 @@ def validate_email_encoding(
 			raise EmailSyntaxError("The email address is not valid ASCII.")
 	return email
 
-def validate_email_tokenization(
+def _validate_email_tokenization(
 	email):
     parts = email.split('@')
 	if len(parts) != 2:
@@ -75,8 +75,8 @@ def validate_gmail(
     http://gmail-tips.blogspot.in/2014/07/not-my-email.html
     https://support.google.com/mail/answer/10313?hl=en&authuser=1
     """
-    email = validate_email_encoding(email)
-    parts = validate_email_tokenization(email)
+    email = _validate_email_encoding(email)
+    parts = _validate_email_tokenization(email)
     # Please use between 6 and 30 characters.
 
 
@@ -92,10 +92,10 @@ def validate_email(
 	# Allow email to be a str or bytes instance. If bytes,
 	# it must be ASCII because that's how the bytes work
 	# on the wire with SMTP.
-	email =  validate_email_encoding(email)
+	email =  _validate_email_encoding(email)
 
 	# At-sign.
-	parts = validate_email_tokenization(email)
+	parts = _validate_email_tokenization(email)
 
 	# Prepare a dict to return on success.
 	ret = { }
