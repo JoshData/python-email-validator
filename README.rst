@@ -99,8 +99,9 @@ The validator checks that the domain name in the email address resolves.
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
 reasons servers are good at not giving away whether an address is
-deliverable or not: accepted mail may still bounce, and bounced mail may
-indicate a temporary failure (sometimes an intentional failure, like
+deliverable or not: email addresses that appear to accept mail at first
+can bounce mail after a delay, and bounced mail may indicate a temporary
+failure of a good email address (sometimes an intentional failure, like
 greylisting).
 
 The function also accepts the following keyword arguments (default as
