@@ -386,7 +386,7 @@ them through the validator (without deliverability checks) like so:
 
 
 Usage for Gmail
-===============
+==============
 Sources:
 --------
 
@@ -397,7 +397,7 @@ Sources:
       https://support.google.com/mail/answer/10313?hl=en&authuser=1
 
 Call:
-______
+-----
 ::
       try:
         response = validate_gmail(email)
@@ -406,7 +406,7 @@ ______
         pass
 
 Example:
-_________
+--------
 ::
 
         validate_gmail('P.r.esident.of.the@gmail.com')
@@ -418,7 +418,7 @@ _________
         }
 
 Key names:
-__________
+-----------
 
 ::
         email - original email
