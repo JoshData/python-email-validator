@@ -386,18 +386,27 @@ them through the validator (without deliverability checks) like so:
 
 
 Usage for Gmail
------
+===============
 Sources:
--  https://support.google.com/a/answer/33386?hl=en
--  http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
--  http://gmail-tips.blogspot.in/2014/07/not-my-email.html
--  https://support.google.com/mail/answer/10313?hl=en&authuser=1
+--------
+
 ::
+      https://support.google.com/a/answer/33386?hl=en
+      http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
+      http://gmail-tips.blogspot.in/2014/07/not-my-email.html
+      https://support.google.com/mail/answer/10313?hl=en&authuser=1
 
-        validate_gmail(email)
+Call:
+______
+::
+      try:
+        response = validate_gmail(email)
+      except Exception, e:
+        # EmailNotValidError exception
+        pass
 
-Throws exception for invalid emails
 Example:
+_________
 ::
 
         validate_gmail('P.r.esident.of.the@gmail.com')
@@ -408,8 +417,11 @@ Example:
         'email': 'P.r.esident.of.the@gmail.com'
         }
 
-Key names: 
--  email - original email
--  email_ascii - normalised email
--  local - normalised local part
--  domain - normalised domain which is always gmail.com
+Key names:
+__________
+
+::
+        email - original email
+        email_ascii - normalised email
+        local - normalised local part
+        domain - normalised domain which is always gmail.com
