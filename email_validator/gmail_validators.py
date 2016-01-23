@@ -65,8 +65,7 @@ class Validator(object):
         #remove caps
         username = username.lower()
         #remove  dots, +
-        pattern = re.compile('[.+]*')
-        username = re.sub(pattern, '', username)
+        username = re.sub(r'[.+]', '', username)
         
         return username
 
