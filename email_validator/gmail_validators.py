@@ -1,4 +1,4 @@
-
+import re
 class EmailNotValidError(ValueError):
     """Parent class of all exceptions raised by this module."""
     pass
@@ -6,6 +6,7 @@ class EmailNotValidError(ValueError):
 '''
 The comments have bee copied from gmail website and support link
 '''
+
 class Validator(object):
 
     @staticmethod
@@ -14,35 +15,36 @@ class Validator(object):
             if ((len(username)>6) and (len(username)<30)):
                 return True
         raise EmailNotValidError('Invalid username length')
-
+    '''
     @staticmethod
     def  validate_username_special_char(username=''):
         """
         Usernames can't contain an equal sign (=), brackets (<,>), plus sign (+), a comma (,), or more than one period (.) in a row.
         The last character of your username should be a letter (a-z) or number.
+        Not tested
         """
-        import re
-        pattern = re.compile('[=><+,#!]*..+.$')
+        
+        pattern = re.compile('[=><+,#!]*\.\.+\.$')
         response = pattern.match(username)
         if response:
            raise EmailNotValidError('Failed special character test')
         return response
-
+    '''
     @staticmethod
     def validate_username_strictly(username=''):
         '''
         Usernames can contain letters (a-z), numbers (0-9), dashes (-), underscores (_), apostrophes ('}, and periods (.).
         '''
-        import re
-        pattern = re.compile("^[a-zA-Z0-9_-.']*$")
+       
+        pattern = re.compile("^[a-zA-Z0-9_\-.']*$")
         response = pattern.match(username)
-        if response:
+        if not response:
             raise EmailNotValidError('Strict validation failed')
         """
         Usernames can't contain more than one period (.) in a row.
         The last character of your username should be a letter (a-z) or number.
         """
-        pattern = re.compile("..+")
+        pattern = re.compile("\.\.+")
         response = pattern.match(username)
         if response:
            raise EmailNotValidError('Consecutive dots')
@@ -63,12 +65,13 @@ class Validator(object):
         #remove caps
         username = username.lower()
         #remove  dots, + 
-        pattern = re.compile['.*']
+        pattern = re.compile('\.*')
         username = re.sub(pattern, '', username)
         return username
 
     @staticmethod
     def normalize_domain_part(domain=''):
-        if domain == 'googlemail.com'
-           return 'gmail.com'    
+        if domain == 'googlemail.com':
+            return 'gmail.com'    
+        return domain
  
