@@ -69,6 +69,7 @@ to fail validation for addresses that would require SMTPUTF8**:
 
         validate_email(email, allow_smtputf8=False)
 
+
 Overview
 --------
 
@@ -383,3 +384,30 @@ them through the validator (without deliverability checks) like so:
 
     python3 email_validator/__init__.py --tests < test_pass.txt
 
+
+Usage for Gmail
+-----
+Sources:
+    https://support.google.com/a/answer/33386?hl=en
+    http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
+    http://gmail-tips.blogspot.in/2014/07/not-my-email.html
+    https://support.google.com/mail/answer/10313?hl=en&authuser=1
+::
+
+        validate_gmail(email)
+
+Throws exception for invalid emails
+Example:
+::
+
+        validate_gmail('P.r.esident.of.the@gmail.com')
+        {
+        'domain': 'gmail.com', 
+        'email_ascii': 'presidentofthe@gmail.com', 
+        'local': 'presidentofthe', 
+        'email': 'P.r.esident.of.the@gmail.com'}
+key names: 
+email - original email
+email_ascii - normalised email
+local - normalised local part
+domain - normalised domain which is always gmail.com
