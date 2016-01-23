@@ -388,10 +388,10 @@ them through the validator (without deliverability checks) like so:
 Usage for Gmail
 -----
 Sources:
-    https://support.google.com/a/answer/33386?hl=en
-    http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
-    http://gmail-tips.blogspot.in/2014/07/not-my-email.html
-    https://support.google.com/mail/answer/10313?hl=en&authuser=1
+- https://support.google.com/a/answer/33386?hl=en
+- http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
+- http://gmail-tips.blogspot.in/2014/07/not-my-email.html
+- https://support.google.com/mail/answer/10313?hl=en&authuser=1
 ::
 
         validate_gmail(email)
@@ -405,9 +405,11 @@ Example:
         'domain': 'gmail.com', 
         'email_ascii': 'presidentofthe@gmail.com', 
         'local': 'presidentofthe', 
-        'email': 'P.r.esident.of.the@gmail.com'}
-key names: 
-email - original email
-email_ascii - normalised email
-local - normalised local part
-domain - normalised domain which is always gmail.com
+        'email': 'P.r.esident.of.the@gmail.com'
+        }
+        
+Key names: 
+- email - original email
+- email_ascii - normalised email
+- local - normalised local part
+- domain - normalised domain which is always gmail.com
