@@ -64,9 +64,10 @@ class Validator(object):
     def normalize_username(username=''):
         #remove caps
         username = username.lower()
-        #remove  dots, + 
-        pattern = re.compile('\.*')
+        #remove  dots, +
+        pattern = re.compile('[.+]*')
         username = re.sub(pattern, '', username)
+        
         return username
 
     @staticmethod
