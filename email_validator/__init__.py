@@ -3,7 +3,7 @@ import re
 import unicodedata
 import dns.resolver, dns.exception
 import idna # implements IDNA 2008; Python's codec is only IDNA 2003
-
+from gmail_validators import Validator
 
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
 # characters are permitted in email addresses (not taking into
@@ -65,6 +65,7 @@ def _validate_email_tokenization(
 		raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
 	return parts
 
+
 def validate_gmail(
 	email):
 
@@ -74,11 +75,21 @@ def validate_gmail(
     http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
     http://gmail-tips.blogspot.in/2014/07/not-my-email.html
     https://support.google.com/mail/answer/10313?hl=en&authuser=1
+
+    you can use validate_email before this call as a decorator
     """
     email = _validate_email_encoding(email)
     parts = _validate_email_tokenization(email)
-    # Please use between 6 and 30 characters.
-
+    gmail_validator_stub = Validator
+    Validator.validate_username_length(parts[0])
+    Validator.validate_username_strictly(parts[0])
+    Validator.validate_domain_part(part[1])
+    username = Validator.normalize_username(parts[0])
+    domain = Validator.normalize_domain_part(parts[1])
+    return {
+    'local':username,
+    'domain': domain,
+    'email_ascii':'@'.join([username, domain])}
 
 def validate_email(
 	email,
