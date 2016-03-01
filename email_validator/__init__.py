@@ -295,7 +295,7 @@ def main():
 			# Strip newlines and skip blank lines and comments.
 			line = line.strip()
 			if line == "" or line[0] == "#": continue
-			if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
+			if sys.version_info < (3,): line = line.decode("utf8") # assume utf8 in input
 
 			# Pick up "[valid]"/"[invalid]" lines.
 			if line == "[valid]":
