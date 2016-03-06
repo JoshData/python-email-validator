@@ -21,7 +21,7 @@ is more appropriate for. And this library does NOT permit obsolete
 forms of email addresses, so if you need strict validation against the
 email specs exactly, use `pyIsEmail  <https://github.com/michaelherold/pyIsEmail>`__.
 
-The current version is 1.0 (September 5, 2015).
+The current version is 1.0.1 (March 6, 2016).
 
 Installation
 ------------
