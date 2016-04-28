@@ -11,11 +11,11 @@ Key features:
 
 * Good for validating email addresses used for logins/identity.
 * Friendly error messages when validation fails (appropriate to show to end users).
-* Checks deliverability: Does the domain name resolve?
-* Supports internationalized domain names and, with a flag, internationalized local parts.
-* Normalizes email addresses (super import for internationalized addresses).
+* (optionally) Checks deliverability: Does the domain name resolve?
+* Supports internationalized domain names and (optionally) internationalized local parts.
+* Normalizes email addresses (super important for internationalized addresses! see below).
 
-The library is NOT for validation of an email's To: line (e.g.
+The library is NOT for validation of the To: line in an email message (e.g.
 ``My Name <my@address.com>``), which `flanker  <https://github.com/mailgun/flanker>`__
 is more appropriate for. And this library does NOT permit obsolete
 forms of email addresses, so if you need strict validation against the
