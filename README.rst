@@ -140,7 +140,7 @@ part, the domain part is replaced with its IDNA ASCII equivalent form
 in the process of mail transmission. Your mail submission library probably
 does this for you transparently. Note that most web browsers are currently
 in transition between IDNA 2003 (RFC 3490) and IDNA 2008 (RFC 5891) and
-[compliance around the web is not very good](http://archives.miloush.net/michkap/archive/2012/02/27/10273315.html)
+`compliance around the web is not very good <http://archives.miloush.net/michkap/archive/2012/02/27/10273315.html>`__
 in any case, so be aware that edge cases are handled differently by different
 applications and libraries. This library conforms to IDNA 2008 using the
 `idna <https://github.com/kjd/idna>`__ module by Kim Davies.
