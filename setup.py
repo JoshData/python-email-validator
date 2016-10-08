@@ -30,6 +30,7 @@ setup(
 		'Programming Language :: Python :: 2.7',
 		'Programming Language :: Python :: 3',
 		'Programming Language :: Python :: 3.4',
+                'Programming Language :: Python :: 3.5',
 	],
 
 	keywords="email address validator",
@@ -37,7 +38,7 @@ setup(
 	packages=find_packages(),
 	install_requires=[
 		"idna>=2.0.0",
-		"dnspython3" if sys.version_info > (3,) else "dnspython"],
+		"dnspython>=1.13.0"],
 
 	entry_points={
 		'console_scripts': [
