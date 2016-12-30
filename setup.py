@@ -9,7 +9,7 @@ from codecs import open
 
 setup(
 	name='email_validator',
-	version='1.0.1',
+	version='1.0.2',
 
 	description='A robust email syntax and deliverability validation library for Python 2.x/3.x.',
 	long_description=open("README.rst", encoding='utf-8').read(),
@@ -34,11 +34,11 @@ setup(
 	],
 
 	keywords="email address validator",
-	
+
 	packages=find_packages(),
 	install_requires=[
 		"idna>=2.0.0",
-		"dnspython>=1.13.0"],
+		"dnspython>=1.15.0"],
 
 	entry_points={
 		'console_scripts': [
