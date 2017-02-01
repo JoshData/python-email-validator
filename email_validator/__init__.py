@@ -51,6 +51,37 @@ class EmailUndeliverableError(EmailNotValidError):
 	"""Exception raised when an email address fails validation because its domain name does not appear deliverable."""
 	pass
 
+def validate_email_encoding(
+	email):
+    if not isinstance(email, (str, unicode_class)):
+		try:
+			email = email.decode("ascii")
+		except ValueError:
+			raise EmailSyntaxError("The email address is not valid ASCII.")
+	return email
+
+def validate_email_tokenization(
+	email):
+    parts = email.split('@')
+	if len(parts) != 2:
+		raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+	return parts
+
+def validate_gmail(
+	email):
+
+    """
+    Validate a gmail as per basic guidelines
+    Source: https://support.google.com/a/answer/33386?hl=en
+    http://gmail-miscellany.blogspot.in/2012/08/wrong-email-gmail-dots-issue.html
+    http://gmail-tips.blogspot.in/2014/07/not-my-email.html
+    https://support.google.com/mail/answer/10313?hl=en&authuser=1
+    """
+    email = validate_email_encoding(email)
+    parts = validate_email_tokenization(email)
+    # Please use between 6 and 30 characters.
+
+
 def validate_email(
 	email,
 	allow_smtputf8=True,
@@ -63,16 +94,10 @@ def validate_email(
 	# Allow email to be a str or bytes instance. If bytes,
 	# it must be ASCII because that's how the bytes work
 	# on the wire with SMTP.
-	if not isinstance(email, (str, unicode_class)):
-		try:
-			email = email.decode("ascii")
-		except ValueError:
-			raise EmailSyntaxError("The email address is not valid ASCII.")
+	email =  validate_email_encoding(email)
 
 	# At-sign.
-	parts = email.split('@')
-	if len(parts) != 2:
-		raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+	parts = validate_email_tokenization(email)
 
 	# Prepare a dict to return on success.
 	ret = { }
