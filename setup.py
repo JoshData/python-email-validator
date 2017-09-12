@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# To deploy:
-# rm -rf dist && python3 setup.py sdist && twine upload dist/*
-
 import sys
 from setuptools import setup, find_packages
 from codecs import open
 
 setup(
 	name='email_validator',
-	version='1.0.2',
+	version='1.0.3',
 
 	description='A robust email syntax and deliverability validation library for Python 2.x/3.x.',
 	long_description=open("README.rst", encoding='utf-8').read(),
@@ -30,7 +27,7 @@ setup(
 		'Programming Language :: Python :: 2.7',
 		'Programming Language :: Python :: 3',
 		'Programming Language :: Python :: 3.4',
-                'Programming Language :: Python :: 3.5',
+		'Programming Language :: Python :: 3.5',
 	],
 
 	keywords="email address validator",

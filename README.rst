@@ -21,7 +21,8 @@ is more appropriate for. And this library does NOT permit obsolete
 forms of email addresses, so if you need strict validation against the
 email specs exactly, use `pyIsEmail  <https://github.com/michaelherold/pyIsEmail>`__.
 
-The current version is 1.0.1 (March 6, 2016).
+The current version is 1.0.3 (Sept 12, 2017). The only changes since 1.0.0 (Sept 5, 2015)
+have been small bug and packaging fixes.
 
 Installation
 ------------
@@ -386,3 +387,12 @@ them through the validator (without deliverability checks) like so:
 
     python3 email_validator/__init__.py --tests < test_pass.txt
 
+For Project Maintainers
+-----------------------
+
+To publish a universal wheel to pypi::
+
+	pip3 install twine
+	rm -rf dist
+	python3 setup.py bdist_wheel --universal
+	twine upload dist/*
