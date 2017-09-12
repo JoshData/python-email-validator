@@ -396,3 +396,6 @@ To publish a universal wheel to pypi::
 	rm -rf dist
 	python3 setup.py bdist_wheel --universal
 	twine upload dist/*
+	git tag v1.0.XXX
+	git push --tags
+	
