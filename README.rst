@@ -268,7 +268,7 @@ internationalized domain but ASCII local part, the returned dict is:
 
 Note that ``smtputf8`` is ``False`` even though the domain part is
 internationalized because
-`SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ is only 
+`SMTPUTF8 <https://tools.ietf.org/html/rfc6531>`__ is only
 needed if the local part of the address is internationalized (the domain
 part can be converted to IDNA ASCII). Also note that the ``email`` and
 ``domain_i18n`` fields provide a normalized form of the email address
@@ -390,12 +390,13 @@ them through the validator (without deliverability checks) like so:
 For Project Maintainers
 -----------------------
 
-To publish a universal wheel to pypi::
+The package is distributed as a universal wheel. The wheel is specified as
+universal in the file ``setup.cfg`` by the ``universal = 1`` key in the
+``[bdist_wheel]`` section. To publish a universal wheel to pypi::
 
 	pip3 install twine
 	rm -rf dist
-	python3 setup.py bdist_wheel --universal
+	python3 setup.py bdist_wheel
 	twine upload dist/*
 	git tag v1.0.XXX
 	git push --tags
-	
