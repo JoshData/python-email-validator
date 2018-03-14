@@ -188,6 +188,13 @@ ASCII <https://tools.ietf.org/html/rfc5891>`__. (You probably should not
 do this at account creation time so you don't change the user's login
 information without telling them.)
 
+UCS-4 support required for Python 2.7
+'''''''''''''''''''''''''''''''''''''
+
+Note that when using Python 2.7, it is required that it was built with 
+UCS-4 support (see `here <https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string>`__); otherwise emails with unicode characters outside 
+of the BMP (Basic Multilingual Plane) will not validate correctly.
+
 Normalization
 -------------
 
