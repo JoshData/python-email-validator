@@ -31,8 +31,10 @@ ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 # ease compatibility in type checking
 if sys.version_info >= (3,):
 	unicode_class = str
+	chr_function = chr
 else:
 	unicode_class = unicode
+	chr_function = unichr
 
 	# turn regexes to unicode (because 'ur' literals are not allowed in Py3)
 	ATEXT = ATEXT.decode("ascii")
@@ -97,6 +99,28 @@ def validate_email(
 
 	return ret
 
+def _narrow_build_check(local):
+	"""
+	The regex doesn't compile correctly for narrow builds of Python, so
+	try again.  This is not that pretty, but should catch these edge
+	cases, which are hopefully rare
+	"""
+	if len(u"\U0010FFFF") > 1:
+		#This is a narrow build, try to match this again.
+		#The narrow build only checks up to 56319 instead
+		#of 1114111 (0x10ffff).  Convert any unicode characters
+		#in the valid range (0x0080 to 0x10ffff) to 0x0080 and
+		#run the regex on that
+		local_chars = [c for c in local]
+		for i, char in enumerate(local_chars):
+			if ord(char) > 0x0080 and ord(char) <= 0x10ffff:
+				local_chars[i] = chr_function(0x0080)
+		safe_fake_local = u"".join(local_chars)
+		m = re.match(DOT_ATOM_TEXT_UTF8 + "$", safe_fake_local)
+		return m
+	#Wide build, nothing to match, return no match
+	return None
+
 def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=False):
 	# Validates the local part of an email address.
 
@@ -127,6 +151,11 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 	else:
 		# The local part failed the ASCII check. Now try the extended internationalized requirements.
 		m = re.match(DOT_ATOM_TEXT_UTF8 + "$", local)
+		if not m:
+			#It's not looking good, but there's a chance this is a
+			#"narrow" build of Python where the regex didn't compile
+			#correctly, try to check that
+			m = _narrow_build_check(local)
 		if not m:
 			# It's not a valid internationalized address either. Report which characters were not valid.
 			bad_chars = ', '.join(sorted(set( c for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c) )))
@@ -260,7 +289,7 @@ def validate_email_deliverability(domain, domain_i18n):
 					mtas = [(0, str(r)) for r in response]
 					mx_fallback = "AAAA"
 				except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-					
+
 					# If there was no MX, A, or AAAA record, then mail to
 					# this domain is not deliverable.
 					raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
