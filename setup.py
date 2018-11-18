@@ -16,7 +16,7 @@ setup(
 	author_email=u'jt@occams.info',
 	license='CC0 (copyright waived)',
 
-	# See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+	# See https://pypi.org/pypi?%3Aaction=list_classifiers
 	classifiers=[
 		'Development Status :: 5 - Production/Stable',
 		'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
