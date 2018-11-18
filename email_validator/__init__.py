@@ -39,6 +39,8 @@ else:
 	DOT_ATOM_TEXT = DOT_ATOM_TEXT.decode("ascii")
 	ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")
 
+DEFAULT_TIMEOUT = 15  # secs
+
 class EmailNotValidError(ValueError):
 	"""Parent class of all exceptions raised by this module."""
 	pass
@@ -55,7 +57,8 @@ def validate_email(
 	email,
 	allow_smtputf8=True,
 	allow_empty_local=False,
-	check_deliverability=True):
+	check_deliverability=True,
+	timeout=DEFAULT_TIMEOUT):
 
 	"""Validates an email address, raising an EmailNotValidError if the address is not valid or returning a dict of information
 	when the address is valid. The email argument can be a str or a bytes instance, but if bytes it must be ASCII-only."""
@@ -88,7 +91,7 @@ def validate_email(
 	if check_deliverability:
 		# Validate the email address's deliverability and update the
 		# return dict with metadata.
-		ret.update(validate_email_deliverability(ret["domain"], ret["domain_i18n"]))
+		ret.update(validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout))
 
 	# If the email address has an ASCII form, add it.
 	ret["email"] = ret["local"] + "@" + ret["domain_i18n"]
@@ -233,12 +236,15 @@ def validate_email_domain_part(domain):
 		"domain_i18n": domain_i18n,
 	}
 
-def validate_email_deliverability(domain, domain_i18n):
+def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
 	# Check that the domain resolves to an MX record. If there is no MX record,
 	# try an A or AAAA record which is a deprecated fallback for deliverability.
 
 	try:
 		resolver = dns.resolver.get_default_resolver()
+
+		if timeout:
+			resolver.lifetime = timeout
 
 		try:
 			# Try resolving for MX records and get them in sorted priority order.
@@ -260,7 +266,7 @@ def validate_email_deliverability(domain, domain_i18n):
 					mtas = [(0, str(r)) for r in response]
 					mx_fallback = "AAAA"
 				except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-					
+
 					# If there was no MX, A, or AAAA record, then mail to
 					# this domain is not deliverable.
 					raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
