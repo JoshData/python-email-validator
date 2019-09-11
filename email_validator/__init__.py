@@ -240,6 +240,9 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
 	# Check that the domain resolves to an MX record. If there is no MX record,
 	# try an A or AAAA record which is a deprecated fallback for deliverability.
 
+	# Add a trailing period to ensure the domain name is treated as fully qualified.
+	domain += '.'
+
 	try:
 		resolver = dns.resolver.get_default_resolver()
 
