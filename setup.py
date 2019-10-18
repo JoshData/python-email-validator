@@ -6,7 +6,7 @@ from codecs import open
 
 setup(
 	name='email_validator',
-	version='1.0.4',
+	version='1.0.5',
 
 	description='A robust email syntax and deliverability validation library for Python 2.x/3.x.',
 	long_description=open("README.rst", encoding='utf-8').read(),
