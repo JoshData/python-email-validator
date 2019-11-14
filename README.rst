@@ -191,8 +191,8 @@ information without telling them.)
 UCS-4 support required for Python 2.7
 '''''''''''''''''''''''''''''''''''''
 
-Note that when using Python 2.7, it is required that it was built with 
-UCS-4 support (see `here <https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string>`__); otherwise emails with unicode characters outside 
+Note that when using Python 2.7, it is required that it was built with
+UCS-4 support (see `here <https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string>`__); otherwise emails with unicode characters outside
 of the BMP (Basic Multilingual Plane) will not validate correctly.
 
 Normalization
@@ -387,12 +387,11 @@ or likely to cause trouble:
 Testing
 -------
 
-A handful of valid email addresses are pasted in ``test_pass.txt``. Run
-them through the validator (without deliverability checks) like so:
+Tests can be run using
 
 ::
 
-    python3 email_validator/__init__.py --tests < test_pass.txt
+    make test
 
 For Project Maintainers
 -----------------------

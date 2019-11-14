@@ -4,7 +4,7 @@ language: python
 cache: pip
 
 python:
-- '2.7'
+#- '2.7'
 - '3.4'
 - '3.5'
 - '3.6'
@@ -12,8 +12,11 @@ python:
 - '3.8'
 
 install:
-- pip install -r test_requirements.txt
+- make install
 
 script:
-- flake8 email_validator
+- make lint
+- make test
 
+after_success:
+- bash <(curl -s https://codecov.io/bash)
