@@ -315,45 +315,7 @@ def main():
     import sys
     import json
 
-    if sys.argv[-1] == "--tests":
-        # Pass a file of valid/invalid email addresses.
-        correct_answer = None
-        failed = 0
-        for line in sys.stdin:
-            # Strip newlines and skip blank lines and comments.
-            line = line.strip()
-            if line == "" or line[0] == "#":
-                continue
-            if sys.version_info < (3,):
-                line = line.decode("utf8")  # assume utf8 in input
-
-            # Pick up "[valid]"/"[invalid]" lines.
-            if line == "[valid]":
-                correct_answer = True
-                continue
-            elif line == "[invalid]":
-                correct_answer = False
-                continue
-            elif correct_answer is None:
-                raise Exception("Missing [valid]/[invalid] line.")
-
-            # Run.
-            try:
-                email = line
-                validate_email(email, check_deliverability=False)
-                if correct_answer is False:
-                    # Should have failed.
-                    print(email, "was recognized as valid.")
-                    failed += 1
-            except EmailNotValidError as e:
-                if correct_answer is True:
-                    # Should have passed.
-                    print(email, e)
-                    failed += 1
-        print("%d tests failed" % failed)
-        sys.exit(0 if not failed else 1)
-
-    elif len(sys.argv) == 1:
+    if len(sys.argv) == 1:
         # Read lines for STDIN and validate the email address on each line.
         allow_smtputf8 = True
         for line in sys.stdin:

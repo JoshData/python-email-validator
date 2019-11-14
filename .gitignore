@@ -16,4 +16,7 @@ docs/_build/
 .env
 .venv
 env/
+env27/
 .idea/
+.coverage
+htmlcov/
