@@ -30,333 +30,342 @@ ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 
 # ease compatibility in type checking
 if sys.version_info >= (3,):
-	unicode_class = str
+    unicode_class = str
 else:
-	unicode_class = unicode
+    unicode_class = unicode
 
-	# turn regexes to unicode (because 'ur' literals are not allowed in Py3)
-	ATEXT = ATEXT.decode("ascii")
-	DOT_ATOM_TEXT = DOT_ATOM_TEXT.decode("ascii")
-	ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")
+    # turn regexes to unicode (because 'ur' literals are not allowed in Py3)
+    ATEXT = ATEXT.decode("ascii")
+    DOT_ATOM_TEXT = DOT_ATOM_TEXT.decode("ascii")
+    ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")
 
 DEFAULT_TIMEOUT = 15  # secs
 
+
 class EmailNotValidError(ValueError):
-	"""Parent class of all exceptions raised by this module."""
-	pass
+    """Parent class of all exceptions raised by this module."""
+    pass
+
 
 class EmailSyntaxError(EmailNotValidError):
-	"""Exception raised when an email address fails validation because of its form."""
-	pass
+    """Exception raised when an email address fails validation because of its form."""
+    pass
+
 
 class EmailUndeliverableError(EmailNotValidError):
-	"""Exception raised when an email address fails validation because its domain name does not appear deliverable."""
-	pass
+    """Exception raised when an email address fails validation because its domain name does not appear deliverable."""
+    pass
+
 
 def validate_email(
-	email,
-	allow_smtputf8=True,
-	allow_empty_local=False,
-	check_deliverability=True,
-	timeout=DEFAULT_TIMEOUT):
+    email,
+    allow_smtputf8=True,
+    allow_empty_local=False,
+    check_deliverability=True,
+    timeout=DEFAULT_TIMEOUT):
 
-	"""Validates an email address, raising an EmailNotValidError if the address is not valid or returning a dict of information
-	when the address is valid. The email argument can be a str or a bytes instance, but if bytes it must be ASCII-only."""
+    """Validates an email address, raising an EmailNotValidError if the address is not valid or returning a dict of information
+    when the address is valid. The email argument can be a str or a bytes instance, but if bytes it must be ASCII-only."""
 
-	# Allow email to be a str or bytes instance. If bytes,
-	# it must be ASCII because that's how the bytes work
-	# on the wire with SMTP.
-	if not isinstance(email, (str, unicode_class)):
-		try:
-			email = email.decode("ascii")
-		except ValueError:
-			raise EmailSyntaxError("The email address is not valid ASCII.")
+    # Allow email to be a str or bytes instance. If bytes,
+    # it must be ASCII because that's how the bytes work
+    # on the wire with SMTP.
+    if not isinstance(email, (str, unicode_class)):
+        try:
+            email = email.decode("ascii")
+        except ValueError:
+            raise EmailSyntaxError("The email address is not valid ASCII.")
 
-	# At-sign.
-	parts = email.split('@')
-	if len(parts) != 2:
-		raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+    # At-sign.
+    parts = email.split('@')
+    if len(parts) != 2:
+        raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
 
-	# Prepare a dict to return on success.
-	ret = { }
+    # Prepare a dict to return on success.
+    ret = { }
 
-	# Validate the email address's local part syntax and update the return
-	# dict with metadata.
-	ret.update(validate_email_local_part(parts[0], allow_smtputf8=allow_smtputf8, allow_empty_local=allow_empty_local))
+    # Validate the email address's local part syntax and update the return
+    # dict with metadata.
+    ret.update(validate_email_local_part(parts[0], allow_smtputf8=allow_smtputf8, allow_empty_local=allow_empty_local))
 
-	# Validate the email address's domain part syntax and update the return
-	# dict with metadata.
-	ret.update(validate_email_domain_part(parts[1]))
+    # Validate the email address's domain part syntax and update the return
+    # dict with metadata.
+    ret.update(validate_email_domain_part(parts[1]))
 
-	if check_deliverability:
-		# Validate the email address's deliverability and update the
-		# return dict with metadata.
-		ret.update(validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout))
+    if check_deliverability:
+        # Validate the email address's deliverability and update the
+        # return dict with metadata.
+        ret.update(validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout))
 
-	# If the email address has an ASCII form, add it.
-	ret["email"] = ret["local"] + "@" + ret["domain_i18n"]
-	if not ret["smtputf8"]:
-		ret["email_ascii"] = ret["local"] + "@" + ret["domain"]
+    # If the email address has an ASCII form, add it.
+    ret["email"] = ret["local"] + "@" + ret["domain_i18n"]
+    if not ret["smtputf8"]:
+        ret["email_ascii"] = ret["local"] + "@" + ret["domain"]
 
-	return ret
+    return ret
+
 
 def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=False):
-	# Validates the local part of an email address.
+    # Validates the local part of an email address.
 
-	if len(local) == 0:
-		if not allow_empty_local:
-			raise EmailSyntaxError("There must be something before the @-sign.")
-		else:
-			# The caller allows an empty local part. Useful for validating certain
-			# Postfix aliases.
-			return {
-				"local": local,
-				"smtputf8": False,
-			}
+    if len(local) == 0:
+        if not allow_empty_local:
+            raise EmailSyntaxError("There must be something before the @-sign.")
+        else:
+            # The caller allows an empty local part. Useful for validating certain
+            # Postfix aliases.
+            return {
+                "local": local,
+                "smtputf8": False,
+            }
 
-	# RFC 5321 4.5.3.1.1
-	if len(local) > 64:
-		raise EmailSyntaxError("The email address is too long before the @-sign.")
+    # RFC 5321 4.5.3.1.1
+    if len(local) > 64:
+        raise EmailSyntaxError("The email address is too long before the @-sign.")
 
-	# Check the local part against the regular expression for the older ASCII requirements.
-	m = re.match(DOT_ATOM_TEXT + "$", local)
-	if m:
-		# Return the local part unchanged and flag that SMTPUTF8 is not needed.
-		return {
-			"local": local,
-			"smtputf8": False,
-		}
+    # Check the local part against the regular expression for the older ASCII requirements.
+    m = re.match(DOT_ATOM_TEXT + "$", local)
+    if m:
+        # Return the local part unchanged and flag that SMTPUTF8 is not needed.
+        return {
+            "local": local,
+            "smtputf8": False,
+        }
 
-	else:
-		# The local part failed the ASCII check. Now try the extended internationalized requirements.
-		m = re.match(DOT_ATOM_TEXT_UTF8 + "$", local)
-		if not m:
-			# It's not a valid internationalized address either. Report which characters were not valid.
-			bad_chars = ', '.join(sorted(set( c for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c) )))
-			raise EmailSyntaxError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
+    else:
+        # The local part failed the ASCII check. Now try the extended internationalized requirements.
+        m = re.match(DOT_ATOM_TEXT_UTF8 + "$", local)
+        if not m:
+            # It's not a valid internationalized address either. Report which characters were not valid.
+            bad_chars = ', '.join(sorted(set( c for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c) )))
+            raise EmailSyntaxError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
 
-		# It would be valid if internationalized characters were allowed by the caller.
-		if not allow_smtputf8:
-			raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
+        # It would be valid if internationalized characters were allowed by the caller.
+        if not allow_smtputf8:
+            raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
 
-		# It's valid.
+        # It's valid.
 
-		# RFC 6532 section 3.1 also says that Unicode NFC normalization should be applied,
-		# so we'll return the normalized local part in the return value.
-		local = unicodedata.normalize("NFC", local)
+        # RFC 6532 section 3.1 also says that Unicode NFC normalization should be applied,
+        # so we'll return the normalized local part in the return value.
+        local = unicodedata.normalize("NFC", local)
 
-		# Flag that SMTPUTF8 will be required for deliverability.
-		return {
-			"local": local,
-			"smtputf8": True,
-		}
+        # Flag that SMTPUTF8 will be required for deliverability.
+        return {
+            "local": local,
+            "smtputf8": True,
+        }
+
 
 def validate_email_domain_part(domain):
-	# Empty?
-	if len(domain) == 0:
-		raise EmailSyntaxError("There must be something after the @-sign.")
+    # Empty?
+    if len(domain) == 0:
+        raise EmailSyntaxError("There must be something after the @-sign.")
 
-	# Perform UTS-46 normalization, which includes casefolding, NFC normalization,
-	# and converting all label separators (the period/full stop, fullwidth full stop,
-	# ideographic full stop, and halfwidth ideographic full stop) to basic periods.
-	# It will also raise an exception if there is an invalid character in the input,
-	# such as "⒈" which is invalid because it would expand to include a period.
-	try:
-		domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
-	except idna.IDNAError as e:
-		raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+    # Perform UTS-46 normalization, which includes casefolding, NFC normalization,
+    # and converting all label separators (the period/full stop, fullwidth full stop,
+    # ideographic full stop, and halfwidth ideographic full stop) to basic periods.
+    # It will also raise an exception if there is an invalid character in the input,
+    # such as "⒈" which is invalid because it would expand to include a period.
+    try:
+        domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
+    except idna.IDNAError as e:
+        raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
 
-	# Now we can perform basic checks on the use of periods (since equivalent
-	# symbols have been mapped to periods). These checks are needed because the
-	# IDNA library doesn't handle well domains that have empty labels (i.e. initial
-	# dot, trailing dot, or two dots in a row).
-	if domain.endswith("."):
-		raise EmailSyntaxError("An email address cannot end with a period.")
-	if domain.startswith("."):
-		raise EmailSyntaxError("An email address cannot have a period immediately after the @-sign.")
-	if ".." in domain:
-		raise EmailSyntaxError("An email address cannot have two periods in a row.")
+    # Now we can perform basic checks on the use of periods (since equivalent
+    # symbols have been mapped to periods). These checks are needed because the
+    # IDNA library doesn't handle well domains that have empty labels (i.e. initial
+    # dot, trailing dot, or two dots in a row).
+    if domain.endswith("."):
+        raise EmailSyntaxError("An email address cannot end with a period.")
+    if domain.startswith("."):
+        raise EmailSyntaxError("An email address cannot have a period immediately after the @-sign.")
+    if ".." in domain:
+        raise EmailSyntaxError("An email address cannot have two periods in a row.")
 
-	# Regardless of whether international characters are actually used,
-	# first convert to IDNA ASCII. For ASCII-only domains, the transformation
-	# does nothing. If internationalized characters are present, the MTA
-	# must either support SMTPUTF8 or the mail client must convert the
-	# domain name to IDNA before submission.
-	#
-	# Unfortunately this step incorrectly 'fixes' domain names with leading
-	# periods by removing them, so we have to check for this above. It also gives
-	# a funky error message ("No input") when there are two periods in a
-	# row, also checked separately above.
-	try:
-		domain = idna.encode(domain, uts46=False).decode("ascii")
-	except idna.IDNAError as e:
-		raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+    # Regardless of whether international characters are actually used,
+    # first convert to IDNA ASCII. For ASCII-only domains, the transformation
+    # does nothing. If internationalized characters are present, the MTA
+    # must either support SMTPUTF8 or the mail client must convert the
+    # domain name to IDNA before submission.
+    #
+    # Unfortunately this step incorrectly 'fixes' domain names with leading
+    # periods by removing them, so we have to check for this above. It also gives
+    # a funky error message ("No input") when there are two periods in a
+    # row, also checked separately above.
+    try:
+        domain = idna.encode(domain, uts46=False).decode("ascii")
+    except idna.IDNAError as e:
+        raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
 
-	# We may have been given an IDNA ASCII domain to begin with. Check
-	# that the domain actually conforms to IDNA. It could look like IDNA
-	# but not be actual IDNA. For ASCII-only domains, the conversion out
-	# of IDNA just gives the same thing back.
-	#
-	# This gives us the canonical internationalized form of the domain,
-	# which we should use in all error messages.
-	try:
-		domain_i18n = idna.decode(domain.encode('ascii'))
-	except idna.IDNAError as e:
-		raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (domain, str(e)))
+    # We may have been given an IDNA ASCII domain to begin with. Check
+    # that the domain actually conforms to IDNA. It could look like IDNA
+    # but not be actual IDNA. For ASCII-only domains, the conversion out
+    # of IDNA just gives the same thing back.
+    #
+    # This gives us the canonical internationalized form of the domain,
+    # which we should use in all error messages.
+    try:
+        domain_i18n = idna.decode(domain.encode('ascii'))
+    except idna.IDNAError as e:
+        raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (domain, str(e)))
 
-	# RFC 5321 4.5.3.1.2
-	if len(domain) > 255:
-		raise EmailSyntaxError("The email address is too long after the @-sign.")
+    # RFC 5321 4.5.3.1.2
+    if len(domain) > 255:
+        raise EmailSyntaxError("The email address is too long after the @-sign.")
 
-	# A "dot atom text", per RFC 2822 3.2.4, but using the restricted
-	# characters allowed in a hostname (see ATEXT_HOSTNAME above).
-	DOT_ATOM_TEXT = ATEXT_HOSTNAME + r'(?:\.' + ATEXT_HOSTNAME + r')*'
+    # A "dot atom text", per RFC 2822 3.2.4, but using the restricted
+    # characters allowed in a hostname (see ATEXT_HOSTNAME above).
+    DOT_ATOM_TEXT = ATEXT_HOSTNAME + r'(?:\.' + ATEXT_HOSTNAME + r')*'
 
-	# Check the regular expression. This is probably entirely redundant
-	# with idna.decode, which also checks this format.
-	m = re.match(DOT_ATOM_TEXT + "$", domain)
-	if not m:
-		raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
+    # Check the regular expression. This is probably entirely redundant
+    # with idna.decode, which also checks this format.
+    m = re.match(DOT_ATOM_TEXT + "$", domain)
+    if not m:
+        raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
 
-	# All publicly deliverable addresses have domain named with at least
-	# one period. We also know that all TLDs end with a letter.
-	if "." not in domain:
-		raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
-	if not re.search(r"[A-Za-z]$", domain):
-		raise EmailSyntaxError("The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n)
+    # All publicly deliverable addresses have domain named with at least
+    # one period. We also know that all TLDs end with a letter.
+    if "." not in domain:
+        raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
+    if not re.search(r"[A-Za-z]$", domain):
+        raise EmailSyntaxError("The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n)
 
-	# Return the IDNA ASCII-encoded form of the domain, which is how it
-	# would be transmitted on the wire (except when used with SMTPUTF8
-	# possibly), as well as the canonical Unicode form of the domain,
-	# which is better for display purposes. This should also take care
-	# of RFC 6532 section 3.1's suggestion to apply Unicode NFC
-	# normalization to addresses.
-	return {
-		"domain": domain,
-		"domain_i18n": domain_i18n,
-	}
+    # Return the IDNA ASCII-encoded form of the domain, which is how it
+    # would be transmitted on the wire (except when used with SMTPUTF8
+    # possibly), as well as the canonical Unicode form of the domain,
+    # which is better for display purposes. This should also take care
+    # of RFC 6532 section 3.1's suggestion to apply Unicode NFC
+    # normalization to addresses.
+    return {
+        "domain": domain,
+        "domain_i18n": domain_i18n,
+    }
+
 
 def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
-	# Check that the domain resolves to an MX record. If there is no MX record,
-	# try an A or AAAA record which is a deprecated fallback for deliverability.
+    # Check that the domain resolves to an MX record. If there is no MX record,
+    # try an A or AAAA record which is a deprecated fallback for deliverability.
 
-	# Add a trailing period to ensure the domain name is treated as fully qualified.
-	domain += '.'
+    # Add a trailing period to ensure the domain name is treated as fully qualified.
+    domain += '.'
 
-	try:
-		resolver = dns.resolver.get_default_resolver()
+    try:
+        resolver = dns.resolver.get_default_resolver()
 
-		if timeout:
-			resolver.lifetime = timeout
+        if timeout:
+            resolver.lifetime = timeout
 
-		try:
-			# Try resolving for MX records and get them in sorted priority order.
-			response = dns.resolver.query(domain, "MX")
-			mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
-			mx_fallback = False
-		except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+        try:
+            # Try resolving for MX records and get them in sorted priority order.
+            response = dns.resolver.query(domain, "MX")
+            mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
+            mx_fallback = False
+        except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
-			# If there was no MX record, fall back to an A record.
-			try:
-				response = dns.resolver.query(domain, "A")
-				mtas = [(0, str(r)) for r in response]
-				mx_fallback = "A"
-			except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+            # If there was no MX record, fall back to an A record.
+            try:
+                response = dns.resolver.query(domain, "A")
+                mtas = [(0, str(r)) for r in response]
+                mx_fallback = "A"
+            except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
-				# If there was no A record, fall back to an AAAA record.
-				try:
-					response = dns.resolver.query(domain, "AAAA")
-					mtas = [(0, str(r)) for r in response]
-					mx_fallback = "AAAA"
-				except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+                # If there was no A record, fall back to an AAAA record.
+                try:
+                    response = dns.resolver.query(domain, "AAAA")
+                    mtas = [(0, str(r)) for r in response]
+                    mx_fallback = "AAAA"
+                except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
-					# If there was no MX, A, or AAAA record, then mail to
-					# this domain is not deliverable.
-					raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
+                    # If there was no MX, A, or AAAA record, then mail to
+                    # this domain is not deliverable.
+                    raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
 
-	except dns.exception.Timeout:
-		# A timeout could occur for various reasons, so don't treat it as a failure.
-		return {
-			"unknown-deliverability": "timeout",
-		}
+    except dns.exception.Timeout:
+        # A timeout could occur for various reasons, so don't treat it as a failure.
+        return {
+            "unknown-deliverability": "timeout",
+        }
 
-	except EmailUndeliverableError:
-		# Don't let these get clobbered by the wider except block below.
-		raise
+    except EmailUndeliverableError:
+        # Don't let these get clobbered by the wider except block below.
+        raise
 
-	except Exception as e:
-		# Unhandled conditions should not propagate.
-		raise EmailUndeliverableError("There was an error while checking if the domain name in the email address is deliverable: " + str(e))
+    except Exception as e:
+        # Unhandled conditions should not propagate.
+        raise EmailUndeliverableError("There was an error while checking if the domain name in the email address is deliverable: " + str(e))
 
-	return {
-		"mx": mtas,
-		"mx-fallback": mx_fallback,
-	}
+    return {
+        "mx": mtas,
+        "mx-fallback": mx_fallback,
+    }
+
 
 def main():
-	import sys, json
+    import sys, json
 
-	if sys.argv[-1] == "--tests":
-		# Pass a file of valid/invalid email addresses.
-		correct_answer = None
-		failed = 0
-		for line in sys.stdin:
-			# Strip newlines and skip blank lines and comments.
-			line = line.strip()
-			if line == "" or line[0] == "#": continue
-			if sys.version_info < (3,): line = line.decode("utf8") # assume utf8 in input
+    if sys.argv[-1] == "--tests":
+        # Pass a file of valid/invalid email addresses.
+        correct_answer = None
+        failed = 0
+        for line in sys.stdin:
+            # Strip newlines and skip blank lines and comments.
+            line = line.strip()
+            if line == "" or line[0] == "#": continue
+            if sys.version_info < (3,): line = line.decode("utf8") # assume utf8 in input
 
-			# Pick up "[valid]"/"[invalid]" lines.
-			if line == "[valid]":
-				correct_answer = True
-				continue
-			elif line == "[invalid]":
-				correct_answer = False
-				continue
-			elif correct_answer is None:
-				raise Exception("Missing [valid]/[invalid] line.")
+            # Pick up "[valid]"/"[invalid]" lines.
+            if line == "[valid]":
+                correct_answer = True
+                continue
+            elif line == "[invalid]":
+                correct_answer = False
+                continue
+            elif correct_answer is None:
+                raise Exception("Missing [valid]/[invalid] line.")
 
-			# Run.
-			try:
-				email = line
-				validate_email(email, check_deliverability=False)
-				if correct_answer == False:
-					# Should have failed.
-					print(email, "was recognized as valid.")
-					failed += 1
-			except EmailNotValidError as e:
-				if correct_answer == True:
-					# Should have passed.
-					print(email, e)
-					failed += 1
-		print("%d tests failed" % failed)
-		sys.exit(0 if not failed else 1)
+            # Run.
+            try:
+                email = line
+                validate_email(email, check_deliverability=False)
+                if correct_answer == False:
+                    # Should have failed.
+                    print(email, "was recognized as valid.")
+                    failed += 1
+            except EmailNotValidError as e:
+                if correct_answer == True:
+                    # Should have passed.
+                    print(email, e)
+                    failed += 1
+        print("%d tests failed" % failed)
+        sys.exit(0 if not failed else 1)
 
-	elif len(sys.argv) == 1:
-		# Read lines for STDIN and validate the email address on each line.
-		allow_smtputf8 = True
-		for line in sys.stdin:
-			try:
-				email = line.strip()
-				if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
-				validate_email(email, allow_smtputf8=allow_smtputf8)
-			except EmailNotValidError as e:
-				print(email, e)
-	else:
-		# Validate the email address passed on the command line.
-		email = sys.argv[1]
-		allow_smtputf8 = True
-		check_deliverability = True
-		if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
-		try:
-			result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
-			print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
-		except EmailNotValidError as e:
-			if sys.version_info < (3,):
-				print(unicode(e).encode("utf8"))
-			else:
-				print(e)
+    elif len(sys.argv) == 1:
+        # Read lines for STDIN and validate the email address on each line.
+        allow_smtputf8 = True
+        for line in sys.stdin:
+            try:
+                email = line.strip()
+                if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
+                validate_email(email, allow_smtputf8=allow_smtputf8)
+            except EmailNotValidError as e:
+                print(email, e)
+    else:
+        # Validate the email address passed on the command line.
+        email = sys.argv[1]
+        allow_smtputf8 = True
+        check_deliverability = True
+        if sys.version_info < (3,): email = email.decode("utf8") # assume utf8 in input
+        try:
+            result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
+            print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+        except EmailNotValidError as e:
+            if sys.version_info < (3,):
+                print(unicode(e).encode("utf8"))
+            else:
+                print(e)
+
 
 if __name__ == "__main__":
-	main()
+    main()
 
