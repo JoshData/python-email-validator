@@ -1,0 +1,18 @@
+os: linux
+dist: xenial
+language: python
+cache: pip
+
+python:
+- '2.7'
+- '3.5'
+- '3.6'
+- '3.7'
+- '3.8'
+
+install:
+- pip install -r test_requirements.txt
+
+script:
+- flake8 email_validator
+
