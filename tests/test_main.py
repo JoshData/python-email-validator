@@ -217,6 +217,7 @@ def test_email_valid(email_input, output):
          "The domain name ⒈wouldbeinvalid.com contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
         ('@example.com', 'There must be something before the @-sign.'),
+        ('{}@{}.com'.format(32 * 'x', '.'.join([60 * 'y' for _ in range(4)])), 'The email address is too long.'),
     ],
 )
 def test_email_invalid(email_input, error_msg):

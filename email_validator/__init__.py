@@ -85,6 +85,11 @@ def validate_email(
     if len(parts) != 2:
         raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
 
+    # RFC 5321 4.5.3.1.3 (we don't take into account the "<" and ">" delimiters)
+    # https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690
+    if len(email) > 254:
+        raise EmailSyntaxError("The email address is too long.")
+
     # Prepare a dict to return on success.
     ret = {}
 
