@@ -210,6 +210,12 @@ def test_email_valid(email_input, output):
          'The domain name baddash.-a.com contains invalid characters (Label must not start or end with a hyphen).'),
         ('my@baddash.b-.com',
          'The domain name baddash.b-.com contains invalid characters (Label must not start or end with a hyphen).'),
+        ('my@example.com\n',
+         'The domain name example.com\n contains invalid characters (Codepoint U+000A at position 4 of '
+         '\'com\\n\' not allowed).'),
+        ('my@example\n.com',
+         'The domain name example\n.com contains invalid characters (Codepoint U+000A at position 8 of '
+         '\'example\\n\' not allowed).'),
         ('.leadingdot@domain.com', 'The email address contains invalid characters before the @-sign: ..'),
         ('..twodots@domain.com', 'The email address contains invalid characters before the @-sign: ..'),
         ('twodots..here@domain.com', 'The email address contains invalid characters before the @-sign: ..'),
@@ -217,6 +223,9 @@ def test_email_valid(email_input, output):
          "The domain name ⒈wouldbeinvalid.com contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
         ('@example.com', 'There must be something before the @-sign.'),
+        ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: \n.'),
+        ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: \n.'),
+        ('my\n@example.com', 'The email address contains invalid characters before the @-sign: \n.'),
     ],
 )
 def test_email_invalid(email_input, error_msg):

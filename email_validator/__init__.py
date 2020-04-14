@@ -128,7 +128,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         raise EmailSyntaxError("The email address is too long before the @-sign.")
 
     # Check the local part against the regular expression for the older ASCII requirements.
-    m = re.match(DOT_ATOM_TEXT + "$", local)
+    m = re.match(DOT_ATOM_TEXT + "\\Z", local)
     if m:
         # Return the local part unchanged and flag that SMTPUTF8 is not needed.
         return {
@@ -138,7 +138,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
     else:
         # The local part failed the ASCII check. Now try the extended internationalized requirements.
-        m = re.match(DOT_ATOM_TEXT_UTF8 + "$", local)
+        m = re.match(DOT_ATOM_TEXT_UTF8 + "\\Z", local)
         if not m:
             # It's not a valid internationalized address either. Report which characters were not valid.
             bad_chars = ', '.join(sorted(set(
@@ -226,7 +226,7 @@ def validate_email_domain_part(domain):
 
     # Check the regular expression. This is probably entirely redundant
     # with idna.decode, which also checks this format.
-    m = re.match(DOT_ATOM_TEXT + "$", domain)
+    m = re.match(DOT_ATOM_TEXT + "\\Z", domain)
     if not m:
         raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
 
@@ -234,7 +234,7 @@ def validate_email_domain_part(domain):
     # one period. We also know that all TLDs end with a letter.
     if "." not in domain:
         raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
-    if not re.search(r"[A-Za-z]$", domain):
+    if not re.search(r"[A-Za-z]\Z", domain):
         raise EmailSyntaxError(
             "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
         )
