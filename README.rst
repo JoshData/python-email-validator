@@ -391,6 +391,7 @@ Tests can be run using
 
 ::
 
+    pip install -r test_requirements.txt 
     make test
 
 For Project Maintainers
