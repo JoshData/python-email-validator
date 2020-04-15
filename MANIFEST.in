@@ -1,2 +1,2 @@
 include email_validator.py
-include LICENSE README.rst
+include LICENSE README.md
