@@ -51,8 +51,11 @@ from email_validator import validate_email, EmailNotValidError
 email = "my+address@mydomain.tld"
 
 try:
-  v = validate_email(email) # validate and get info
-  email = v["email"] # replace with normalized form
+  # Validate.
+  valid = validate_email(email)
+
+  # Update with the normalized form.
+  email = valid.email
 except EmailNotValidError as e:
   # email is not valid, exception message is human-readable
   print(str(e))
@@ -72,7 +75,7 @@ server. If you know ahead of time that SMTPUTF8 is not supported then
 addresses that would require SMTPUTF8**:
 
 ```python
-v = validate_email(email, allow_smtputf8=False)
+valid = validate_email(email, allow_smtputf8=False)
 ```
 
 Overview
@@ -83,8 +86,8 @@ takes an email address (either a `str` or ASCII `bytes`) and:
 
 - Raises a `EmailNotValidError` with a helpful, human-readable error
   message explaining why the email address is not valid, or
-- Returns a dict with information about the deliverability of the
-  email address.
+- Returns an object with a normalized form of the email address and
+  other information about it.
 
 When an email address is not valid, `validate_email` raises either an
 `EmailSyntaxError` if the form of the address is invalid or an
@@ -92,8 +95,9 @@ When an email address is not valid, `validate_email` raises either an
 exception classes are subclasses of `EmailNotValidError`, which in turn
 is a subclass of `ValueError`.
 
-But when an email address is valid, a dict is returned containing
-information that might aid deliverability (see below).
+But when an email address is valid, an object is returned containing
+a normalized form of the email address (which you should use!) and
+other information.
 
 The validator doesn't permit obsoleted forms of email addresses that no
 one uses anymore even though they are still valid and deliverable, since
@@ -167,17 +171,17 @@ This will cause the validation function to raise a `EmailSyntaxError` if
 delivery would require SMTPUTF8. That's just in those cases where
 non-ASCII characters appear before the @-sign. If you do not set
 `allow_smtputf8=False`, you can also check the value of the `smtputf8`
-field in the returned dict.
+field in the returned object.
 
 If your mail submission library doesn't support Unicode at all --- even
 in the domain part of the address --- then immediately prior to mail
 submission you must replace the email address with its ASCII-ized form.
-This library gives you back the ASCII-ized form in the `email_ascii`
-field in the returned dict, which you can get like this:
+This library gives you back the ASCII-ized form in the `ascii_email`
+field in the returned object, which you can get like this:
 
 ```python
-v = validate_email(email, allow_smtputf8=False)
-email = v['email_ascii']
+valid = validate_email(email, allow_smtputf8=False)
+email = valid.ascii_email
 ```
 
 The local part is left alone (if it has internationalized characters
@@ -204,8 +208,10 @@ validation provides the correctly normalized form of the given email
 address:
 
 ```python
-v = validate_email(email)
-email = v['email']
+valid = validate_email("me@Ｄｏｍａｉｎ.com")
+email = valid.ascii_email
+print(email)
+# prints: me@domain.com
 ```
 
 Because you may get an email address in a variety of forms, you ought to
@@ -233,83 +239,60 @@ in the domain part, and possibly other
 Examples
 --------
 
-For the email address `test@example.org`, the returned dict is:
+For the email address `test@joshdata.me`, the returned object is:
 
 ```python
-{
-  "email": "test@example.org",
-  "email_ascii": "test@example.org",
-  "local": "test",
-  "domain": "example.org",
-  "domain_i18n": "example.org",
-
-  "smtputf8": false,
-
-  "mx": [
-    [
-      0,
-      "93.184.216.34"
-    ]
-  ],
-  "mx-fallback": "A"
-}
+ValidatedEmail(
+  email='test@joshdata.me',
+  local_part='test',
+  domain='joshdata.me',
+  ascii_email='test@joshdata.me',
+  ascii_local_part='test',
+  ascii_domain='joshdata.me',
+  smtputf8=False,
+  mx=[(10, 'box.occams.info')],
+  mx_fallback_type=None)
 ```
 
-For the fictitious address `example@良好Mail.中国`, which has an
-internationalized domain but ASCII local part, the returned dict is:
+For the fictitious address `example@ツ.life`, which has an
+internationalized domain but ASCII local part, the returned object is:
 
 ```python
-  {
-    "email": "example@良好mail.中国",
-    "email_ascii": "example@xn--mail-p86gl01s.xn--fiqs8s",
-    "local": "example",
-    "domain": "xn--mail-p86gl01s.xn--fiqs8s",
-    "domain_i18n": "良好mail.中国",
+ValidatedEmail(
+  email='example@ツ.life',
+  local_part='example',
+  domain='ツ.life',
+  ascii_email='example@xn--bdk.life',
+  ascii_local_part='example',
+  ascii_domain='xn--bdk.life',
+  smtputf8=False)
 
-    "smtputf8": false,
-
-    "mx": [
-      [
-        0,
-        "218.241.116.40"
-      ]
-    ],
-    "mx-fallback": "A"
-  }
 ```
 
 Note that `smtputf8` is `False` even though the domain part is
 internationalized because
 [SMTPUTF8](https://tools.ietf.org/html/rfc6531) is only needed if the
 local part of the address is internationalized (the domain part can be
-converted to IDNA ASCII). Also note that the `email` and `domain_i18n`
+converted to IDNA ASCII). Also note that the `email` and `domain`
 fields provide a normalized form of the email address and domain name
 (casefolding and Unicode normalization as required by IDNA 2008).
 
-For the fictitious address `树大@occams.info`, which has an
-internationalized local part, the returned dict is:
+For the fictitious address `ツ-test@joshdata.me`, which has an
+internationalized local part, the returned object is:
 
 ```python
-{
-  "email": "树大@occams.info",
-  "local": "树大",
-  "domain": "occams.info",
-  "domain_i18n": "occams.info",
-
-  "smtputf8": true,
-
-  "mx": [
-    [
-      10,
-      "box.occams.info"
-    ]
-  ],
-  "mx-fallback": false
-}
+ValidatedEmail(
+  email='ツ-test@joshdata.me',
+  local_part='ツ-test',
+  domain='joshdata.me',
+  ascii_email=None,
+  ascii_local_part=None,
+  ascii_domain='joshdata.me',
+  smtputf8=True)
 ```
 
-Now `smtputf8` is `True` and `email_ascii` is missing because the local
-part of the address is internationalized. The `local` and `email` fields
+Now `smtputf8` is `True` and `ascii_email` is `None` because the local
+part of the address is internationalized. The `local_part` and `email` fields
 return the normalized form of the address: certain Unicode characters
 (such as angstrom and ohm) may be replaced by other equivalent code
 points (a-with-ring and omega).
@@ -317,48 +300,51 @@ points (a-with-ring and omega).
 Return value
 ------------
 
-When an email address passes validation, the fields in the returned dict
+When an email address passes validation, the fields in the returned object
 are:
 
 `email`: The canonical form of the email address, mostly useful for
-    display purposes. This merely combines the `local` and `domain_i18n`
+    display purposes. This merely combines the `local_part` and `domain`
     fields (see below).
 
-`email_ascii`: If present, an ASCII-only form of the email address by replacing the
+`ascii_email`: If set, an ASCII-only form of the email address by replacing the
     domain part with [IDNA ASCII](https://tools.ietf.org/html/rfc5891).
     This field will be present when an ASCII-only form of the email
     address exists (including if the email address is already ASCII). If
     the local part of the email address contains internationalized
-    characters, `email_ascii` will not be present.
+    characters, `ascii_email` will be `None`. If set, it merely combines
+    `ascii_local_part` and `ascii_domain`.
 
-`local`: The local part of the given email address (before the @-sign) with
+`local_part`: The local part of the given email address (before the @-sign) with
     Unicode NFC normalization applied.
 
-`domain`: The [IDNA ASCII](https://tools.ietf.org/html/rfc5891)-encoded form
+`ascii_local_part`: If set, the local part, which is composed of ASCII characters only.
+
+`domain`: The canonical internationalized form of the domain part of the
+    address, by round-tripping through IDNA ASCII. If the returned
+    string contains non-ASCII characters, either the
+    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your
+    mail relay will be required to transmit the message or else the
+    email address's domain part must be converted to IDNA ASCII first
+    (given in the returned `domain` field).
+
+`ascii_domain`: The [IDNA ASCII](https://tools.ietf.org/html/rfc5891)-encoded form
     of the domain part of the given email address (after the @-sign), as
     it would be transmitted on the wire.
 
-`domain_i18n`: The canonical internationalized form of the domain part of the
-    address, by round-tripping through IDNA ASCII. If the returned
-    string contains non-ASCII characters, either the
-    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of MTAs will
-    be required to transmit the message or else the email address's
-    domain part must be converted to IDNA ASCII first (given in the
-    returned `domain` field).
-
 `smtputf8`: A boolean indicating that the
-    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of MTAs will
-    be required to transmit messages to this address because the local
-    part of the address has non-ASCII characters (the local part cannot
-    be IDNA-encoded). If `allow_smtputf8=False` is passed as an
-    argument, this flag will always be false because an exception is
-    raised if it would have been true.
+    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your
+    mail relay will be required to transmit messages to this address
+    because the local part of the address has non-ASCII characters (the
+    local part cannot be IDNA-encoded). If `allow_smtputf8=False` is
+    passed as an argument, this flag will always be false because an
+    exception is raised if it would have been true.
 
 `mx`: A list of (priority, domain) tuples of MX records specified in the
     DNS for the domain (see [RFC 5321 section
     5](https://tools.ietf.org/html/rfc5321#section-5)).
 
-`mx-fallback`: `None` if an `MX` record is found. If no MX records are actually
+`mx_fallback_type`: `None` if an `MX` record is found. If no MX records are actually
     specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS
     record used instead (`A` or `AAAA`).
@@ -406,5 +392,5 @@ To release:
     rm -rf dist
     python3 setup.py bdist_wheel
     twine upload dist/*
-    git tag v1.0.XXX
+    git tag v1.0.XXX # replace with version in setup.py
     git push --tags

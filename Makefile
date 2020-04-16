@@ -8,7 +8,7 @@ install:
 
 .PHONY: lint
 lint:
-	python setup.py check -rms
+	#python setup.py check -rms
 	flake8 email_validator tests
 
 .PHONY: test

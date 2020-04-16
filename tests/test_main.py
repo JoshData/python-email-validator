@@ -1,5 +1,7 @@
 import pytest
-from email_validator import EmailSyntaxError, EmailUndeliverableError, validate_email, validate_email_deliverability
+from email_validator import EmailSyntaxError, EmailUndeliverableError, \
+                            validate_email, validate_email_deliverability, \
+                            ValidatedEmail
 
 
 @pytest.mark.parametrize(
@@ -7,188 +9,193 @@ from email_validator import EmailSyntaxError, EmailUndeliverableError, validate_
     [
         (
             'Abc@example.com',
-            {
-                'local': 'Abc',
-                'smtputf8': False,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': 'Abc@example.com',
-                'email_ascii': 'Abc@example.com',
-            },
+            ValidatedEmail(
+                local_part='Abc',
+                ascii_local_part='Abc',
+                smtputf8=False,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='Abc@example.com',
+                ascii_email='Abc@example.com',
+            ),
         ),
         (
             'Abc.123@example.com',
-            {
-                'local': 'Abc.123',
-                'smtputf8': False,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': 'Abc.123@example.com',
-                'email_ascii': 'Abc.123@example.com',
-            },
+            ValidatedEmail(
+                local_part='Abc.123',
+                ascii_local_part='Abc.123',
+                smtputf8=False,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='Abc.123@example.com',
+                ascii_email='Abc.123@example.com',
+            ),
         ),
         (
             'user+mailbox/department=shipping@example.com',
-            {
-                'local': 'user+mailbox/department=shipping',
-                'smtputf8': False,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': 'user+mailbox/department=shipping@example.com',
-                'email_ascii': 'user+mailbox/department=shipping@example.com',
-            },
+            ValidatedEmail(
+                local_part='user+mailbox/department=shipping',
+                ascii_local_part='user+mailbox/department=shipping',
+                smtputf8=False,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='user+mailbox/department=shipping@example.com',
+                ascii_email='user+mailbox/department=shipping@example.com',
+            ),
         ),
         (
             "!#$%&'*+-/=?^_`.{|}~@example.com",
-            {
-                'local': "!#$%&'*+-/=?^_`.{|}~",
-                'smtputf8': False,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': "!#$%&'*+-/=?^_`.{|}~@example.com",
-                'email_ascii': "!#$%&'*+-/=?^_`.{|}~@example.com",
-            },
+            ValidatedEmail(
+                local_part="!#$%&'*+-/=?^_`.{|}~",
+                ascii_local_part="!#$%&'*+-/=?^_`.{|}~",
+                smtputf8=False,
+                ascii_domain='example.com',
+                domain='example.com',
+                email="!#$%&'*+-/=?^_`.{|}~@example.com",
+                ascii_email="!#$%&'*+-/=?^_`.{|}~@example.com",
+            ),
         ),
         (
             '伊昭傑@郵件.商務',
-            {
-                'local': '伊昭傑',
-                'smtputf8': True,
-                'domain': 'xn--5nqv22n.xn--lhr59c',
-                'domain_i18n': '郵件.商務',
-                'email': '伊昭傑@郵件.商務',
-            },
+            ValidatedEmail(
+                local_part='伊昭傑',
+                smtputf8=True,
+                ascii_domain='xn--5nqv22n.xn--lhr59c',
+                domain='郵件.商務',
+                email='伊昭傑@郵件.商務',
+            ),
         ),
         (
             'राम@मोहन.ईन्फो',
-            {
-                'local': 'राम',
-                'smtputf8': True,
-                'domain': 'xn--l2bl7a9d.xn--o1b8dj2ki',
-                'domain_i18n': 'मोहन.ईन्फो',
-                'email': 'राम@मोहन.ईन्फो',
-            },
+            ValidatedEmail(
+                local_part='राम',
+                smtputf8=True,
+                ascii_domain='xn--l2bl7a9d.xn--o1b8dj2ki',
+                domain='मोहन.ईन्फो',
+                email='राम@मोहन.ईन्फो',
+            ),
         ),
         (
             'юзер@екзампл.ком',
-            {
-                'local': 'юзер',
-                'smtputf8': True,
-                'domain': 'xn--80ajglhfv.xn--j1aef',
-                'domain_i18n': 'екзампл.ком',
-                'email': 'юзер@екзампл.ком',
-            },
+            ValidatedEmail(
+                local_part='юзер',
+                smtputf8=True,
+                ascii_domain='xn--80ajglhfv.xn--j1aef',
+                domain='екзампл.ком',
+                email='юзер@екзампл.ком',
+            ),
         ),
         (
             'θσερ@εχαμπλε.ψομ',
-            {
-                'local': 'θσερ',
-                'smtputf8': True,
-                'domain': 'xn--mxahbxey0c.xn--xxaf0a',
-                'domain_i18n': 'εχαμπλε.ψομ',
-                'email': 'θσερ@εχαμπλε.ψομ',
-            },
+            ValidatedEmail(
+                local_part='θσερ',
+                smtputf8=True,
+                ascii_domain='xn--mxahbxey0c.xn--xxaf0a',
+                domain='εχαμπλε.ψομ',
+                email='θσερ@εχαμπλε.ψομ',
+            ),
         ),
         (
             '葉士豪@臺網中心.tw',
-            {
-                'local': '葉士豪',
-                'smtputf8': True,
-                'domain': 'xn--fiqq24b10vi0d.tw',
-                'domain_i18n': '臺網中心.tw',
-                'email': '葉士豪@臺網中心.tw',
-            },
+            ValidatedEmail(
+                local_part='葉士豪',
+                smtputf8=True,
+                ascii_domain='xn--fiqq24b10vi0d.tw',
+                domain='臺網中心.tw',
+                email='葉士豪@臺網中心.tw',
+            ),
         ),
         (
             'jeff@臺網中心.tw',
-            {
-                'local': 'jeff',
-                'smtputf8': False,
-                'domain': 'xn--fiqq24b10vi0d.tw',
-                'domain_i18n': '臺網中心.tw',
-                'email': 'jeff@臺網中心.tw',
-                'email_ascii': 'jeff@xn--fiqq24b10vi0d.tw',
-            },
+            ValidatedEmail(
+                local_part='jeff',
+                ascii_local_part='jeff',
+                smtputf8=False,
+                ascii_domain='xn--fiqq24b10vi0d.tw',
+                domain='臺網中心.tw',
+                email='jeff@臺網中心.tw',
+                ascii_email='jeff@xn--fiqq24b10vi0d.tw',
+            ),
         ),
         (
             '葉士豪@臺網中心.台灣',
-            {
-                'local': '葉士豪',
-                'smtputf8': True,
-                'domain': 'xn--fiqq24b10vi0d.xn--kpry57d',
-                'domain_i18n': '臺網中心.台灣',
-                'email': '葉士豪@臺網中心.台灣',
-            },
+            ValidatedEmail(
+                local_part='葉士豪',
+                smtputf8=True,
+                ascii_domain='xn--fiqq24b10vi0d.xn--kpry57d',
+                domain='臺網中心.台灣',
+                email='葉士豪@臺網中心.台灣',
+            ),
         ),
         (
             'jeff葉@臺網中心.tw',
-            {
-                'local': 'jeff葉',
-                'smtputf8': True,
-                'domain': 'xn--fiqq24b10vi0d.tw',
-                'domain_i18n': '臺網中心.tw',
-                'email': 'jeff葉@臺網中心.tw',
-            },
+            ValidatedEmail(
+                local_part='jeff葉',
+                smtputf8=True,
+                ascii_domain='xn--fiqq24b10vi0d.tw',
+                domain='臺網中心.tw',
+                email='jeff葉@臺網中心.tw',
+            ),
         ),
         (
             'ñoñó@example.com',
-            {
-                'local': 'ñoñó',
-                'smtputf8': True,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': 'ñoñó@example.com',
-            },
+            ValidatedEmail(
+                local_part='ñoñó',
+                smtputf8=True,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='ñoñó@example.com',
+            ),
         ),
         (
             '我買@example.com',
-            {
-                'local': '我買',
-                'smtputf8': True,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': '我買@example.com',
-            },
+            ValidatedEmail(
+                local_part='我買',
+                smtputf8=True,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='我買@example.com',
+            ),
         ),
         (
             '甲斐黒川日本@example.com',
-            {
-                'local': '甲斐黒川日本',
-                'smtputf8': True,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': '甲斐黒川日本@example.com',
-            },
+            ValidatedEmail(
+                local_part='甲斐黒川日本',
+                smtputf8=True,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='甲斐黒川日本@example.com',
+            ),
         ),
         (
             'чебурашкаящик-с-апельсинами.рф@example.com',
-            {
-                'local': 'чебурашкаящик-с-апельсинами.рф',
-                'smtputf8': True,
-                'domain': 'example.com',
-                'domain_i18n': 'example.com',
-                'email': 'чебурашкаящик-с-апельсинами.рф@example.com',
-            },
+            ValidatedEmail(
+                local_part='чебурашкаящик-с-апельсинами.рф',
+                smtputf8=True,
+                ascii_domain='example.com',
+                domain='example.com',
+                email='чебурашкаящик-с-апельсинами.рф@example.com',
+            ),
         ),
         (
             'उदाहरण.परीक्ष@domain.with.idn.tld',
-            {
-                'local': 'उदाहरण.परीक्ष',
-                'smtputf8': True,
-                'domain': 'domain.with.idn.tld',
-                'domain_i18n': 'domain.with.idn.tld',
-                'email': 'उदाहरण.परीक्ष@domain.with.idn.tld',
-            },
+            ValidatedEmail(
+                local_part='उदाहरण.परीक्ष',
+                smtputf8=True,
+                ascii_domain='domain.with.idn.tld',
+                domain='domain.with.idn.tld',
+                email='उदाहरण.परीक्ष@domain.with.idn.tld',
+            ),
         ),
         (
             'ιωάννης@εεττ.gr',
-            {
-                'local': 'ιωάννης',
-                'smtputf8': True,
-                'domain': 'xn--qxaa9ba.gr',
-                'domain_i18n': 'εεττ.gr',
-                'email': 'ιωάννης@εεττ.gr',
-            },
+            ValidatedEmail(
+                local_part='ιωάννης',
+                smtputf8=True,
+                ascii_domain='xn--qxaa9ba.gr',
+                domain='εεττ.gr',
+                email='ιωάννης@εεττ.gr',
+            ),
         ),
     ],
 )
@@ -236,13 +243,13 @@ def test_email_invalid(email_input, error_msg):
 
 
 def test_deliverability_no_records():
-    assert validate_email_deliverability('example.com', 'example.com') == {'mx': [(0, '')], 'mx-fallback': False}
+    assert validate_email_deliverability('example.com', 'example.com') == {'mx': [(0, '')], 'mx-fallback': None}
 
 
 def test_deliverability_found():
     response = validate_email_deliverability('gmail.com', 'gmail.com')
     assert response.keys() == {'mx', 'mx-fallback'}
-    assert response['mx-fallback'] is False
+    assert response['mx-fallback'] is None
     assert len(response['mx']) > 1
     assert len(response['mx'][0]) == 2
     assert isinstance(response['mx'][0][0], int)

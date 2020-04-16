@@ -58,6 +58,105 @@ class EmailUndeliverableError(EmailNotValidError):
     pass
 
 
+class ValidatedEmail(object):
+    """The validate_email function returns objects of this type holding the normalized form of the email address
+    and other information."""
+
+    """The email address that was passed to validate_email. (If passed as bytes, this will be a string.)"""
+    original_email = None
+
+    """The normalized email address, which should always be used in preferance to the original address.
+    The normalized address converts an IDNA ASCII domain name to Unicode, if possible, and performs
+    Unicode normalization on the local part and on the domain (if originally Unicode). It is the
+    concatenation of the local_part and domain attributes, separated by an @-sign."""
+    email = None
+
+    """The local part of the email address after Unicode normalization."""
+    local_part = None
+
+    """The domain part of the email address after Unicode normalization or conversion to
+    Unicode from IDNA ascii."""
+    domain = None
+
+    """If not None, a form of the email address that uses 7-bit ASCII characters only."""
+    ascii_email = None
+
+    """If not None, the local part of the email address using 7-bit ASCII characters only."""
+    ascii_local_part = None
+
+    """If not None, a form of the domain name that uses 7-bit ASCII characters only."""
+    ascii_domain = None
+
+    """If True, the SMTPUTF8 feature of your mail relay will be required to transmit messages
+    to this address. This flag is True just when ascii_local_part is missing. Otherwise it
+    is False."""
+    smtputf8 = None
+
+    """If a deliverability check is performed, a list of (priority, domain) tuples of MX
+    records specified in the DNS for the domain."""
+    mx = None
+
+    """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
+    mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
+    mx_fallback_type = None
+
+    """Tests use this constructor."""
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    """As a convenience, str(...) on instances of this class return the normalized address."""
+    def __self__(self):
+        return self.normalized_email
+
+    def __repr__(self):
+        return "<ValidatedEmail {}>".format(self.email)
+
+    """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
+    that some of the names changed when they became attributes."""
+    def __getitem__(self, key):
+        if key == "email":
+            return self.email
+        if key == "email_ascii":
+            return self.ascii_email
+        if key == "local":
+            return self.local_part
+        if key == "domain":
+            return self.ascii_domain
+        if key == "domain_i18n":
+            return self.domain
+        if key == "smtputf8":
+            return self.smtputf8
+        if key == "mx":
+            return self.mx
+        if key == "mx-fallback":
+            return self.mx_fallback_type
+        raise KeyError()
+
+    """Tests use this."""
+    def __eq__(self, other):
+        if self.email == other.email and self.local_part == other.local_part and self.domain == other.domain \
+          and self.ascii_email == other.ascii_email and self.ascii_local_part == other.ascii_local_part \
+          and self.ascii_domain == other.ascii_domain \
+          and self.smtputf8 == other.smtputf8 \
+          and repr(sorted(self.mx) if self.mx else self.mx) == repr(sorted(other.mx) if other.mx else other.mx) \
+          and self.mx_fallback_type == other.mx_fallback_type:
+            return True
+        return False
+
+    """This helps producing the README."""
+    def as_constructor(self):
+        return "ValidatedEmail(" \
+             + ",".join("\n  {}={}".format(
+                        key,
+                        repr(getattr(self, key)))
+                        for key in ('email', 'local_part', 'domain',
+                                    'ascii_email', 'ascii_local_part', 'ascii_domain',
+                                    'smtputf8', 'mx', 'mx_fallback_type')
+                        ) \
+             + ")"
+
+
 def validate_email(
     email,
     allow_smtputf8=True,
@@ -85,26 +184,36 @@ def validate_email(
     if len(parts) != 2:
         raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
 
-    # Prepare a dict to return on success.
-    ret = {}
+    # Collect return values in this instance.
+    ret = ValidatedEmail()
+    ret.original_email = email
 
-    # Validate the email address's local part syntax and update the return
-    # dict with metadata.
-    ret.update(validate_email_local_part(parts[0], allow_smtputf8=allow_smtputf8, allow_empty_local=allow_empty_local))
+    # Validate the email address's local part syntax and get a normalized form.
+    local_part_info = validate_email_local_part(parts[0],
+                                                allow_smtputf8=allow_smtputf8,
+                                                allow_empty_local=allow_empty_local)
+    ret.local_part = local_part_info["local_part"]
+    ret.ascii_local_part = local_part_info["ascii_local_part"]
+    ret.smtputf8 = local_part_info["smtputf8"]
 
-    # Validate the email address's domain part syntax and update the return
-    # dict with metadata.
-    ret.update(validate_email_domain_part(parts[1]))
+    # Validate the email address's domain part syntax and get a normalized form.
+    domain_part_info = validate_email_domain_part(parts[1])
+    ret.domain = domain_part_info["domain"]
+    ret.ascii_domain = domain_part_info["ascii_domain"]
 
     if check_deliverability:
         # Validate the email address's deliverability and update the
         # return dict with metadata.
-        ret.update(validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout))
+        deliverability_info = validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout)
+        ret.mx = deliverability_info["mx"]
+        ret.mx_fallback_type = deliverability_info["mx-fallback"]
+
+    # Construct the complete normalized form.
+    ret.email = ret.local_part + "@" + ret.domain
 
     # If the email address has an ASCII form, add it.
-    ret["email"] = ret["local"] + "@" + ret["domain_i18n"]
-    if not ret["smtputf8"]:
-        ret["email_ascii"] = ret["local"] + "@" + ret["domain"]
+    if not ret.smtputf8:
+        ret.ascii_email = ret.ascii_local_part + "@" + ret.ascii_domain
 
     return ret
 
@@ -119,7 +228,8 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
             # The caller allows an empty local part. Useful for validating certain
             # Postfix aliases.
             return {
-                "local": local,
+                "local_part": local,
+                "ascii_local_part": local,
                 "smtputf8": False,
             }
 
@@ -132,7 +242,8 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
     if m:
         # Return the local part unchanged and flag that SMTPUTF8 is not needed.
         return {
-            "local": local,
+            "local_part": local,
+            "ascii_local_part": local,
             "smtputf8": False,
         }
 
@@ -158,7 +269,8 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
         # Flag that SMTPUTF8 will be required for deliverability.
         return {
-            "local": local,
+            "local_part": local,
+            "ascii_local_part": None,  # no ASCII form is possible
             "smtputf8": True,
         }
 
@@ -200,7 +312,7 @@ def validate_email_domain_part(domain):
     # a funky error message ("No input") when there are two periods in a
     # row, also checked separately above.
     try:
-        domain = idna.encode(domain, uts46=False).decode("ascii")
+        ascii_domain = idna.encode(domain, uts46=False).decode("ascii")
     except idna.IDNAError as e:
         raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
 
@@ -212,12 +324,12 @@ def validate_email_domain_part(domain):
     # This gives us the canonical internationalized form of the domain,
     # which we should use in all error messages.
     try:
-        domain_i18n = idna.decode(domain.encode('ascii'))
+        domain_i18n = idna.decode(ascii_domain.encode('ascii'))
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (domain, str(e)))
+        raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (ascii_domain, str(e)))
 
     # RFC 5321 4.5.3.1.2
-    if len(domain) > 255:
+    if len(ascii_domain) > 255:
         raise EmailSyntaxError("The email address is too long after the @-sign.")
 
     # A "dot atom text", per RFC 2822 3.2.4, but using the restricted
@@ -226,15 +338,15 @@ def validate_email_domain_part(domain):
 
     # Check the regular expression. This is probably entirely redundant
     # with idna.decode, which also checks this format.
-    m = re.match(DOT_ATOM_TEXT + "\\Z", domain)
+    m = re.match(DOT_ATOM_TEXT + "\\Z", ascii_domain)
     if not m:
         raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
 
     # All publicly deliverable addresses have domain named with at least
     # one period. We also know that all TLDs end with a letter.
-    if "." not in domain:
+    if "." not in ascii_domain:
         raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
-    if not re.search(r"[A-Za-z]\Z", domain):
+    if not re.search(r"[A-Za-z]\Z", ascii_domain):
         raise EmailSyntaxError(
             "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
         )
@@ -246,8 +358,8 @@ def validate_email_domain_part(domain):
     # of RFC 6532 section 3.1's suggestion to apply Unicode NFC
     # normalization to addresses.
     return {
-        "domain": domain,
-        "domain_i18n": domain_i18n,
+        "ascii_domain": ascii_domain,
+        "domain": domain_i18n,
     }
 
 
@@ -268,7 +380,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
             # Try resolving for MX records and get them in sorted priority order.
             response = dns.resolver.query(domain, "MX")
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
-            mx_fallback = False
+            mx_fallback = None
         except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
             # If there was no MX record, fall back to an A record.
