@@ -161,7 +161,7 @@ route to the destination, including your own outbound mail server, all
 support the [SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531)
 extension. Support for SMTPUTF8 varies.
 
-### How this module works
+### If you know ahead of time that SMTPUTF8 is not supported by your mail submission stack
 
 By default all internationalized forms are accepted by the validator.
 But if you know ahead of time that SMTPUTF8 is not supported by your
@@ -214,10 +214,13 @@ print(email)
 # prints: me@domain.com
 ```
 
-Because you may get an email address in a variety of forms, you ought to
-replace it with its normalized form immediately prior to going into your
-database (during account creation), querying your database (during
-login), or sending outbound mail.
+Because an end-user might type their email address in different (but
+equivalent) un-normalized forms at different times, you ought to
+replace what they enter with the normalized form immediately prior to
+going into your database (during account creation), querying your database
+(during login), or sending outbound mail. Normalization may also change
+the length of an email address, and this may affect whether it is valid
+and acceptable by your SMTP provider.
 
 The normalizations include lowercasing the domain part of the email
 address (domain names are case-insensitive), [Unicode "NFC"

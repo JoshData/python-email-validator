@@ -201,19 +201,70 @@ def validate_email(
     ret.domain = domain_part_info["domain"]
     ret.ascii_domain = domain_part_info["ascii_domain"]
 
-    if check_deliverability:
-        # Validate the email address's deliverability and update the
-        # return dict with metadata.
-        deliverability_info = validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout)
-        ret.mx = deliverability_info["mx"]
-        ret.mx_fallback_type = deliverability_info["mx-fallback"]
-
     # Construct the complete normalized form.
     ret.email = ret.local_part + "@" + ret.domain
 
     # If the email address has an ASCII form, add it.
     if not ret.smtputf8:
         ret.ascii_email = ret.ascii_local_part + "@" + ret.ascii_domain
+
+    # RFC 3696 + errata 1003 + errata 1690 (https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
+    # explains the maximum length of an email address is 254 octets.
+    #
+    # If the email address has an ASCII representation, then we assume it may be
+    # transmitted in ASCII (we can't assume SMTPUTF8 will be used on all hops to
+    # the destination) and the length limit applies to ASCII characters (which is
+    # the same as octets). The number of characters in the internationalized form
+    # may be many fewer (because IDNA ASCII is verbose) and could be less than 254
+    # Unicode characters, and of course the number of octets over the limit may
+    # not be the number of characters over the limit, so if the email address is
+    # internationalized, we can't give any simple information about why the address
+    # is too long.
+    #
+    # In addition, check that the UTF-8 encoding (i.e. not IDNA ASCII and not
+    # Unicode characters) is at most 254 octets. If the addres is transmitted using
+    # SMTPUTF8, then the length limit probably applies to the UTF-8 encoded octets.
+    # If the email address has an ASCII form that differs from its internationalized
+    # form, I don't think the internationalized form can be longer, and so the ASCII
+    # form length check would be sufficient. If there is no ASCII form, then we have
+    # to check the UTF-8 encoding. The UTF-8 encoding could be up to about four times
+    # longer than the number of characters.
+    #
+    # See the length checks on the local part and the domain.
+    if ret.ascii_email and len(ret.ascii_email) > 254:
+        if ret.ascii_email == ret.email:
+            reason = " ({} character{} too many)".format(
+                len(ret.ascii_email) - 254,
+                "s" if (len(ret.ascii_email) - 254 != 1) else ""
+            )
+        elif len(ret.email) > 254:
+            # If there are more than 254 characters, then the ASCII
+            # form is definitely going to be too long.
+            reason = " (at least {} character{} too many)".format(
+                len(ret.email) - 254,
+                "s" if (len(ret.email) - 254 != 1) else ""
+            )
+        else:
+            reason = " (when converted to IDNA ASCII)"
+        raise EmailSyntaxError("The email address is too long{}.".format(reason))
+    if len(ret.email.encode("utf8")) > 254:
+        if len(ret.email) > 254:
+            # If there are more than 254 characters, then the UTF-8
+            # encoding is definitely going to be too long.
+            reason = " (at least {} character{} too many)".format(
+                len(ret.email) - 254,
+                "s" if (len(ret.email) - 254 != 1) else ""
+            )
+        else:
+            reason = " (when encoded in bytes)"
+        raise EmailSyntaxError("The email address is too long{}.".format(reason))
+
+    if check_deliverability:
+        # Validate the email address's deliverability and update the
+        # return dict with metadata.
+        deliverability_info = validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout)
+        ret.mx = deliverability_info["mx"]
+        ret.mx_fallback_type = deliverability_info["mx-fallback"]
 
     return ret
 
@@ -234,8 +285,16 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
             }
 
     # RFC 5321 4.5.3.1.1
+    # We're checking the number of characters here. If the local part
+    # is ASCII-only, then that's the same as bytes (octets). If it's
+    # internationalized, then the UTF-8 encoding may be longer, but
+    # that may not be relevant. We will check the total address length
+    # instead.
     if len(local) > 64:
-        raise EmailSyntaxError("The email address is too long before the @-sign.")
+        raise EmailSyntaxError("The email address is too long before the @-sign ({} character{} too many).".format(
+            len(local) - 64,
+            "s" if (len(local) - 64 != 1) else ""
+        ))
 
     # Check the local part against the regular expression for the older ASCII requirements.
     m = re.match(DOT_ATOM_TEXT + "\\Z", local)
@@ -314,6 +373,12 @@ def validate_email_domain_part(domain):
     try:
         ascii_domain = idna.encode(domain, uts46=False).decode("ascii")
     except idna.IDNAError as e:
+        if "Domain too long" in str(e):
+            # We can't really be more specific because UTS-46 normalization means
+            # the length check is applied to a string that is different from the
+            # one the user supplied. Also I'm not sure if the length check applies
+            # to the internationalized form, the IDNA ASCII form, or even both!
+            raise EmailSyntaxError("The email address is too long after the @-sign.")
         raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
 
     # We may have been given an IDNA ASCII domain to begin with. Check
@@ -329,6 +394,11 @@ def validate_email_domain_part(domain):
         raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (ascii_domain, str(e)))
 
     # RFC 5321 4.5.3.1.2
+    # We're checking the number of bytes (octets) here, which can be much
+    # higher than the number of characters in internationalized domains,
+    # on the assumption that the domain may be transmitted without SMTPUTF8
+    # as IDNA ASCII. This is also checked by idna.encode, so this exception
+    # is never reached.
     if len(ascii_domain) > 255:
         raise EmailSyntaxError("The email address is too long after the @-sign.")
 
