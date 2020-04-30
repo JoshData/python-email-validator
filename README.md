@@ -4,8 +4,9 @@ email\_validator
 A robust email address syntax and deliverability validation library for
 Python 2.7/3.4+ by [Joshua Tauberer](https://razor.occams.info).
 
-This library validates that address are of the form `x@y.com`. This is
-the sort of validation you would want for a login form on a website.
+This library validates that a string is of the form `x@y.com`. This is
+the sort of validation you would want for an email-based login form on 
+a website.
 
 Key features:
 
@@ -25,8 +26,10 @@ And this library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
 [pyIsEmail](https://github.com/michaelherold/pyIsEmail).
 
-This library was first published in 2015. The current version is 1.0.5
-(posted October 18, 2019).
+This library was first published in 2015. The current version is 1.1.0
+(posted April 30, 2020). **In this version, the type of the value returned
+from `validate_email` has changed, but dict-style access to the validated
+address information still works, so it is backwards compatible.**
 
 Installation
 ------------
@@ -389,12 +392,14 @@ as universal in the file `setup.cfg` by the `universal = 1` key in the
 To release:
 
 * Update the version number.
-* Follow the steps below to publish a universal wheel to pypi:
+* Follow the steps below to publish source and a universal wheel to pypi:
 
-    pip3 install twine
-    rm -rf dist
-    python3 setup.py sdist
-    python3 setup.py bdist_wheel
-    twine upload dist/*
-    git tag v1.0.XXX # replace with version in setup.py
-    git push --tags
+```sh
+pip3 install twine
+rm -rf dist
+python3 setup.py sdist
+python3 setup.py bdist_wheel
+twine upload dist/*
+git tag v1.0.XXX # replace with version in setup.py
+git push --tags
+```
