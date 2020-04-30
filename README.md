@@ -34,7 +34,7 @@ address information still works, so it is backwards compatible.**
 Installation
 ------------
 
-This package is on PyPI, so:
+This package [is on PyPI](https://pypi.org/project/email-validator/), so:
 
 ```sh
 pip install email_validator
@@ -385,14 +385,13 @@ make test
 For Project Maintainers
 -----------------------
 
-The package is distributed as a universal wheel. The wheel is specified
-as universal in the file `setup.cfg` by the `universal = 1` key in the
-`[bdist_wheel]` section.
+The package is distributed as a universal wheel and as a source package.
 
 To release:
 
 * Update the version number.
-* Follow the steps below to publish source and a universal wheel to pypi:
+* Follow the steps below to publish source and a universal wheel to pypi.
+* Make a release at https://github.com/JoshData/python-email-validator/releases/new.
 
 ```sh
 pip3 install twine
@@ -403,3 +402,6 @@ twine upload dist/*
 git tag v1.0.XXX # replace with version in setup.py
 git push --tags
 ```
+
+Notes: The wheel is specified as universal in the file `setup.cfg` by the `universal = 1` key in the
+`[bdist_wheel]` section.
