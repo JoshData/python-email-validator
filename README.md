@@ -141,8 +141,8 @@ internationalization.
 
 The first is [internationalized domain names (RFC
 5891)](https://tools.ietf.org/html/rfc5891), a.k.a IDNA 2008. The DNS
-system has not been updated with Unicode support. Instead,
-internationalized domain names are converted into a special IDNA ASCII
+system has not been updated with Unicode support. Instead, internationalized
+domain names are converted into a special IDNA ASCII "[Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)"
 form starting with `xn--`. When an email address has non-ASCII
 characters in its domain part, the domain part is replaced with its IDNA
 ASCII equivalent form in the process of mail transmission. Your mail
@@ -279,7 +279,7 @@ Note that `smtputf8` is `False` even though the domain part is
 internationalized because
 [SMTPUTF8](https://tools.ietf.org/html/rfc6531) is only needed if the
 local part of the address is internationalized (the domain part can be
-converted to IDNA ASCII). Also note that the `email` and `domain`
+converted to IDNA ASCII Punycode). Also note that the `email` and `domain`
 fields provide a normalized form of the email address and domain name
 (casefolding and Unicode normalization as required by IDNA 2008).
 
@@ -314,7 +314,8 @@ are:
     fields (see below).
 
 `ascii_email`: If set, an ASCII-only form of the email address by replacing the
-    domain part with [IDNA ASCII](https://tools.ietf.org/html/rfc5891).
+    domain part with [IDNA](https://tools.ietf.org/html/rfc5891)
+    [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt).
     This field will be present when an ASCII-only form of the email
     address exists (including if the email address is already ASCII). If
     the local part of the email address contains internationalized
@@ -326,16 +327,16 @@ are:
 
 `ascii_local_part`: If set, the local part, which is composed of ASCII characters only.
 
-`domain`: The canonical internationalized form of the domain part of the
-    address, by round-tripping through IDNA ASCII. If the returned
-    string contains non-ASCII characters, either the
+`domain`: The canonical internationalized Unicode form of the domain part of the
+    email address. If the returned string contains non-ASCII characters, either the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your
     mail relay will be required to transmit the message or else the
-    email address's domain part must be converted to IDNA ASCII first
-    (given in the returned `domain` field).
+    email address's domain part must be converted to IDNA ASCII first: Use
+    `ascii_domain` field instead.
 
-`ascii_domain`: The [IDNA ASCII](https://tools.ietf.org/html/rfc5891)-encoded form
-    of the domain part of the given email address (after the @-sign), as
+`ascii_domain`: The [IDNA](https://tools.ietf.org/html/rfc5891)
+    [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)-encoded
+    form of the domain part of the given email address, as
     it would be transmitted on the wire.
 
 `smtputf8`: A boolean indicating that the
