@@ -136,25 +136,25 @@ class ValidatedEmail(object):
     """Tests use this."""
     def __eq__(self, other):
         if self.email == other.email and self.local_part == other.local_part and self.domain == other.domain \
-          and self.ascii_email == other.ascii_email and self.ascii_local_part == other.ascii_local_part \
-          and self.ascii_domain == other.ascii_domain \
-          and self.smtputf8 == other.smtputf8 \
-          and repr(sorted(self.mx) if self.mx else self.mx) == repr(sorted(other.mx) if other.mx else other.mx) \
-          and self.mx_fallback_type == other.mx_fallback_type:
+           and self.ascii_email == other.ascii_email and self.ascii_local_part == other.ascii_local_part \
+           and self.ascii_domain == other.ascii_domain \
+           and self.smtputf8 == other.smtputf8 \
+           and repr(sorted(self.mx) if self.mx else self.mx) == repr(sorted(other.mx) if other.mx else other.mx) \
+           and self.mx_fallback_type == other.mx_fallback_type:
             return True
         return False
 
     """This helps producing the README."""
     def as_constructor(self):
         return "ValidatedEmail(" \
-             + ",".join("\n  {}={}".format(
-                        key,
-                        repr(getattr(self, key)))
-                        for key in ('email', 'local_part', 'domain',
-                                    'ascii_email', 'ascii_local_part', 'ascii_domain',
-                                    'smtputf8', 'mx', 'mx_fallback_type')
-                        ) \
-             + ")"
+            + ",".join("\n  {}={}".format(
+                       key,
+                       repr(getattr(self, key)))
+                       for key in ('email', 'local_part', 'domain',
+                                   'ascii_email', 'ascii_local_part', 'ascii_domain',
+                                   'smtputf8', 'mx', 'mx_fallback_type')
+                       ) \
+            + ")"
 
 
 def validate_email(

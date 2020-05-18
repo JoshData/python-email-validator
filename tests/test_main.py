@@ -269,10 +269,11 @@ def test_deliverability_fails():
     with pytest.raises(EmailUndeliverableError, match='The domain name {} does not exist'.format(domain)):
         validate_email_deliverability(domain, domain)
 
+
 def test_deliverability_dns_timeout():
     validate_email_deliverability.TEST_CHECK_TIMEOUT = True
     response = validate_email_deliverability('gmail.com', 'gmail.com')
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
-    email = validate_email('test@gmail.com')
+    validate_email('test@gmail.com')
     del validate_email_deliverability.TEST_CHECK_TIMEOUT
