@@ -92,8 +92,8 @@ class ValidatedEmail(object):
     is False."""
     smtputf8 = None
 
-    """If a deliverability check is performed, a list of (priority, domain) tuples of MX
-    records specified in the DNS for the domain."""
+    """If a deliverability check is performed and if it succeeds, a list of (priority, domain)
+    tuples of MX records specified in the DNS for the domain."""
     mx = None
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
@@ -263,8 +263,9 @@ def validate_email(
         # Validate the email address's deliverability and update the
         # return dict with metadata.
         deliverability_info = validate_email_deliverability(ret["domain"], ret["domain_i18n"], timeout)
-        ret.mx = deliverability_info["mx"]
-        ret.mx_fallback_type = deliverability_info["mx-fallback"]
+        if "mx" in deliverability_info:
+            ret.mx = deliverability_info["mx"]
+            ret.mx_fallback_type = deliverability_info["mx-fallback"]
 
     return ret
 
@@ -441,6 +442,12 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
     domain += '.'
 
     try:
+        # We need a way to check how timeouts are handled in the tests. So we
+        # have a secret variable that if set makes this method always test the
+        # handling of a timeout.
+        if getattr(validate_email_deliverability, 'TEST_CHECK_TIMEOUT', False):
+            raise dns.exception.Timeout()
+
         resolver = dns.resolver.get_default_resolver()
 
         if timeout:

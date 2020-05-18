@@ -348,12 +348,15 @@ are:
 
 `mx`: A list of (priority, domain) tuples of MX records specified in the
     DNS for the domain (see [RFC 5321 section
-    5](https://tools.ietf.org/html/rfc5321#section-5)).
+    5](https://tools.ietf.org/html/rfc5321#section-5)). May be `None` if
+    the deliverability check could not be completed because of a temporary
+    issue like a timeout.
 
 `mx_fallback_type`: `None` if an `MX` record is found. If no MX records are actually
     specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS
-    record used instead (`A` or `AAAA`).
+    record used instead (`A` or `AAAA`). May be `None` if the deliverability check
+    could not be completed because of a temporary issue like a timeout.
 
 Assumptions
 -----------
