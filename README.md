@@ -26,8 +26,8 @@ And this library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
 [pyIsEmail](https://github.com/michaelherold/pyIsEmail).
 
-This library was first published in 2015. The current version is 1.1.0
-(posted April 30, 2020). **In this version, the type of the value returned
+This library was first published in 2015. The current version is 1.1.1
+(posted May 19, 2020). **Starting in version 1.1.0, the type of the value returned
 from `validate_email` has changed, but dict-style access to the validated
 address information still works, so it is backwards compatible.**
 
