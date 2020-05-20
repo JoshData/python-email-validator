@@ -230,13 +230,12 @@ address (domain names are case-insensitive), [Unicode "NFC"
 normalization](https://en.wikipedia.org/wiki/Unicode_equivalence) of the
 whole address (which turns characters plus [combining
 characters](https://en.wikipedia.org/wiki/Combining_character) into
-precomposed characters where possible and replaces certain Unicode
-characters (such as angstrom and ohm) with other equivalent code points
-(a-with-ring and omega, respectively)), replacement of [fullwidth and
+precomposed characters where possible, replacement of [fullwidth and
 halfwidth
 characters](https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms)
-in the domain part, and possibly other
-[UTS46](http://unicode.org/reports/tr46) mappings on the domain part.
+in the domain part, possibly other
+[UTS46](http://unicode.org/reports/tr46) mappings on the domain part,
+and conversion from Punycode to Unicode characters.
 
 (See [RFC 6532 (internationalized email) section
 3.1](https://tools.ietf.org/html/rfc6532#section-3.1) and [RFC 5895
@@ -283,6 +282,10 @@ converted to IDNA ASCII Punycode). Also note that the `email` and `domain`
 fields provide a normalized form of the email address and domain name
 (casefolding and Unicode normalization as required by IDNA 2008).
 
+Calling `validate_email` with the ASCII form of the above email address,
+`example@xn--bdk.life`, returns the exact same information (i.e., the
+`email` field always will contain Unicode characters, not Punycode).
+
 For the fictitious address `ツ-test@joshdata.me`, which has an
 internationalized local part, the returned object is:
 
@@ -309,55 +312,17 @@ Return value
 When an email address passes validation, the fields in the returned object
 are:
 
-`email`: The canonical form of the email address, mostly useful for
-    display purposes. This merely combines the `local_part` and `domain`
-    fields (see below).
-
-`ascii_email`: If set, an ASCII-only form of the email address by replacing the
-    domain part with [IDNA](https://tools.ietf.org/html/rfc5891)
-    [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt).
-    This field will be present when an ASCII-only form of the email
-    address exists (including if the email address is already ASCII). If
-    the local part of the email address contains internationalized
-    characters, `ascii_email` will be `None`. If set, it merely combines
-    `ascii_local_part` and `ascii_domain`.
-
-`local_part`: The local part of the given email address (before the @-sign) with
-    Unicode NFC normalization applied.
-
-`ascii_local_part`: If set, the local part, which is composed of ASCII characters only.
-
-`domain`: The canonical internationalized Unicode form of the domain part of the
-    email address. If the returned string contains non-ASCII characters, either the
-    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your
-    mail relay will be required to transmit the message or else the
-    email address's domain part must be converted to IDNA ASCII first: Use
-    `ascii_domain` field instead.
-
-`ascii_domain`: The [IDNA](https://tools.ietf.org/html/rfc5891)
-    [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)-encoded
-    form of the domain part of the given email address, as
-    it would be transmitted on the wire.
-
-`smtputf8`: A boolean indicating that the
-    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your
-    mail relay will be required to transmit messages to this address
-    because the local part of the address has non-ASCII characters (the
-    local part cannot be IDNA-encoded). If `allow_smtputf8=False` is
-    passed as an argument, this flag will always be false because an
-    exception is raised if it would have been true.
-
-`mx`: A list of (priority, domain) tuples of MX records specified in the
-    DNS for the domain (see [RFC 5321 section
-    5](https://tools.ietf.org/html/rfc5321#section-5)). May be `None` if
-    the deliverability check could not be completed because of a temporary
-    issue like a timeout.
-
-`mx_fallback_type`: `None` if an `MX` record is found. If no MX records are actually
-    specified in DNS and instead are inferred, through an obsolete
-    mechanism, from A or AAAA records, the value is the type of DNS
-    record used instead (`A` or `AAAA`). May be `None` if the deliverability check
-    could not be completed because of a temporary issue like a timeout.
+| Field | Value |
+| -----:|-------|
+| `email` | The normalized form of the email address that you should put in your database. This merely combines the `local_part` and `domain` fields (see below). |
+| `ascii_email` | If set, an ASCII-only form of the email address by replacing the domain part with [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt). This field will be present when an ASCII-only form of the email address exists (including if the email address is already ASCII). If the local part of the email address contains internationalized characters, `ascii_email` will be `None`. If set, it merely combines `ascii_local_part` and `ascii_domain`. |
+| `local_part` | The local part of the given email address (before the @-sign) with Unicode NFC normalization applied. |
+| `ascii_local_part` | If set, the local part, which is composed of ASCII characters only. |
+| `domain` | The canonical internationalized Unicode form of the domain part of the email address. If the returned string contains non-ASCII characters, either the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit the message or else the email address's domain part must be converted to IDNA ASCII first: Use `ascii_domain` field instead. |
+| `ascii_domain` | The [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)-encoded form of the domain part of the given email address, as it would be transmitted on the wire. |
+| `smtputf8` | A boolean indicating that the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit messages to this address because the local part of the address has non-ASCII characters (the local part cannot be IDNA-encoded). If `allow_smtputf8=False` is passed as an argument, this flag will always be false because an exception is raised if it would have been true. |
+| `mx` | A list of (priority, domain) tuples of MX records specified in the DNS for the domain (see [RFC 5321 section 5](https://tools.ietf.org/html/rfc5321#section-5)). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
+| `mx_fallback_type` | `None` if an `MX` record is found. If no MX records are actually specified in DNS and instead are inferred, through an obsolete mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
 
 Assumptions
 -----------
