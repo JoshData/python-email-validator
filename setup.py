@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from codecs import open
 
 setup(
-    name='email_validator',
+    name='email-validator',
     version='1.1.1',
 
     description='A robust email syntax and deliverability validation library for Python 2.x/3.x.',

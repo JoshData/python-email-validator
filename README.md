@@ -1,17 +1,18 @@
-email\_validator
-================
+email-validator: Validate Email Addresses
+=========================================
 
 A robust email address syntax and deliverability validation library for
-Python 2.7/3.4+ by [Joshua Tauberer](https://razor.occams.info).
+Python 2.7/3.4+ by [Joshua Tauberer](https://joshdata.me).
 
-This library validates that a string is of the form `x@y.com`. This is
+This library validates that a string is of the form `name@example.com`. This is
 the sort of validation you would want for an email-based login form on 
 a website.
 
 Key features:
 
-* Good for validating email addresses used for logins/identity.
-* Friendly error messages when validation fails (appropriate to show
+* Checks that an email address has the correct syntax --- good for
+  login forms or other uses related to identifying users.
+* Gives friendly error messages when validation fails (appropriate to show
   to end users).
 * (optionally) Checks deliverability: Does the domain name resolve?
 * Supports internationalized domain names and (optionally)
@@ -37,7 +38,7 @@ Installation
 This package [is on PyPI](https://pypi.org/project/email-validator/), so:
 
 ```sh
-pip install email_validator
+pip install email-validator
 ```
 
 `pip3` also works.
