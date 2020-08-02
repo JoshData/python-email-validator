@@ -135,14 +135,18 @@ class ValidatedEmail(object):
 
     """Tests use this."""
     def __eq__(self, other):
-        if self.email == other.email and self.local_part == other.local_part and self.domain == other.domain \
-           and self.ascii_email == other.ascii_email and self.ascii_local_part == other.ascii_local_part \
-           and self.ascii_domain == other.ascii_domain \
-           and self.smtputf8 == other.smtputf8 \
-           and repr(sorted(self.mx) if self.mx else self.mx) == repr(sorted(other.mx) if other.mx else other.mx) \
-           and self.mx_fallback_type == other.mx_fallback_type:
-            return True
-        return False
+        return (
+            self.email == other.email
+            and self.local_part == other.local_part
+            and self.domain == other.domain
+            and self.ascii_email == other.ascii_email
+            and self.ascii_local_part == other.ascii_local_part
+            and self.ascii_domain == other.ascii_domain
+            and self.smtputf8 == other.smtputf8
+            and repr(sorted(self.mx) if self.mx else self.mx)
+            == repr(sorted(other.mx) if other.mx else other.mx)
+            and self.mx_fallback_type == other.mx_fallback_type
+        )
 
     """This helps producing the README."""
     def as_constructor(self):
@@ -235,15 +239,16 @@ def validate_email(
         if ret.ascii_email == ret.email:
             reason = " ({} character{} too many)".format(
                 len(ret.ascii_email) - 254,
-                "s" if (len(ret.ascii_email) - 254 != 1) else ""
+                "s" if len(ret.ascii_email) != 255 else ""
             )
+
         elif len(ret.email) > 254:
             # If there are more than 254 characters, then the ASCII
             # form is definitely going to be too long.
             reason = " (at least {} character{} too many)".format(
-                len(ret.email) - 254,
-                "s" if (len(ret.email) - 254 != 1) else ""
+                len(ret.email) - 254, "s" if len(ret.email) != 255 else ""
             )
+
         else:
             reason = " (when converted to IDNA ASCII)"
         raise EmailSyntaxError("The email address is too long{}.".format(reason))
@@ -252,9 +257,9 @@ def validate_email(
             # If there are more than 254 characters, then the UTF-8
             # encoding is definitely going to be too long.
             reason = " (at least {} character{} too many)".format(
-                len(ret.email) - 254,
-                "s" if (len(ret.email) - 254 != 1) else ""
+                len(ret.email) - 254, "s" if len(ret.email) != 255 else ""
             )
+
         else:
             reason = " (when encoded in bytes)"
         raise EmailSyntaxError("The email address is too long{}.".format(reason))
@@ -504,27 +509,26 @@ def main():
     import sys
     import json
 
+    def utf8_input_shim(input_str):
+        # Assume that input is utf8 for py2/py3 compatibility
+        if sys.version_info < (3,):
+            return input_str.decode("utf8")
+        return input_str
+
     if len(sys.argv) == 1:
         # Read lines for STDIN and validate the email address on each line.
-        allow_smtputf8 = True
         for line in sys.stdin:
+            email = utf8_input_shim(line.strip())
             try:
-                email = line.strip()
-                if sys.version_info < (3,):
-                    email = email.decode("utf8")  # assume utf8 in input
-                validate_email(email, allow_smtputf8=allow_smtputf8)
+                validate_email(email)
             except EmailNotValidError as e:
                 print(email, e)
     else:
         # Validate the email address passed on the command line.
-        email = sys.argv[1]
-        allow_smtputf8 = True
-        check_deliverability = True
-        if sys.version_info < (3,):
-            email = email.decode("utf8")  # assume utf8 in input
+        email = utf8_input_shim(sys.argv[1])
         try:
-            result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
-            print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+            result = validate_email(email)
+            print(json.dumps(result.__dict__, indent=2, sort_keys=True, ensure_ascii=False))
         except EmailNotValidError as e:
             if sys.version_info < (3,):
                 print(unicode_class(e).encode("utf8"))

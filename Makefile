@@ -9,7 +9,7 @@ install:
 .PHONY: lint
 lint:
 	#python setup.py check -rms
-	flake8 --ignore=E501,E126 email_validator tests
+	flake8 --ignore=E501,E126,W503 email_validator tests
 
 .PHONY: test
 test:
