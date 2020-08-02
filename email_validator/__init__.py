@@ -438,14 +438,20 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
 
-    # Add a trailing period to ensure the domain name is treated as fully qualified.
-    domain += '.'
-
-    def resolve_shim(resolver, domain, record):
+    def dns_resolver_resolve_shim(resolver, domain, record):
         try:
+            # dns.resolver.Resolver.resolve is new to dnspython 2.x.
+            # https://dnspython.readthedocs.io/en/latest/resolver-class.html#dns.resolver.Resolver.resolve
             return resolver.resolve(domain, record)
         except AttributeError:
-            return resolver.query(domain, record)
+            # dnspython 2.x is only available in Python 3.6 and later. For earlier versions
+            # of Python, we maintain compatibility with dnspython 1.x which has a
+            # dnspython.resolver.Resolver.query method instead. The only difference is that
+            # query may treat the domain as relative and use the system's search domains,
+            # which we prevent by adding a "." to the domain name to make it absolute.
+            # dns.resolver.Resolver.query is deprecated in dnspython version 2.x.
+            # https://dnspython.readthedocs.io/en/latest/resolver-class.html#dns.resolver.Resolver.query
+            return resolver.query(domain + ".", record)
 
     try:
         # We need a way to check how timeouts are handled in the tests. So we
@@ -461,21 +467,21 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
 
         try:
             # Try resolving for MX records and get them in sorted priority order.
-            response = resolve_shim(resolver, domain, "MX")
+            response = dns_resolver_resolve_shim(resolver, domain, "MX")
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
             mx_fallback = None
         except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
             # If there was no MX record, fall back to an A record.
             try:
-                response = resolve_shim(resolver, domain, "A")
+                response = dns_resolver_resolve_shim(resolver, domain, "A")
                 mtas = [(0, str(r)) for r in response]
                 mx_fallback = "A"
             except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
                 # If there was no A record, fall back to an AAAA record.
                 try:
-                    response = resolve_shim(resolver, domain, "AAAA")
+                    response = dns_resolver_resolve_shim(resolver, domain, "AAAA")
                     mtas = [(0, str(r)) for r in response]
                     mx_fallback = "AAAA"
                 except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
