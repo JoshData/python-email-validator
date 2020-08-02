@@ -441,6 +441,12 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
     # Add a trailing period to ensure the domain name is treated as fully qualified.
     domain += '.'
 
+    def resolve_shim(resolver, domain, record):
+        try:
+            return resolver.resolve(domain, record)
+        except AttributeError:
+            return resolver.query(domain, record)
+
     try:
         # We need a way to check how timeouts are handled in the tests. So we
         # have a secret variable that if set makes this method always test the
@@ -455,21 +461,21 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT):
 
         try:
             # Try resolving for MX records and get them in sorted priority order.
-            response = dns.resolver.query(domain, "MX")
+            response = resolve_shim(resolver, domain, "MX")
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
             mx_fallback = None
         except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
             # If there was no MX record, fall back to an A record.
             try:
-                response = dns.resolver.query(domain, "A")
+                response = resolve_shim(resolver, domain, "A")
                 mtas = [(0, str(r)) for r in response]
                 mx_fallback = "A"
             except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
                 # If there was no A record, fall back to an AAAA record.
                 try:
-                    response = dns.resolver.query(domain, "AAAA")
+                    response = resolve_shim(resolver, domain, "AAAA")
                     mtas = [(0, str(r)) for r in response]
                     mx_fallback = "AAAA"
                 except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
