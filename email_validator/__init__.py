@@ -29,6 +29,13 @@ DOT_ATOM_TEXT_UTF8 = '[' + ATEXT_UTF8 + ']+(?:\\.[' + ATEXT_UTF8 + ']+)*'
 # the beginning or end of a *dot-atom component* of a hostname either.
 ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 
+# Length constants
+# RFC 3696 + errata 1003 + errata 1690 (https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
+# explains the maximum length of an email address is 254 octets.
+EMAIL_MAX_LENGTH = 254
+LOCAL_PART_MAX_LENGTH = 64
+DOMAIN_MAX_LENGTH = 255
+
 # ease compatibility in type checking
 if sys.version_info >= (3,):
     unicode_class = str
@@ -157,6 +164,14 @@ class ValidatedEmail(object):
             + ")"
 
 
+def __get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
+    diff = len(addr) - limit
+    reason = "({}{} character{} too many)"
+    prefix = "at least " if utf8 else ""
+    suffix = "s" if diff > 1 else ""
+    return reason.format(prefix, diff, suffix)
+
+
 def validate_email(
     email,
     allow_smtputf8=True,
@@ -208,9 +223,6 @@ def validate_email(
     if not ret.smtputf8:
         ret.ascii_email = ret.ascii_local_part + "@" + ret.ascii_domain
 
-    # RFC 3696 + errata 1003 + errata 1690 (https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
-    # explains the maximum length of an email address is 254 octets.
-    #
     # If the email address has an ASCII representation, then we assume it may be
     # transmitted in ASCII (we can't assume SMTPUTF8 will be used on all hops to
     # the destination) and the length limit applies to ASCII characters (which is
@@ -231,33 +243,24 @@ def validate_email(
     # longer than the number of characters.
     #
     # See the length checks on the local part and the domain.
-    if ret.ascii_email and len(ret.ascii_email) > 254:
+    if ret.ascii_email and len(ret.ascii_email) > EMAIL_MAX_LENGTH:
         if ret.ascii_email == ret.email:
-            reason = " ({} character{} too many)".format(
-                len(ret.ascii_email) - 254,
-                "s" if (len(ret.ascii_email) - 254 != 1) else ""
-            )
-        elif len(ret.email) > 254:
+            reason = __get_length_reason(ret.ascii_email)
+        elif len(ret.email) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the ASCII
             # form is definitely going to be too long.
-            reason = " (at least {} character{} too many)".format(
-                len(ret.email) - 254,
-                "s" if (len(ret.email) - 254 != 1) else ""
-            )
+            reason = __get_length_reason(ret.email, utf8=True)
         else:
-            reason = " (when converted to IDNA ASCII)"
-        raise EmailSyntaxError("The email address is too long{}.".format(reason))
-    if len(ret.email.encode("utf8")) > 254:
-        if len(ret.email) > 254:
+            reason = "(when converted to IDNA ASCII)"
+        raise EmailSyntaxError("The email address is too long {}.".format(reason))
+    if len(ret.email.encode("utf8")) > EMAIL_MAX_LENGTH:
+        if len(ret.email) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the UTF-8
             # encoding is definitely going to be too long.
-            reason = " (at least {} character{} too many)".format(
-                len(ret.email) - 254,
-                "s" if (len(ret.email) - 254 != 1) else ""
-            )
+            reason = __get_length_reason(ret.email, utf8=True)
         else:
-            reason = " (when encoded in bytes)"
-        raise EmailSyntaxError("The email address is too long{}.".format(reason))
+            reason = "(when encoded in bytes)"
+        raise EmailSyntaxError("The email address is too long {}.".format(reason))
 
     if check_deliverability:
         # Validate the email address's deliverability and update the
@@ -291,11 +294,9 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
     # internationalized, then the UTF-8 encoding may be longer, but
     # that may not be relevant. We will check the total address length
     # instead.
-    if len(local) > 64:
-        raise EmailSyntaxError("The email address is too long before the @-sign ({} character{} too many).".format(
-            len(local) - 64,
-            "s" if (len(local) - 64 != 1) else ""
-        ))
+    if len(local) > LOCAL_PART_MAX_LENGTH:
+        reason = __get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
+        raise EmailSyntaxError("The email address is too long before the @-sign {}.".format(reason))
 
     # Check the local part against the regular expression for the older ASCII requirements.
     m = re.match(DOT_ATOM_TEXT + "\\Z", local)
@@ -400,7 +401,7 @@ def validate_email_domain_part(domain):
     # on the assumption that the domain may be transmitted without SMTPUTF8
     # as IDNA ASCII. This is also checked by idna.encode, so this exception
     # is never reached.
-    if len(ascii_domain) > 255:
+    if len(ascii_domain) > DOMAIN_MAX_LENGTH:
         raise EmailSyntaxError("The email address is too long after the @-sign.")
 
     # A "dot atom text", per RFC 2822 3.2.4, but using the restricted
