@@ -156,6 +156,10 @@ class ValidatedEmail(object):
                        ) \
             + ")"
 
+    """Convenience method for accessing ValidatedEmail as a dict"""
+    def as_dict(self):
+        return self.__dict__
+
 
 def validate_email(
     email,
@@ -536,7 +540,7 @@ def main():
             email = email.decode("utf8")  # assume utf8 in input
         try:
             result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
-            print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+            print(json.dumps(result.as_dict(), indent=2, sort_keys=True, ensure_ascii=False))
         except EmailNotValidError as e:
             if sys.version_info < (3,):
                 print(unicode_class(e).encode("utf8"))
