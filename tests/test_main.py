@@ -2,6 +2,8 @@ import pytest
 from email_validator import EmailSyntaxError, EmailUndeliverableError, \
                             validate_email, validate_email_deliverability, \
                             ValidatedEmail
+# Let's test main but rename it to be clear
+from email_validator import main as validator_main
 
 
 @pytest.mark.parametrize(
@@ -284,3 +286,61 @@ def test_deliverability_dns_timeout():
     assert response.get("unknown-deliverability") == "timeout"
     validate_email('test@gmail.com')
     del validate_email_deliverability.TEST_CHECK_TIMEOUT
+
+
+def test_main_single_good_input(monkeypatch, capsys):
+    import json
+    test_email = "test@example.com"
+    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
+    validator_main()
+    stdout, _ = capsys.readouterr()
+    output = json.loads(str(stdout))
+    assert isinstance(output, dict)
+    assert validate_email(test_email).original_email == output["original_email"]
+
+
+def test_main_single_bad_input(monkeypatch, capsys):
+    bad_email = 'test@..com'
+    monkeypatch.setattr('sys.argv', ['email_validator', bad_email])
+    validator_main()
+    stdout, _ = capsys.readouterr()
+    assert stdout == 'An email address cannot have a period immediately after the @-sign.\n'
+
+
+def test_main_multi_input(monkeypatch, capsys):
+    import io
+    test_cases = ["test@example.com", "test2@example.com", "test@.com", "test3@.com"]
+    test_input = io.StringIO("\n".join(test_cases))
+    monkeypatch.setattr('sys.stdin', test_input)
+    monkeypatch.setattr('sys.argv', ['email_validator'])
+    validator_main()
+    stdout, _ = capsys.readouterr()
+    assert test_cases[0] not in stdout
+    assert test_cases[1] not in stdout
+    assert test_cases[2] in stdout
+    assert test_cases[3] in stdout
+
+
+def test_main_input_shim(monkeypatch, capsys):
+    import json
+    monkeypatch.setattr('sys.version_info', (2, 7))
+    test_email = b"test@example.com"
+    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
+    validator_main()
+    stdout, _ = capsys.readouterr()
+    output = json.loads(str(stdout))
+    assert isinstance(output, dict)
+    assert validate_email(test_email).original_email == output["original_email"]
+
+
+def test_main_output_shim(monkeypatch, capsys):
+    monkeypatch.setattr('sys.version_info', (2, 7))
+    test_email = b"test@.com"
+    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
+    validator_main()
+    stdout, _ = capsys.readouterr()
+
+    # This looks bad but it has to do with the way python 2.7 prints vs py3
+    # The \n is part of the print statement, not part of the string, which is what the b'...' is
+    # Since we're mocking py 2.7 here instead of actually using 2.7, this was the closest I could get
+    assert stdout == "b'An email address cannot have a period immediately after the @-sign.'\n"
