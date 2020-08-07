@@ -250,6 +250,13 @@ def test_email_invalid(email_input, error_msg):
     assert str(exc_info.value) == error_msg
 
 
+def test_dict_accessor():
+    input_email = "testaddr@example.com"
+    valid_email = validate_email(input_email, check_deliverability=False)
+    assert isinstance(valid_email.as_dict(), dict)
+    assert valid_email.as_dict()["original_email"] == input_email
+
+
 def test_deliverability_no_records():
     assert validate_email_deliverability('example.com', 'example.com') == {'mx': [(0, '')], 'mx-fallback': None}
 
