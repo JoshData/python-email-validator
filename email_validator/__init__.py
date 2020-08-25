@@ -525,32 +525,31 @@ def main():
     import sys
     import json
 
+    def __utf8_input_shim(input_str):
+        if sys.version_info < (3,):
+            return input_str.decode("utf-8")
+        return input_str
+
+    def __utf8_output_shim(output_str):
+        if sys.version_info < (3,):
+            return unicode_class(output_str).encode("utf-8")
+        return output_str
+
     if len(sys.argv) == 1:
-        # Read lines for STDIN and validate the email address on each line.
-        allow_smtputf8 = True
         for line in sys.stdin:
+            email = __utf8_input_shim(line.strip())
             try:
-                email = line.strip()
-                if sys.version_info < (3,):
-                    email = email.decode("utf8")  # assume utf8 in input
-                validate_email(email, allow_smtputf8=allow_smtputf8)
+                validate_email(email)
             except EmailNotValidError as e:
-                print(email, e)
+                print(__utf8_output_shim("{} {}".format(email, e)))
     else:
         # Validate the email address passed on the command line.
-        email = sys.argv[1]
-        allow_smtputf8 = True
-        check_deliverability = True
-        if sys.version_info < (3,):
-            email = email.decode("utf8")  # assume utf8 in input
+        email = __utf8_input_shim(sys.argv[1])
         try:
-            result = validate_email(email, allow_smtputf8=allow_smtputf8, check_deliverability=check_deliverability)
+            result = validate_email(email)
             print(json.dumps(result.as_dict(), indent=2, sort_keys=True, ensure_ascii=False))
         except EmailNotValidError as e:
-            if sys.version_info < (3,):
-                print(unicode_class(e).encode("utf8"))
-            else:
-                print(e)
+            print(__utf8_output_shim(e))
 
 
 if __name__ == "__main__":
