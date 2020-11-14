@@ -128,6 +128,22 @@ shown):
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
+    
+`dns_resolver=None`: Set to an instance of dns.resolver.Resolver`
+
+If you provide dns_resolver you can configure a cache and set resolver timeout. 
+When the resolver has a cache, successful dns lookups per domain will be cached 
+for subsequent calls.
+```python
+# New resolver automatically created (no dns caching)
+valid = validate_email(email)
+
+# DNS resover with caching and custom timeout used
+dns_resolver = dns.resolver.Resolver()
+dns_resolver.cache = dns.resolver.Cache()
+dns_resolver.timeout = 10
+valid = validate_email(email, dns_resolver=dns_resolver)
+```
 
 Internationalized email addresses
 ---------------------------------

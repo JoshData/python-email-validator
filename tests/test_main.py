@@ -1,3 +1,5 @@
+from unittest import mock
+import dns.resolver
 import pytest
 from email_validator import EmailSyntaxError, EmailUndeliverableError, \
                             validate_email, validate_email_deliverability, \
@@ -260,11 +262,19 @@ def test_dict_accessor():
 
 
 def test_deliverability_no_records():
-    assert validate_email_deliverability('example.com', 'example.com') == {'mx': [(0, '')], 'mx-fallback': None}
+    assert validate_email_deliverability(
+        'example.com',
+        'example.com',
+        dns_resolver=dns.resolver.get_default_resolver()
+    ) == {'mx': [(0, '')], 'mx-fallback': None}
 
 
 def test_deliverability_found():
-    response = validate_email_deliverability('gmail.com', 'gmail.com')
+    response = validate_email_deliverability(
+        'gmail.com',
+        'gmail.com',
+        dns_resolver=dns.resolver.get_default_resolver()
+    )
     assert response.keys() == {'mx', 'mx-fallback'}
     assert response['mx-fallback'] is None
     assert len(response['mx']) > 1
@@ -276,12 +286,16 @@ def test_deliverability_found():
 def test_deliverability_fails():
     domain = 'xkxufoekjvjfjeodlfmdfjcu.com'
     with pytest.raises(EmailUndeliverableError, match='The domain name {} does not exist'.format(domain)):
-        validate_email_deliverability(domain, domain)
+        validate_email_deliverability(domain, domain, dns_resolver=dns.resolver.get_default_resolver())
 
 
 def test_deliverability_dns_timeout():
     validate_email_deliverability.TEST_CHECK_TIMEOUT = True
-    response = validate_email_deliverability('gmail.com', 'gmail.com')
+    response = validate_email_deliverability(
+        'gmail.com',
+        'gmail.com',
+        dns_resolver=dns.resolver.get_default_resolver()
+    )
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
     validate_email('test@gmail.com')
@@ -344,3 +358,16 @@ def test_main_output_shim(monkeypatch, capsys):
     # The \n is part of the print statement, not part of the string, which is what the b'...' is
     # Since we're mocking py 2.7 here instead of actually using 2.7, this was the closest I could get
     assert stdout == "b'An email address cannot have a period immediately after the @-sign.'\n"
+
+
+@mock.patch("dns.resolver.LRUCache.put")
+def test_validate_email__with_configured_resolver(mocked_put):
+    dns_resolver = dns.resolver.Resolver()
+    dns_resolver.timeout = 10
+    dns_resolver.cache = dns.resolver.LRUCache(max_size=1000)
+    validate_email("test@gmail.com", dns_resolver=dns_resolver)
+    assert mocked_put.called
+
+    with mock.patch("dns.resolver.LRUCache.get") as mocked_get:
+        validate_email("test@gmail.com", dns_resolver=dns_resolver)
+        assert mocked_get.called
