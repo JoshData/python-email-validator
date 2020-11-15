@@ -180,6 +180,13 @@ def __get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
     return reason.format(prefix, diff, suffix)
 
 
+def caching_resolver(timeout=DEFAULT_TIMEOUT, cache=None):
+    resolver = dns.resolver.Resolver()
+    resolver.cache = cache or dns.resolver.LRUCache()
+    resolver.lifetime = timeout  # timeout, in seconds
+    return resolver
+
+
 def validate_email(
     email,
     allow_smtputf8=True,
@@ -271,15 +278,11 @@ def validate_email(
             reason = "(when encoded in bytes)"
         raise EmailSyntaxError("The email address is too long {}.".format(reason))
 
-    if dns_resolver is None:
-        dns_resolver = dns.resolver.get_default_resolver()
-        dns_resolver.timeout = timeout
-
     if check_deliverability:
         # Validate the email address's deliverability and update the
         # return dict with metadata.
         deliverability_info = validate_email_deliverability(
-            ret["domain"], ret["domain_i18n"], dns_resolver
+            ret["domain"], ret["domain_i18n"], timeout, dns_resolver
         )
         if "mx" in deliverability_info:
             ret.mx = deliverability_info["mx"]
@@ -450,9 +453,16 @@ def validate_email_domain_part(domain):
     }
 
 
-def validate_email_deliverability(domain, domain_i18n, dns_resolver):
+def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, dns_resolver=None):
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
+
+    # If no dns.resolver.Resolver was given, get dnspython's default resolver.
+    # Override the default resolver's timeout. This may affect other uses of
+    # dnspython in this process.
+    if dns_resolver is None:
+        dns_resolver = dns.resolver.get_default_resolver()
+        dns_resolver.lifetime = timeout
 
     def dns_resolver_resolve_shim(domain, record):
         try:
