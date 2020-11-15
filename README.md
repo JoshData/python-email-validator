@@ -14,7 +14,7 @@ Key features:
   login forms or other uses related to identifying users.
 * Gives friendly error messages when validation fails (appropriate to show
   to end users).
-* (optionally) Checks deliverability: Does the domain name resolve?
+* (optionally) Checks deliverability: Does the domain name resolve? And you can override the default DNS resolver.
 * Supports internationalized domain names and (optionally)
   internationalized local parts.
 * Normalizes email addresses (super important for internationalized
@@ -69,23 +69,27 @@ This validates the address and gives you its normalized form. You should
 put the normalized form in your database and always normalize before
 checking if an address is in your database.
 
-The validator will accept internationalized email addresses, but email
-addresses with non-ASCII characters in the *local* part of the address
-(before the @-sign) require the
-[SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension which may not
-be supported by your mail submission library or your outbound mail
-server. If you know ahead of time that SMTPUTF8 is not supported then
-**add the keyword argument allow\_smtputf8=False to fail validation for
-addresses that would require SMTPUTF8**:
+When validating many email addresses or to control the timeout (the default is 15 seconds), create a caching [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to reuse in each call:
 
 ```python
-valid = validate_email(email, allow_smtputf8=False)
+from email_validator import validate_email, caching_resolver
+
+resolver = caching_resolver(timeout=10)
+
+while True:
+  valid = validate_email(email, dns_resolver=resolver)
 ```
+
+The validator will accept internationalized email addresses, but not all
+mail systems can send email to an addresses with non-ASCII characters in
+the *local* part of the address (before the @-sign). See the `allow_smtputf8`
+option below.
+
 
 Overview
 --------
 
-The module provides a single function `validate_email(email_address)` which
+The module provides a function `validate_email(email_address)` which
 takes an email address (either a `str` or ASCII `bytes`) and:
 
 - Raises a `EmailNotValidError` with a helpful, human-readable error
@@ -128,6 +132,9 @@ shown):
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
+    
+`dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
+
 
 Internationalized email addresses
 ---------------------------------

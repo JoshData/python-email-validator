@@ -1,7 +1,9 @@
+from unittest import mock
+import dns.resolver
 import pytest
 from email_validator import EmailSyntaxError, EmailUndeliverableError, \
                             validate_email, validate_email_deliverability, \
-                            ValidatedEmail
+                            caching_resolver, ValidatedEmail
 # Let's test main but rename it to be clear
 from email_validator import main as validator_main
 
@@ -344,3 +346,27 @@ def test_main_output_shim(monkeypatch, capsys):
     # The \n is part of the print statement, not part of the string, which is what the b'...' is
     # Since we're mocking py 2.7 here instead of actually using 2.7, this was the closest I could get
     assert stdout == "b'An email address cannot have a period immediately after the @-sign.'\n"
+
+
+@mock.patch("dns.resolver.LRUCache.put")
+def test_validate_email__with_caching_resolver(mocked_put):
+    dns_resolver = caching_resolver()
+    validate_email("test@gmail.com", dns_resolver=dns_resolver)
+    assert mocked_put.called
+
+    with mock.patch("dns.resolver.LRUCache.get") as mocked_get:
+        validate_email("test@gmail.com", dns_resolver=dns_resolver)
+        assert mocked_get.called
+
+
+@mock.patch("dns.resolver.LRUCache.put")
+def test_validate_email__with_configured_resolver(mocked_put):
+    dns_resolver = dns.resolver.Resolver()
+    dns_resolver.lifetime = 10
+    dns_resolver.cache = dns.resolver.LRUCache(max_size=1000)
+    validate_email("test@gmail.com", dns_resolver=dns_resolver)
+    assert mocked_put.called
+
+    with mock.patch("dns.resolver.LRUCache.get") as mocked_get:
+        validate_email("test@gmail.com", dns_resolver=dns_resolver)
+        assert mocked_get.called
