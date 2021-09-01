@@ -3,3 +3,4 @@ docutils==0.15.2
 flake8==3.7.9
 pytest==5.2.2
 pytest-cov==2.8.1
+idna>=2.8
