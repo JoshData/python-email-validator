@@ -7,6 +7,7 @@ import dns.resolver
 import dns.exception
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 
+from email_validator.error_classes import *
 
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
 # characters are permitted in email addresses (not taking into
@@ -48,22 +49,6 @@ else:
     ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")
 
 DEFAULT_TIMEOUT = 15  # secs
-
-
-class EmailNotValidError(ValueError):
-    """Parent class of all exceptions raised by this module."""
-    pass
-
-
-class EmailSyntaxError(EmailNotValidError):
-    """Exception raised when an email address fails validation because of its form."""
-    pass
-
-
-class EmailUndeliverableError(EmailNotValidError):
-    """Exception raised when an email address fails validation because its domain name does not appear deliverable."""
-    pass
-
 
 class ValidatedEmail(object):
     """The validate_email function returns objects of this type holding the normalized form of the email address
@@ -174,10 +159,10 @@ class ValidatedEmail(object):
 
 def __get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
     diff = len(addr) - limit
-    reason = "({}{} character{} too many)"
+    reason_string = "({}{} character{} too many)"
     prefix = "at least " if utf8 else ""
     suffix = "s" if diff > 1 else ""
-    return reason.format(prefix, diff, suffix)
+    return (reason_string.format(prefix, diff, suffix), diff)
 
 
 def caching_resolver(timeout=DEFAULT_TIMEOUT, cache=None):
@@ -208,12 +193,14 @@ def validate_email(
         try:
             email = email.decode("ascii")
         except ValueError:
-            raise EmailSyntaxError("The email address is not valid ASCII.")
+            raise EmailInvalidAsciiError("The email address is not valid ASCII.")
 
     # At-sign.
     parts = email.split('@')
-    if len(parts) != 2:
-        raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+    if len(parts) < 2:
+        raise EmailNoAtSignError("The email address is not valid. It must have exactly one @-sign.")
+    if len(parts) > 2:
+        raise EmailMultipleAtSignsError("The email address is not valid. It must have exactly one @-sign.")
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
@@ -261,22 +248,22 @@ def validate_email(
     # See the length checks on the local part and the domain.
     if ret.ascii_email and len(ret.ascii_email) > EMAIL_MAX_LENGTH:
         if ret.ascii_email == ret.email:
-            reason = __get_length_reason(ret.ascii_email)
+            reason_tuple = __get_length_reason(ret.ascii_email)
         elif len(ret.email) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the ASCII
             # form is definitely going to be too long.
-            reason = __get_length_reason(ret.email, utf8=True)
+            reason_tuple = __get_length_reason(ret.email, utf8=True)
         else:
-            reason = "(when converted to IDNA ASCII)"
-        raise EmailSyntaxError("The email address is too long {}.".format(reason))
+            reason_tuple = "(when converted to IDNA ASCII)"
+        raise EmailTooLongAsciiError("The email address is too long {}.".format(reason_tuple[0]), reason_tuple[1])
     if len(ret.email.encode("utf8")) > EMAIL_MAX_LENGTH:
         if len(ret.email) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the UTF-8
             # encoding is definitely going to be too long.
-            reason = __get_length_reason(ret.email, utf8=True)
+            reason_tuple = __get_length_reason(ret.email, utf8=True)
         else:
-            reason = "(when encoded in bytes)"
-        raise EmailSyntaxError("The email address is too long {}.".format(reason))
+            reason_tuple = "(when encoded in bytes)"
+        raise EmailTooLongUtf8Error("The email address is too long {}.".format(reason_tuple[0]), reason_tuple[1])
 
     if check_deliverability:
         # Validate the email address's deliverability and update the
@@ -296,7 +283,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
     if len(local) == 0:
         if not allow_empty_local:
-            raise EmailSyntaxError("There must be something before the @-sign.")
+            raise EmailDomainPartEmptyError("There must be something before the @-sign.")
         else:
             # The caller allows an empty local part. Useful for validating certain
             # Postfix aliases.
@@ -313,8 +300,8 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
     # that may not be relevant. We will check the total address length
     # instead.
     if len(local) > LOCAL_PART_MAX_LENGTH:
-        reason = __get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
-        raise EmailSyntaxError("The email address is too long before the @-sign {}.".format(reason))
+        reason_tuple = __get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
+        raise EmailLocalPartTooLongError("The email address is too long before the @-sign {}.".format(reason_tuple[0]))
 
     # Check the local part against the regular expression for the older ASCII requirements.
     m = re.match(DOT_ATOM_TEXT + "\\Z", local)
@@ -334,11 +321,11 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
             bad_chars = ', '.join(sorted(set(
                 c for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c)
             )))
-            raise EmailSyntaxError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
+            raise EmailLocalPartInvalidCharactersError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
 
         # It would be valid if internationalized characters were allowed by the caller.
         if not allow_smtputf8:
-            raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
+            raise EmailLocalPartInternationalizedCharactersError("Internationalized characters before the @-sign are not supported.")
 
         # It's valid.
 
@@ -357,7 +344,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 def validate_email_domain_part(domain):
     # Empty?
     if len(domain) == 0:
-        raise EmailSyntaxError("There must be something after the @-sign.")
+        raise EmailDomainPartEmptyError("There must be something after the @-sign.")
 
     # Perform UTS-46 normalization, which includes casefolding, NFC normalization,
     # and converting all label separators (the period/full stop, fullwidth full stop,
@@ -367,18 +354,18 @@ def validate_email_domain_part(domain):
     try:
         domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+        raise EmailDomainInvalidIdnaError("The domain name %s contains invalid characters (%s)." % (domain, str(e)), e)
 
     # Now we can perform basic checks on the use of periods (since equivalent
     # symbols have been mapped to periods). These checks are needed because the
     # IDNA library doesn't handle well domains that have empty labels (i.e. initial
     # dot, trailing dot, or two dots in a row).
     if domain.endswith("."):
-        raise EmailSyntaxError("An email address cannot end with a period.")
+        raise EmailDomainEndsWithPeriodError("An email address cannot end with a period.")
     if domain.startswith("."):
-        raise EmailSyntaxError("An email address cannot have a period immediately after the @-sign.")
+        raise EmailDomainStartsWithPeriodError("An email address cannot have a period immediately after the @-sign.")
     if ".." in domain:
-        raise EmailSyntaxError("An email address cannot have two periods in a row.")
+        raise EmailDomainMultiplePeriodsInARowError("An email address cannot have two periods in a row.")
 
     # Regardless of whether international characters are actually used,
     # first convert to IDNA ASCII. For ASCII-only domains, the transformation
@@ -398,8 +385,8 @@ def validate_email_domain_part(domain):
             # the length check is applied to a string that is different from the
             # one the user supplied. Also I'm not sure if the length check applies
             # to the internationalized form, the IDNA ASCII form, or even both!
-            raise EmailSyntaxError("The email address is too long after the @-sign.")
-        raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+            raise EmailDomainTooLongError("The email address is too long after the @-sign.")
+        raise EmailDomainInvalidIdnaError("The domain name %s contains invalid characters (%s)." % (domain, str(e)), e)
 
     # We may have been given an IDNA ASCII domain to begin with. Check
     # that the domain actually conforms to IDNA. It could look like IDNA
@@ -411,7 +398,7 @@ def validate_email_domain_part(domain):
     try:
         domain_i18n = idna.decode(ascii_domain.encode('ascii'))
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (ascii_domain, str(e)))
+        raise EmailDomainInvalidIdnaError("The domain name %s is not valid IDNA (%s)." % (ascii_domain, str(e)), e)
 
     # RFC 5321 4.5.3.1.2
     # We're checking the number of bytes (octets) here, which can be much
@@ -420,7 +407,7 @@ def validate_email_domain_part(domain):
     # as IDNA ASCII. This is also checked by idna.encode, so this exception
     # is never reached.
     if len(ascii_domain) > DOMAIN_MAX_LENGTH:
-        raise EmailSyntaxError("The email address is too long after the @-sign.")
+        raise EmailDomainTooLongError("The email address is too long after the @-sign.")
 
     # A "dot atom text", per RFC 2822 3.2.4, but using the restricted
     # characters allowed in a hostname (see ATEXT_HOSTNAME above).
@@ -430,14 +417,14 @@ def validate_email_domain_part(domain):
     # with idna.decode, which also checks this format.
     m = re.match(DOT_ATOM_TEXT + "\\Z", ascii_domain)
     if not m:
-        raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
+        raise EmailDomainInvalidCharactersError("The email address contains invalid characters after the @-sign.")
 
     # All publicly deliverable addresses have domain named with at least
     # one period. We also know that all TLDs end with a letter.
     if "." not in ascii_domain:
-        raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
+        raise EmailDomainNoPeriodError("The domain name %s is not valid. It should have a period." % domain_i18n)
     if not re.search(r"[A-Za-z]\Z", ascii_domain):
-        raise EmailSyntaxError(
+        raise EmailDomainNoValidTldError(
             "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
         )
 
@@ -509,7 +496,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
 
                     # If there was no MX, A, or AAAA record, then mail to
                     # this domain is not deliverable.
-                    raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
+                    raise EmailDomainNameDoesNotExistError("The domain name %s does not exist." % domain_i18n)
 
     except dns.exception.Timeout:
         # A timeout could occur for various reasons, so don't treat it as a failure.
@@ -523,8 +510,8 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
 
     except Exception as e:
         # Unhandled conditions should not propagate.
-        raise EmailUndeliverableError(
-            "There was an error while checking if the domain name in the email address is deliverable: " + str(e)
+        raise EmailDomainUnhandledDnsExceptionError(
+            "There was an error while checking if the domain name in the email address is deliverable: " + str(e), e
         )
 
     return {
