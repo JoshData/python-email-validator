@@ -153,7 +153,7 @@ class ValidatedEmail(object):
             and self.ascii_domain == other.ascii_domain
             and self.smtputf8 == other.smtputf8
             and repr(sorted(self.mx) if self.mx else self.mx)
-             == repr(sorted(other.mx) if other.mx else other.mx)
+            == repr(sorted(other.mx) if other.mx else other.mx)
             and self.mx_fallback_type == other.mx_fallback_type
         )
 
