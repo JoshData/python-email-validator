@@ -142,6 +142,8 @@ class ValidatedEmail(object):
 
     """Tests use this."""
     def __eq__(self, other):
+        if not isinstance(other, ValidatedEmail):
+            return False
         return (
             self.email == other.email
             and self.local_part == other.local_part
