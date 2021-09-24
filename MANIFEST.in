@@ -1,2 +1,3 @@
 include email_validator.py
+include error_classes.py
 include LICENSE README.md

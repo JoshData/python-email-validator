@@ -1,9 +1,40 @@
 from unittest import mock
 import dns.resolver
 import pytest
-from email_validator import EmailSyntaxError, EmailUndeliverableError, \
-                            validate_email, validate_email_deliverability, \
-                            caching_resolver, ValidatedEmail
+# error classes are imported individually here
+# so that syntax highlighting can be used
+# to easily visualize test coverage
+from email_validator.error_classes import \
+                            EmailNotValidError, \
+                            EmailSyntaxError, \
+                            EmailInvalidAsciiError, \
+                            EmailNoAtSignError, \
+                            EmailMultipleAtSignsError, \
+                            EmailTooLongError, \
+                            EmailTooLongAsciiError, \
+                            EmailTooLongUtf8Error, \
+                            EmailLocalPartError, \
+                            EmailLocalPartEmptyError, \
+                            EmailLocalPartTooLongError, \
+                            EmailLocalPartInvalidCharactersError, \
+                            EmailLocalPartInternationalizedCharactersError, \
+                            EmailDomainPartError, \
+                            EmailDomainPartEmptyError, \
+                            EmailDomainInvalidCharactersError, \
+                            EmailDomainInvalidIdnaError, \
+                            EmailDomainEndsWithPeriodError, \
+                            EmailDomainStartsWithPeriodError, \
+                            EmailDomainMultiplePeriodsInARowError, \
+                            EmailDomainTooLongError, \
+                            EmailDomainNoPeriodError, \
+                            EmailDomainNoValidTldError, \
+                            EmailUndeliverableError, \
+                            EmailDomainNameDoesNotExistError, \
+                            EmailDomainUnhandledDnsExceptionError
+from email_validator import ValidatedEmail, \
+                            validate_email, \
+                            validate_email_deliverability, \
+                            caching_resolver
 # Let's test main but rename it to be clear
 from email_validator import main as validator_main
 
@@ -252,6 +283,43 @@ def test_email_invalid(email_input, error_msg):
         validate_email(email_input)
     # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert str(exc_info.value) == error_msg
+
+
+@pytest.mark.parametrize(
+    'email_input,error_class',
+    [
+        ('my@.leadingdot.com', EmailDomainStartsWithPeriodError),
+        ('my@．．leadingfwdot.com', EmailDomainStartsWithPeriodError),
+        ('my@..twodots.com', EmailDomainStartsWithPeriodError),
+        ('my@twodots..com', EmailDomainMultiplePeriodsInARowError),
+        ('my@baddash.-.com', EmailDomainInvalidIdnaError),
+        ('my@baddash.-a.com', EmailDomainInvalidIdnaError),
+        ('my@baddash.b-.com', EmailDomainInvalidIdnaError),
+        ('my@example.com\n', EmailDomainInvalidIdnaError),
+        ('my@example\n.com', EmailDomainInvalidIdnaError),
+        ('.leadingdot@domain.com', EmailLocalPartInvalidCharactersError),
+        ('..twodots@domain.com', EmailLocalPartInvalidCharactersError),
+        ('twodots..here@domain.com', EmailLocalPartInvalidCharactersError),
+        ('me@⒈wouldbeinvalid.com', EmailDomainInvalidIdnaError),
+        ('@example.com', EmailLocalPartEmptyError),
+        ('\nmy@example.com', EmailLocalPartInvalidCharactersError),
+        ('m\ny@example.com', EmailLocalPartInvalidCharactersError),
+        ('my\n@example.com', EmailLocalPartInvalidCharactersError),
+        ('11111111112222222222333333333344444444445555555555666666666677777@example.com', EmailLocalPartTooLongError),
+        ('111111111122222222223333333333444444444455555555556666666666777777@example.com', EmailLocalPartTooLongError),
+        ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', EmailDomainTooLongError),
+        ('my.long.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344444.info', EmailTooLongAsciiError),
+        ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333.info', EmailTooLongAsciiError),
+        ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', EmailTooLongUtf8Error),
+        ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444.info', EmailTooLongUtf8Error),
+        ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', EmailTooLongUtf8Error),
+    ],
+)
+def test_email_invalid(email_input, error_class):
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input)
+    # print(f'({email_input!r}, {str(exc_info.value)!r}),')
+    assert isinstance(exc_info, error_class)
 
 
 def test_dict_accessor():
