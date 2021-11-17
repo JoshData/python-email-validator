@@ -12,51 +12,51 @@ from email_validator import main as validator_main
     'email_input,output',
     [
         (
-            'Abc@example.com',
+            'Abc@example.tld',
             ValidatedEmail(
                 local_part='Abc',
                 ascii_local_part='Abc',
                 smtputf8=False,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='Abc@example.com',
-                ascii_email='Abc@example.com',
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email='Abc@example.tld',
+                ascii_email='Abc@example.tld',
             ),
         ),
         (
-            'Abc.123@example.com',
+            'Abc.123@test-example.com',
             ValidatedEmail(
                 local_part='Abc.123',
                 ascii_local_part='Abc.123',
                 smtputf8=False,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='Abc.123@example.com',
-                ascii_email='Abc.123@example.com',
+                ascii_domain='test-example.com',
+                domain='test-example.com',
+                email='Abc.123@test-example.com',
+                ascii_email='Abc.123@test-example.com',
             ),
         ),
         (
-            'user+mailbox/department=shipping@example.com',
+            'user+mailbox/department=shipping@example.tld',
             ValidatedEmail(
                 local_part='user+mailbox/department=shipping',
                 ascii_local_part='user+mailbox/department=shipping',
                 smtputf8=False,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='user+mailbox/department=shipping@example.com',
-                ascii_email='user+mailbox/department=shipping@example.com',
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email='user+mailbox/department=shipping@example.tld',
+                ascii_email='user+mailbox/department=shipping@example.tld',
             ),
         ),
         (
-            "!#$%&'*+-/=?^_`.{|}~@example.com",
+            "!#$%&'*+-/=?^_`.{|}~@example.tld",
             ValidatedEmail(
                 local_part="!#$%&'*+-/=?^_`.{|}~",
                 ascii_local_part="!#$%&'*+-/=?^_`.{|}~",
                 smtputf8=False,
-                ascii_domain='example.com',
-                domain='example.com',
-                email="!#$%&'*+-/=?^_`.{|}~@example.com",
-                ascii_email="!#$%&'*+-/=?^_`.{|}~@example.com",
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email="!#$%&'*+-/=?^_`.{|}~@example.tld",
+                ascii_email="!#$%&'*+-/=?^_`.{|}~@example.tld",
             ),
         ),
         (
@@ -142,43 +142,43 @@ from email_validator import main as validator_main
             ),
         ),
         (
-            'ñoñó@example.com',
+            'ñoñó@example.tld',
             ValidatedEmail(
                 local_part='ñoñó',
                 smtputf8=True,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='ñoñó@example.com',
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email='ñoñó@example.tld',
             ),
         ),
         (
-            '我買@example.com',
+            '我買@example.tld',
             ValidatedEmail(
                 local_part='我買',
                 smtputf8=True,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='我買@example.com',
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email='我買@example.tld',
             ),
         ),
         (
-            '甲斐黒川日本@example.com',
+            '甲斐黒川日本@example.tld',
             ValidatedEmail(
                 local_part='甲斐黒川日本',
                 smtputf8=True,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='甲斐黒川日本@example.com',
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email='甲斐黒川日本@example.tld',
             ),
         ),
         (
-            'чебурашкаящик-с-апельсинами.рф@example.com',
+            'чебурашкаящик-с-апельсинами.рф@example.tld',
             ValidatedEmail(
                 local_part='чебурашкаящик-с-апельсинами.рф',
                 smtputf8=True,
-                ascii_domain='example.com',
-                domain='example.com',
-                email='чебурашкаящик-с-апельсинами.рф@example.com',
+                ascii_domain='example.tld',
+                domain='example.tld',
+                email='чебурашкаящик-с-апельсинами.рф@example.tld',
             ),
         ),
         (
@@ -211,6 +211,7 @@ def test_email_valid(email_input, output):
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [
+        ('my@localhost', 'The domain name localhost is not valid. It should have a period.'),
         ('my@.leadingdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@．．leadingfwdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@..twodots.com', 'An email address cannot have a period immediately after the @-sign.'),
@@ -247,15 +248,45 @@ def test_email_valid(email_input, output):
         ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (at least 1 character too many).'),
     ],
 )
-def test_email_invalid(email_input, error_msg):
+def test_email_invalid_syntax(email_input, error_msg):
+    # Since these all have syntax errors, deliverability
+    # checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
     # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert str(exc_info.value) == error_msg
 
 
+@pytest.mark.parametrize(
+    'email_input',
+    [
+        ('me@anything.arpa'),
+        ('me@anything.example'),
+        ('me@example.com'),
+        ('me@mail.example.com'),
+        ('me@valid.invalid'),
+        ('me@link.local'),
+        ('me@host.localhost'),
+        ('me@onion.onion.onion'),
+        ('me@test.test.test'),
+    ],
+)
+def test_email_invalid_reserved_domain(email_input):
+    # Since these all fail deliverabiltiy from a static list,
+    # DNS deliverability checks do not arise.
+    with pytest.raises(EmailUndeliverableError) as exc_info:
+        validate_email(email_input)
+    # print(f'({email_input!r}, {str(exc_info.value)!r}),')
+    assert "is a special-use or reserved name" in str(exc_info.value)
+
+
+def test_email_test_domain_name_in_test_environment():
+    validate_email("anything@test", test_environment=True)
+    validate_email("anything@mycompany.test", test_environment=True)
+
+
 def test_dict_accessor():
-    input_email = "testaddr@example.com"
+    input_email = "testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
     assert isinstance(valid_email.as_dict(), dict)
     assert valid_email.as_dict()["original_email"] == input_email
@@ -292,7 +323,7 @@ def test_deliverability_dns_timeout():
 
 def test_main_single_good_input(monkeypatch, capsys):
     import json
-    test_email = "test@example.com"
+    test_email = "google@google.com"
     monkeypatch.setattr('sys.argv', ['email_validator', test_email])
     validator_main()
     stdout, _ = capsys.readouterr()
@@ -311,7 +342,7 @@ def test_main_single_bad_input(monkeypatch, capsys):
 
 def test_main_multi_input(monkeypatch, capsys):
     import io
-    test_cases = ["test@example.com", "test2@example.com", "test@.com", "test3@.com"]
+    test_cases = ["google1@google.com", "google2@google.com", "test@.com", "test3@.com"]
     test_input = io.StringIO("\n".join(test_cases))
     monkeypatch.setattr('sys.stdin', test_input)
     monkeypatch.setattr('sys.argv', ['email_validator'])
@@ -326,7 +357,7 @@ def test_main_multi_input(monkeypatch, capsys):
 def test_main_input_shim(monkeypatch, capsys):
     import json
     monkeypatch.setattr('sys.version_info', (2, 7))
-    test_email = b"test@example.com"
+    test_email = b"google@google.com"
     monkeypatch.setattr('sys.argv', ['email_validator', test_email])
     validator_main()
     stdout, _ = capsys.readouterr()

@@ -135,6 +135,7 @@ shown):
     
 `dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
 
+In non-production test environments, you may want to allow `@test` or `@mycompany.test` email addresses to be used as placeholder email addresses, which would normally not be permitted. In that case, pass `test_environment=True`. DNS-based deliverability checks will be disabled as well. Other [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) are always considered invalid and raise `EmailUndeliverableError`.
 
 Internationalized email addresses
 ---------------------------------
@@ -340,8 +341,11 @@ strictly conform to the standards. Many email address forms are obsolete
 or likely to cause trouble:
 
 * The validator assumes the email address is intended to be
-  deliverable on the public Internet using DNS, and so the domain part
+  deliverable on the public Internet. The domain part
   of the email address must be a resolvable domain name.
+  [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml)
+  and their subdomains are always considered invalid (except see
+  the `test_environment` parameter above).
 * The "quoted string" form of the local part of the email address (RFC
   5321 4.1.2) is not permitted --- no one uses this anymore anyway.
   Quoted forms allow multiple @-signs, space characters, and other

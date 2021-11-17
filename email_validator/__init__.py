@@ -36,6 +36,25 @@ EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
 DOMAIN_MAX_LENGTH = 255
 
+# IANA Special Use Domain Names
+# Last Updated 2021-09-21
+# https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.txt
+# The domain names without dots would be caught by the check that the domain
+# name in an email address must have a period, but this list will also catch
+# subdomains of these domains, which are also reserved.
+SPECIAL_USE_DOMAIN_NAMES = (
+    "arpa",  # consolidated from a lot of arpa subdomains, we'll assume all subdomains of arpa are actually reserved
+    "example",
+    "example.com",
+    "example.net",
+    "example.org",
+    "invalid",
+    "local",
+    "localhost",
+    "onion",
+    "test",  # see special logic for 'test' where this is checked
+)
+
 # ease compatibility in type checking
 if sys.version_info >= (3,):
     unicode_class = str
@@ -194,6 +213,7 @@ def validate_email(
     allow_smtputf8=True,
     allow_empty_local=False,
     check_deliverability=True,
+    test_environment=False,
     timeout=DEFAULT_TIMEOUT,
     dns_resolver=None
 ):
@@ -230,7 +250,7 @@ def validate_email(
     ret.smtputf8 = local_part_info["smtputf8"]
 
     # Validate the email address's domain part syntax and get a normalized form.
-    domain_part_info = validate_email_domain_part(parts[1])
+    domain_part_info = validate_email_domain_part(parts[1], test_environment=test_environment)
     ret.domain = domain_part_info["domain"]
     ret.ascii_domain = domain_part_info["ascii_domain"]
 
@@ -280,9 +300,9 @@ def validate_email(
             reason = "(when encoded in bytes)"
         raise EmailSyntaxError("The email address is too long {}.".format(reason))
 
-    if check_deliverability:
-        # Validate the email address's deliverability and update the
-        # return dict with metadata.
+    if check_deliverability and not test_environment:
+        # Validate the email address's deliverability using DNS
+        # and update the return dict with metadata.
         deliverability_info = validate_email_deliverability(
             ret["domain"], ret["domain_i18n"], timeout, dns_resolver
         )
@@ -356,7 +376,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         }
 
 
-def validate_email_domain_part(domain):
+def validate_email_domain_part(domain, test_environment=False):
     # Empty?
     if len(domain) == 0:
         raise EmailSyntaxError("There must be something after the @-sign.")
@@ -435,11 +455,33 @@ def validate_email_domain_part(domain):
         raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
 
     # All publicly deliverable addresses have domain named with at least
-    # one period. We also know that all TLDs end with a letter.
-    if "." not in ascii_domain:
+    # one period, and we'll consider the lack of a period a syntax error
+    # since that will match people's sense of what an email address looks
+    # like. We'll skip this in test environments to allow '@test' email
+    # addresses.
+    if "." not in ascii_domain and not (ascii_domain == "test" and test_environment):
         raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
+
+    # Check special-use and reserved domain names. Raise these as
+    # deliverability errors since they are syntactically valid.
+    # Some might fail DNS-based deliverability checks, but that
+    # can be turned off, so we should fail them all sooner.
+    for d in SPECIAL_USE_DOMAIN_NAMES:
+        # RFC 6761 says that applications should not block use of the 'test'
+        # domain name, presumably because that would prevent it from being
+        # used for actual testing. We'll block it, except when a special
+        # testing flag is used, indicating that the module is being used
+        # in a test environment.
+        if d == "test" and test_environment:
+            continue
+
+        if ascii_domain == d or ascii_domain.endswith("." + d):
+            raise EmailUndeliverableError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
+
+    # We also know that all TLDs currently end with a letter, and
+    # we'll consider that a non-DNS based deliverability check.
     if not re.search(r"[A-Za-z]\Z", ascii_domain):
-        raise EmailSyntaxError(
+        raise EmailUndeliverableError(
             "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
         )
 
