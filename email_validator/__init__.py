@@ -21,6 +21,7 @@ DOT_ATOM_TEXT = '[' + ATEXT + ']+(?:\\.[' + ATEXT + ']+)*'
 # RFC3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
 ATEXT_UTF8 = ATEXT + u"\u0080-\U0010FFFF"
+UNICODE_SURROGATES = u"[\ud800-\udfff]"
 DOT_ATOM_TEXT_UTF8 = '[' + ATEXT_UTF8 + ']+(?:\\.[' + ATEXT_UTF8 + ']+)*'
 
 # The domain part of the email address, after IDNA (ASCII) encoding,
@@ -361,6 +362,11 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         # It would be valid if internationalized characters were allowed by the caller.
         if not allow_smtputf8:
             raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
+
+        match_unicode_surrogates = re.search(UNICODE_SURROGATES, local)
+        if match_unicode_surrogates:
+            bad_chars = match_unicode_surrogates.group(0)
+            raise EmailSyntaxError("The email address contains unicode surrogates before the @-sign: %s." % bad_chars)
 
         # It's valid.
 
