@@ -100,7 +100,7 @@ addresses are allowed when passing a `bytes`) and:
 
 When an email address is not valid, `validate_email` raises either an
 `EmailSyntaxError` if the form of the address is invalid or an
-`EmailUndeliverableError` if the domain name does not resolve. Both
+`EmailUndeliverableError` if the domain name fails the DNS check. Both
 exception classes are subclasses of `EmailNotValidError`, which in turn
 is a subclass of `ValueError`.
 
@@ -113,14 +113,15 @@ one uses anymore even though they are still valid and deliverable, since
 they will probably give you grief if you're using email for login. (See
 later in the document about that.)
 
-The validator checks that the domain name in the email address resolves.
+The validator checks that the domain name in the email address has a
+(non-null) MX DNS record indicating that it is configured for email.
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
 reasons servers are good at not giving away whether an address is
 deliverable or not: email addresses that appear to accept mail at first
 can bounce mail after a delay, and bounced mail may indicate a temporary
 failure of a good email address (sometimes an intentional failure, like
-greylisting).
+greylisting). (A/AAAA-record fallback is also checked.)
 
 The function also accepts the following keyword arguments (default as
 shown):
@@ -129,7 +130,7 @@ shown):
     require the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension.
 
-`check_deliverability=True`: Set to `False` to skip the domain name resolution check.
+`check_deliverability=True`: Set to `False` to skip the domain name MX DNS record check.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.

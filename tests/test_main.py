@@ -1,4 +1,3 @@
-from unittest import mock
 import dns.resolver
 import pytest
 from email_validator import EmailSyntaxError, EmailUndeliverableError, \
@@ -292,10 +291,6 @@ def test_dict_accessor():
     assert valid_email.as_dict()["original_email"] == input_email
 
 
-def test_deliverability_no_records():
-    assert validate_email_deliverability('example.com', 'example.com') == {'mx': [(0, '')], 'mx-fallback': None}
-
-
 def test_deliverability_found():
     response = validate_email_deliverability('gmail.com', 'gmail.com')
     assert response.keys() == {'mx', 'mx-fallback'}
@@ -307,8 +302,14 @@ def test_deliverability_found():
 
 
 def test_deliverability_fails():
+    # No MX record.
     domain = 'xkxufoekjvjfjeodlfmdfjcu.com'
     with pytest.raises(EmailUndeliverableError, match='The domain name {} does not exist'.format(domain)):
+        validate_email_deliverability(domain, domain)
+
+    # Null MX record.
+    domain = 'example.com'
+    with pytest.raises(EmailUndeliverableError, match='The domain name {} does not accept email'.format(domain)):
         validate_email_deliverability(domain, domain)
 
 
@@ -379,25 +380,34 @@ def test_main_output_shim(monkeypatch, capsys):
     assert stdout == "b'An email address cannot have a period immediately after the @-sign.'\n"
 
 
-@mock.patch("dns.resolver.LRUCache.put")
-def test_validate_email__with_caching_resolver(mocked_put):
-    dns_resolver = caching_resolver()
+def test_validate_email__with_caching_resolver():
+    # unittest.mock.patch("dns.resolver.LRUCache.get") doesn't
+    # work --- it causes get to always return an empty list.
+    # So we'll mock our own way.
+    class MockedCache:
+        get_called = False
+        put_called = False
+
+        def get(self, key):
+            self.get_called = True
+            return None
+
+        def put(self, key, value):
+            self.put_called = True
+
+    # Test with caching_resolver helper method.
+    mocked_cache = MockedCache()
+    dns_resolver = caching_resolver(cache=mocked_cache)
     validate_email("test@gmail.com", dns_resolver=dns_resolver)
-    assert mocked_put.called
+    assert mocked_cache.put_called
+    validate_email("test@gmail.com", dns_resolver=dns_resolver)
+    assert mocked_cache.get_called
 
-    with mock.patch("dns.resolver.LRUCache.get") as mocked_get:
-        validate_email("test@gmail.com", dns_resolver=dns_resolver)
-        assert mocked_get.called
-
-
-@mock.patch("dns.resolver.LRUCache.put")
-def test_validate_email__with_configured_resolver(mocked_put):
+    # Test with dns.resolver.Resolver instance.
     dns_resolver = dns.resolver.Resolver()
     dns_resolver.lifetime = 10
-    dns_resolver.cache = dns.resolver.LRUCache(max_size=1000)
+    dns_resolver.cache = MockedCache()
     validate_email("test@gmail.com", dns_resolver=dns_resolver)
-    assert mocked_put.called
-
-    with mock.patch("dns.resolver.LRUCache.get") as mocked_get:
-        validate_email("test@gmail.com", dns_resolver=dns_resolver)
-        assert mocked_get.called
+    assert mocked_cache.put_called
+    validate_email("test@gmail.com", dns_resolver=dns_resolver)
+    assert mocked_cache.get_called

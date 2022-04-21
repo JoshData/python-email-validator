@@ -531,10 +531,19 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
             raise dns.exception.Timeout()
 
         try:
-            # Try resolving for MX records and get them in sorted priority order.
+            # Try resolving for MX records and get them in sorted priority order
+            # as (priority, qname) pairs.
             response = dns_resolver_resolve_shim(domain, "MX")
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
             mx_fallback = None
+
+            # Do not permit delivery if there is only a "null MX" record (whose value is
+            # (0, ".") but we've stripped trailing dots, so the 'exchange' is just "").
+            mtas = [(preference, exchange) for preference, exchange in mtas
+                    if exchange != ""]
+            if len(mtas) == 0:
+                raise EmailUndeliverableError("The domain name %s does not accept email." % domain_i18n)
+
         except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
             # If there was no MX record, fall back to an A record.
