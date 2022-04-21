@@ -283,6 +283,7 @@ def test_email_invalid_reserved_domain(email_input):
     [
         ('white space@test'),
         ('\n@test'),
+        ('\uD800@test'), # surrogate (Cs)
     ],
 )
 def test_email_unsafe_character(email_input):

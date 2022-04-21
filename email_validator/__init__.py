@@ -368,6 +368,13 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         # so we'll return the normalized local part in the return value.
         local = unicodedata.normalize("NFC", local)
 
+        # Try encoding to UTF-8. Failure is possible with some characters like
+        # surrogate code points.
+        try:
+            local.encode("utf8")
+        except ValueError:
+            raise EmailSyntaxError("The email address contains an invalid character.")
+
         # Flag that SMTPUTF8 will be required for deliverability.
         return {
             "local_part": local,
