@@ -227,16 +227,16 @@ def test_email_valid(email_input, output):
         ('my@example\n.com',
          'The domain name example\n.com contains invalid characters (Codepoint U+000A at position 8 of '
          '\'example\\n\' not allowed).'),
-        ('.leadingdot@domain.com', 'The email address contains invalid characters before the @-sign: ..'),
-        ('..twodots@domain.com', 'The email address contains invalid characters before the @-sign: ..'),
-        ('twodots..here@domain.com', 'The email address contains invalid characters before the @-sign: ..'),
+        ('.leadingdot@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
+        ('..twodots@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
+        ('twodots..here@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
         ('me@⒈wouldbeinvalid.com',
          "The domain name ⒈wouldbeinvalid.com contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
         ('@example.com', 'There must be something before the @-sign.'),
-        ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: \n.'),
-        ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: \n.'),
-        ('my\n@example.com', 'The email address contains invalid characters before the @-sign: \n.'),
+        ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
+        ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
+        ('my\n@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
         ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
         ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
         ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', 'The email address is too long after the @-sign.'),
@@ -278,6 +278,18 @@ def test_email_invalid_reserved_domain(email_input):
     # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert "is a special-use or reserved name" in str(exc_info.value)
 
+@pytest.mark.parametrize(
+    'email_input',
+    [
+        ('white space@test'),
+        ('\n@test'),
+    ],
+)
+def test_email_unsafe_character(email_input):
+    # Check for various unsafe characters:
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input, test_environment=True)
+    assert "invalid character" in str(exc_info.value)
 
 def test_email_test_domain_name_in_test_environment():
     validate_email("anything@test", test_environment=True)

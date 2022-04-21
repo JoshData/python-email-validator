@@ -354,7 +354,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         if not m:
             # It's not a valid internationalized address either. Report which characters were not valid.
             bad_chars = ', '.join(sorted(set(
-                c for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c)
+                unicodedata.name(c, repr(c)) for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c)
             )))
             raise EmailSyntaxError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
 
