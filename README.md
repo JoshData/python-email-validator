@@ -16,7 +16,7 @@ Key features:
   to end users).
 * (optionally) Checks deliverability: Does the domain name resolve? And you can override the default DNS resolver.
 * Supports internationalized domain names and (optionally)
-  internationalized local parts.
+  internationalized local parts, but blocks unsafe characters.
 * Normalizes email addresses (super important for internationalized
   addresses! see below).
 
@@ -172,12 +172,28 @@ The second sort of internationalization is internationalization in the
 *local* part of the address (before the @-sign). In non-internationalized
 email addresses, only English letters, numbers, and some punctuation
 (`._!#$%&'^``*+-=~/?{|}`) are allowed. In internationalized email address
-local parts, all Unicode characters are allowed by this library, although
-it's possible that not all characters will be allowed by all mail systems.
+local parts, a wider range of Unicode characters are allowed.
 
-To deliver email to addresses with Unicode, non-English characters, your mail
+A surprisingly large number of Unicode characters are not safe to display,
+especially when the email address is concatenated with other text, so this
+library tries to protect you by not permitting resvered, non-, private use,
+formatting (which can be used to alter the display order of characters),
+whitespace, and control characters, and combining characters
+as the first character (so that they cannot combine with something outside
+of the email address string). See https://qntm.org/safe and https://trojansource.codes/
+for relevant prior work. (Other than whitespace, these are checks that
+you should be applying to nearly all user inputs in a security-sensitive
+context.)
+
+These character checks are performed after Unicode normalization (see below),
+so you are only fully protected if you replace all user-provided email addresses
+with the normalized email address string returned by this library. This does not
+guard against the well known problem that many Unicode characters look alike
+(or are identical), which can be used to fool humans reading displayed text.
+
+Email addresses with these non-ASCII characters require that your mail
 submission library and the mail servers along the route to the destination,
-including your own outbound mail server, must all support the
+including your own outbound mail server, all support the
 [SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531) extension.
 Support for SMTPUTF8 varies. See the `allow_smtputf8` parameter.
 

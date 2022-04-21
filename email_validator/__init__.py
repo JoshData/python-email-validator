@@ -368,8 +368,35 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         # so we'll return the normalized local part in the return value.
         local = unicodedata.normalize("NFC", local)
 
+        # Check for unsafe characters.
+        # Some of this may be redundant with the range U+0080 to U+10FFFF that is checked
+        # by DOT_ATOM_TEXT_UTF8.
+        for i, c in enumerate(local):
+            category = unicodedata.category(c)
+            if category[0] in ("L", "N", "P", "S"):
+                # letters, numbers, punctuation, and symbols are permitted
+                pass
+            elif category[0] == "M":
+                # combining character in first position would combine with something
+                # outside of the email address if concatenated to the right, but are
+                # otherwise permitted
+                if i == 0:
+                    raise EmailSyntaxError("The email address contains an initial invalid character (%s)."
+                                           % unicodedata.name(c, repr(c)))
+            elif category[0] in ("Z", "C"):
+                # spaces and line/paragraph characters (Z) and
+                # control, format, surrogate, private use, and unassigned code points (C)
+                raise EmailSyntaxError("The email address contains an invalid character (%s)."
+                                       % unicodedata.name(c, repr(c)))
+            else:
+                # All categories should be handled above, but in case there is something new
+                # in the future.
+                raise EmailSyntaxError("The email address contains a character (%s; category %s) that may not be safe."
+                                       % (unicodedata.name(c, repr(c)), category))
+
         # Try encoding to UTF-8. Failure is possible with some characters like
-        # surrogate code points.
+        # surrogate code points, but those are checked above. Still, we don't
+        # want to have an unhandled exception later.
         try:
             local.encode("utf8")
         except ValueError:

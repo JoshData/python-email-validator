@@ -278,12 +278,19 @@ def test_email_invalid_reserved_domain(email_input):
     # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert "is a special-use or reserved name" in str(exc_info.value)
 
+
 @pytest.mark.parametrize(
     'email_input',
     [
         ('white space@test'),
         ('\n@test'),
-        ('\uD800@test'), # surrogate (Cs)
+        ('\u2005@test'),  # four-per-em space (Zs)
+        ('\u009C@test'),  # string terminator (Cc)
+        ('\u200B@test'),  # zero-width space (Cf)
+        ('\u202Dforward-\u202Ereversed@test'),  # BIDI (Cf)
+        ('\uD800@test'),  # surrogate (Cs)
+        ('\uE000@test'),  # private use (Co)
+        ('\uFDEF@test'),  # unassigned (Cn)
     ],
 )
 def test_email_unsafe_character(email_input):
@@ -291,6 +298,7 @@ def test_email_unsafe_character(email_input):
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, test_environment=True)
     assert "invalid character" in str(exc_info.value)
+
 
 def test_email_test_domain_name_in_test_environment():
     validate_email("anything@test", test_environment=True)
