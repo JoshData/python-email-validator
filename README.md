@@ -77,11 +77,11 @@ from email_validator import validate_email, caching_resolver
 resolver = caching_resolver(timeout=10)
 
 while True:
-  valid = validate_email(email, dns_resolver=resolver)
+  email = validate_email(email, dns_resolver=resolver).email
 ```
 
 The validator will accept internationalized email addresses, but not all
-mail systems can send email to an addresses with non-ASCII characters in
+mail systems can send email to an addresses with non-English characters in
 the *local* part of the address (before the @-sign). See the `allow_smtputf8`
 option below.
 
@@ -90,12 +90,13 @@ Overview
 --------
 
 The module provides a function `validate_email(email_address)` which
-takes an email address (either a `str` or ASCII `bytes`) and:
+takes an email address (either a `str` or `bytes`, but only non-internationalized
+addresses are allowed when passing a `bytes`) and:
 
 - Raises a `EmailNotValidError` with a helpful, human-readable error
   message explaining why the email address is not valid, or
-- Returns an object with a normalized form of the email address and
-  other information about it.
+- Returns an object with a normalized form of the email address (which
+  you should use!) and other information about it.
 
 When an email address is not valid, `validate_email` raises either an
 `EmailSyntaxError` if the form of the address is invalid or an
@@ -141,7 +142,7 @@ Internationalized email addresses
 ---------------------------------
 
 The email protocol SMTP and the domain name system DNS have historically
-only allowed ASCII characters in email addresses and domain names,
+only allowed English (ASCII) characters in email addresses and domain names,
 respectively. Each has adapted to internationalization in a separate
 way, creating two separate aspects to email address
 internationalization.
@@ -167,11 +168,17 @@ using the [idna](https://github.com/kjd/idna) module by Kim Davies.
 ### Internationalized local parts
 
 The second sort of internationalization is internationalization in the
-*local* part of the address (before the @-sign). These email addresses
-require that your mail submission library and the mail servers along the
-route to the destination, including your own outbound mail server, all
-support the [SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531)
-extension. Support for SMTPUTF8 varies.
+*local* part of the address (before the @-sign). In non-internationalized
+email addresses, only English letters, numbers, and some punctuation
+(`._!#$%&'^``*+-=~/?{|}`) are allowed. In internationalized email address
+local parts, all Unicode characters are allowed by this library, although
+it's possible that not all characters will be allowed by all mail systems.
+
+To deliver email to addresses with Unicode, non-English characters, your mail
+submission library and the mail servers along the route to the destination,
+including your own outbound mail server, must all support the
+[SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531) extension.
+Support for SMTPUTF8 varies. See the `allow_smtputf8` parameter.
 
 ### If you know ahead of time that SMTPUTF8 is not supported by your mail submission stack
 
