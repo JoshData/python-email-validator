@@ -621,7 +621,6 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
 
 
 def main():
-    import sys
     import json
 
     def __utf8_input_shim(input_str):
