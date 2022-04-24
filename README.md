@@ -2,7 +2,7 @@ email-validator: Validate Email Addresses
 =========================================
 
 A robust email address syntax and deliverability validation library for
-Python 2.7/3.4+ by [Joshua Tauberer](https://joshdata.me).
+Python 3.5+ by [Joshua Tauberer](https://joshdata.me).
 
 This library validates that a string is of the form `name@example.com`. This is
 the sort of validation you would want for an email-based login form on 
@@ -228,6 +228,7 @@ change the user's login information without telling them.)
 
 ### UCS-4 support required for Python 2.7
 
+This library hopefully still works with Python 2.7.
 Note that when using Python 2.7, it is required that it was built with
 UCS-4 support (see
 [here](https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string));
@@ -404,7 +405,7 @@ rm -rf dist
 python3 setup.py sdist
 python3 setup.py bdist_wheel
 twine upload dist/*
-git tag v1.0.XXX # replace with version in setup.py
+git tag v1.0.XXX # replace with version in setup.cfg
 git push --tags
 ```
 
