@@ -634,10 +634,12 @@ def main():
         return output_str
 
     if len(sys.argv) == 1:
+        # Validate the email addresses pased line-by-line on STDIN.
+        dns_resolver = caching_resolver()
         for line in sys.stdin:
             email = __utf8_input_shim(line.strip())
             try:
-                validate_email(email)
+                validate_email(email, dns_resolver=dns_resolver)
             except EmailNotValidError as e:
                 print(__utf8_output_shim("{} {}".format(email, e)))
     else:
