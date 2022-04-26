@@ -1,4 +1,5 @@
 import dns.resolver
+import re
 import pytest
 from email_validator import EmailSyntaxError, EmailUndeliverableError, \
                             validate_email, validate_email_deliverability, \
@@ -260,9 +261,6 @@ def test_email_invalid_syntax(email_input, error_msg):
     'email_input',
     [
         ('me@anything.arpa'),
-        ('me@anything.example'),
-        ('me@example.com'),
-        ('me@mail.example.com'),
         ('me@valid.invalid'),
         ('me@link.local'),
         ('me@host.localhost'),
@@ -277,6 +275,23 @@ def test_email_invalid_reserved_domain(email_input):
         validate_email(email_input)
     # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert "is a special-use or reserved name" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    'email_input',
+    [
+        ('me@mail.example'),
+        ('me@example.com'),
+        ('me@mail.example.com'),
+    ],
+)
+def test_email_example_reserved_domain(email_input):
+    # Since these all fail deliverabiltiy from a static list,
+    # DNS deliverability checks do not arise.
+    with pytest.raises(EmailUndeliverableError) as exc_info:
+        validate_email(email_input)
+    # print(f'({email_input!r}, {str(exc_info.value)!r}),')
+    assert re.match(r"The domain name [a-z\.]+ does not (accept email|exist)\.", str(exc_info.value)) is not None
 
 
 @pytest.mark.parametrize(
