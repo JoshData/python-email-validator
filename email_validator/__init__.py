@@ -43,7 +43,7 @@ DOMAIN_MAX_LENGTH = 255
 # The domain names without dots would be caught by the check that the domain
 # name in an email address must have a period, but this list will also catch
 # subdomains of these domains, which are also reserved.
-SPECIAL_USE_DOMAIN_NAMES = (
+SPECIAL_USE_DOMAIN_NAMES = [
     # The "arpa" entry here is consolidated from a lot of arpa subdomains
     # for private address (i.e. non-routable IP addresses like 172.16.x.x)
     # reverse mapping, plus some other subdomains. Although RFC 6761 says
@@ -99,7 +99,7 @@ SPECIAL_USE_DOMAIN_NAMES = (
     # in application-level test environments. These domains will generally
     # fail deliverability checks because "test" is not an actual TLD.
     "test",
-)
+]
 
 # ease compatibility in type checking
 if sys.version_info >= (3,):

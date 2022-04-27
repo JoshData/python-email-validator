@@ -43,11 +43,11 @@ pip install email-validator
 
 `pip3` also works.
 
-Usage
------
+Quick Start
+-----------
 
 If you're validating a user's email address before creating a user
-account, you might do this:
+account in your application, you might do this:
 
 ```python
 from email_validator import validate_email, EmailNotValidError
@@ -66,28 +66,18 @@ except EmailNotValidError as e:
 ```
 
 This validates the address and gives you its normalized form. You should
-put the normalized form in your database and always normalize before
+**put the normalized form in your database** and always normalize before
 checking if an address is in your database.
-
-When validating many email addresses or to control the timeout (the default is 15 seconds), create a caching [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to reuse in each call:
-
-```python
-from email_validator import validate_email, caching_resolver
-
-resolver = caching_resolver(timeout=10)
-
-while True:
-  email = validate_email(email, dns_resolver=resolver).email
-```
 
 The validator will accept internationalized email addresses, but not all
 mail systems can send email to an addresses with non-English characters in
 the *local* part of the address (before the @-sign). See the `allow_smtputf8`
 option below.
 
+Usage
+-----
 
-Overview
---------
+### Overview
 
 The module provides a function `validate_email(email_address)` which
 takes an email address (either a `str` or `bytes`, but only non-internationalized
@@ -123,8 +113,10 @@ can bounce mail after a delay, and bounced mail may indicate a temporary
 failure of a good email address (sometimes an intentional failure, like
 greylisting). (A/AAAA-record fallback is also checked.)
 
-The function also accepts the following keyword arguments (default as
-shown):
+### Options
+
+The `validate_email` function also accepts the following keyword arguments
+(defaults are as shown below):
 
 `allow_smtputf8=True`: Set to `False` to prohibit internationalized addresses that would
     require the
@@ -137,7 +129,34 @@ shown):
     
 `dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
 
-In non-production test environments, you may want to allow `@test` or `@mycompany.test` email addresses to be used as placeholder email addresses, which would normally not be permitted. In that case, pass `test_environment=True`. DNS-based deliverability checks will be disabled as well. Other [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) are always considered invalid and raise `EmailUndeliverableError`.
+`test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below).
+
+### DNS timeout and cache
+
+When validating many email addresses or to control the timeout (the default is 15 seconds), create a caching [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to reuse in each call. The `caching_resolver` function returns one easily for you:
+
+```python
+from email_validator import validate_email, caching_resolver
+
+resolver = caching_resolver(timeout=10)
+
+while True:
+  email = validate_email(email, dns_resolver=resolver).email
+```
+
+### Test addresses
+
+This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailUndeliverableError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost`. However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are two ways you can allow this:
+
+A. Add `test_environment=True` to the call to `validate_email` (see above).
+B. Remove the special-use domain name that you want to use from `email_validator.SPECIAL_USE_DOMAIN_NAMES`:
+
+```python
+import email_validator
+email_validator.SPECIAL_USE_DOMAIN_NAMES.remove("test")
+```
+
+It is tempting to use `@example.com/net/org` in tests. These domains are reserved to IANA for use in documentation so there is no risk of accidentally emailing someone at those domains. But beware that this library will reject these domain names if DNS-based deliverability checks are not disabled because these domains do not resolve to domains that accept email. In tests, consider using your own domain name or `@test` or `@myname.test` instead.
 
 Internationalized email addresses
 ---------------------------------
