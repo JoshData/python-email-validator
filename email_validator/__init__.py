@@ -7,6 +7,12 @@ import dns.resolver
 import dns.exception
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 
+# Default values for keyword arguments.
+
+ALLOW_SMTPUTF8 = True
+CHECK_DELIVERABILITY = True
+TEST_ENVIRONMENT = False
+DEFAULT_TIMEOUT = 15  # secs
 
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
 # characters are permitted in email addresses (not taking into
@@ -111,8 +117,6 @@ else:
     ATEXT = ATEXT.decode("ascii")
     DOT_ATOM_TEXT = DOT_ATOM_TEXT.decode("ascii")
     ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")
-
-DEFAULT_TIMEOUT = 15  # secs
 
 
 class EmailNotValidError(ValueError):
@@ -256,10 +260,10 @@ def caching_resolver(timeout=DEFAULT_TIMEOUT, cache=None):
 
 def validate_email(
     email,
-    allow_smtputf8=True,
+    allow_smtputf8=ALLOW_SMTPUTF8,
     allow_empty_local=False,
-    check_deliverability=True,
-    test_environment=False,
+    check_deliverability=CHECK_DELIVERABILITY,
+    test_environment=TEST_ENVIRONMENT,
     timeout=DEFAULT_TIMEOUT,
     dns_resolver=None
 ):

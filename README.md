@@ -120,16 +120,16 @@ The `validate_email` function also accepts the following keyword arguments
 
 `allow_smtputf8=True`: Set to `False` to prohibit internationalized addresses that would
     require the
-    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension.
+    [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension. You can also set `email_validator.ALLOW_SMTPUTF8` to `False` to turn it off for all calls by default.
 
-`check_deliverability=True`: Set to `False` to skip the domain name MX DNS record check.
+`check_deliverability=True`: Set to `False` to skip the domain name MX DNS record check. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn it off for all calls by default.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
     
 `dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
 
-`test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below).
+`test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below). You can also set `email_validator.TEST_ENVIRONMENT` to `True` to turn it on for all calls by default.
 
 ### DNS timeout and cache
 
@@ -146,10 +146,11 @@ while True:
 
 ### Test addresses
 
-This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailUndeliverableError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost`. However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are two ways you can allow this:
+This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailUndeliverableError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost`. However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are three ways you can allow this:
 
-A. Add `test_environment=True` to the call to `validate_email` (see above).
-B. Remove the special-use domain name that you want to use from `email_validator.SPECIAL_USE_DOMAIN_NAMES`:
+1. Add `test_environment=True` to the call to `validate_email` (see above).
+2. Set `email_validator.TEST_ENVIRONMENT` to `True`.
+3. Remove the special-use domain name that you want to use from `email_validator.SPECIAL_USE_DOMAIN_NAMES`:
 
 ```python
 import email_validator
