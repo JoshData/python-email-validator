@@ -26,8 +26,8 @@ DOT_ATOM_TEXT = '[' + ATEXT + ']+(?:\\.[' + ATEXT + ']+)*'
 # addresses to also include three specific ranges of UTF8 defined in
 # RFC3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
-ATEXT_UTF8 = ATEXT + u"\u0080-\U0010FFFF"
-DOT_ATOM_TEXT_UTF8 = '[' + ATEXT_UTF8 + ']+(?:\\.[' + ATEXT_UTF8 + ']+)*'
+ATEXT_INTL = ATEXT + u"\u0080-\U0010FFFF"
+DOT_ATOM_TEXT_INTL = '[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + ']+)*'
 
 # The domain part of the email address, after IDNA (ASCII) encoding,
 # must also satisfy the requirements of RFC 952/RFC 1123 which restrict
@@ -400,11 +400,11 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
     else:
         # The local part failed the ASCII check. Now try the extended internationalized requirements.
-        m = re.match(DOT_ATOM_TEXT_UTF8 + "\\Z", local)
+        m = re.match(DOT_ATOM_TEXT_INTL + "\\Z", local)
         if not m:
             # It's not a valid internationalized address either. Report which characters were not valid.
             bad_chars = ', '.join(sorted(set(
-                unicodedata.name(c, repr(c)) for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_UTF8) + u"]", c)
+                unicodedata.name(c, repr(c)) for c in local if not re.match(u"[" + (ATEXT if not allow_smtputf8 else ATEXT_INTL) + u"]", c)
             )))
             raise EmailSyntaxError("The email address contains invalid characters before the @-sign: %s." % bad_chars)
 
@@ -420,7 +420,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
         # Check for unsafe characters.
         # Some of this may be redundant with the range U+0080 to U+10FFFF that is checked
-        # by DOT_ATOM_TEXT_UTF8.
+        # by DOT_ATOM_TEXT_INTL.
         for i, c in enumerate(local):
             category = unicodedata.category(c)
             if category[0] in ("L", "N", "P", "S"):
