@@ -27,14 +27,24 @@ And this library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
 [pyIsEmail](https://github.com/michaelherold/pyIsEmail).
 
-This library was first published in 2015. The current version is 1.1.1
-(posted May 19, 2020). **Starting in version 1.1.0, the type of the value returned
-from `validate_email` has changed, but dict-style access to the validated
-address information still works, so it is backwards compatible.**
-
 This library is tested with Python 3.6+ but should work in earlier versions:
 
 [![Build Status](https://app.travis-ci.com/JoshData/python-email-validator.svg?branch=main)](https://app.travis-ci.com/JoshData/python-email-validator)
+
+---
+
+This library was first published in 2015. The current version is 1.2.1
+(posted May 1, 2022). The main changes in version 1.2 are:
+
+* Rejecting domains with NULL MX records (when deliverability checks
+  are turned on).
+* Rejecting unsafe unicode characters. (Some of these checks you should
+  be doing on all of your user inputs already!)
+* Rejecting most special-use reserved domain names. A new `test_environment`
+  option is added for using `@*.test` domains.
+* Some fixes in the tests.
+
+---
 
 Installation
 ------------
