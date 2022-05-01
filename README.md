@@ -2,7 +2,7 @@ email-validator: Validate Email Addresses
 =========================================
 
 A robust email address syntax and deliverability validation library for
-Python 3.5+ by [Joshua Tauberer](https://joshdata.me).
+Python by [Joshua Tauberer](https://joshdata.me).
 
 This library validates that a string is of the form `name@example.com`. This is
 the sort of validation you would want for an email-based login form on 
@@ -31,6 +31,10 @@ This library was first published in 2015. The current version is 1.1.1
 (posted May 19, 2020). **Starting in version 1.1.0, the type of the value returned
 from `validate_email` has changed, but dict-style access to the validated
 address information still works, so it is backwards compatible.**
+
+This library is tested with Python 3.6+ but should work in earlier versions:
+
+[![Build Status](https://app.travis-ci.com/JoshData/python-email-validator.svg?branch=main)](https://app.travis-ci.com/JoshData/python-email-validator)
 
 Installation
 ------------
