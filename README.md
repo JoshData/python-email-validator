@@ -42,6 +42,8 @@ This library was first published in 2015. The current version is 1.2.1
   be doing on all of your user inputs already!)
 * Rejecting most special-use reserved domain names. A new `test_environment`
   option is added for using `@*.test` domains.
+* New module-level attributes are added to override the default values
+  of the keyword arguments and the special-use domains list.
 * Some fixes in the tests.
 
 ---
