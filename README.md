@@ -398,7 +398,8 @@ or likely to cause trouble:
 * The "quoted string" form of the local part of the email address (RFC
   5321 4.1.2) is not permitted --- no one uses this anymore anyway.
   Quoted forms allow multiple @-signs, space characters, and other
-  troublesome conditions.
+  troublesome conditions. The unsual [(comment) syntax](https://github.com/JoshData/python-email-validator/issues/77)
+  in email addresses is also rejected.
 * The "literal" form for the domain part of an email address (an
   IP address) is not accepted --- no one uses this anymore anyway.
 
