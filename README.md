@@ -439,7 +439,7 @@ pip3 install twine
 rm -rf dist
 python3 setup.py sdist
 python3 setup.py bdist_wheel
-twine upload dist/*
+twine upload dist/* # username: __token__ password: pypi API token
 git tag v1.0.XXX # replace with version in setup.cfg
 git push --tags
 ```
