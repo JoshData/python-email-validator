@@ -356,9 +356,8 @@ def validate_email(
         deliverability_info = validate_email_deliverability(
             ret["domain"], ret["domain_i18n"], timeout, dns_resolver
         )
-        if "mx" in deliverability_info:
-            ret.mx = deliverability_info["mx"]
-            ret.mx_fallback_type = deliverability_info["mx-fallback"]
+        for key, value in deliverability_info.items():
+            setattr(ret, key, value)
 
     return ret
 
@@ -588,6 +587,8 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
         dns_resolver = dns.resolver.get_default_resolver()
         dns_resolver.lifetime = timeout
 
+    deliverability_info = {}
+
     def dns_resolver_resolve_shim(domain, record):
         try:
             # dns.resolver.Resolver.resolve is new to dnspython 2.x.
@@ -611,38 +612,60 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
             raise dns.exception.Timeout()
 
         try:
-            # Try resolving for MX records and get them in sorted priority order
-            # as (priority, qname) pairs.
+            # Try resolving for MX records.
             response = dns_resolver_resolve_shim(domain, "MX")
-            mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
-            mx_fallback = None
 
-            # Do not permit delivery if there is only a "null MX" record (whose value is
-            # (0, ".") but we've stripped trailing dots, so the 'exchange' is just "").
+            # For reporting, put them in priority order and remove the trailing dot in the qnames.
+            mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
+
+            # Remove "null MX" records from the list (their value is (0, ".") but we've stripped
+            # trailing dots, so the 'exchange' is just ""). If there was only a null MX record,
+            # email is not deliverable.
             mtas = [(preference, exchange) for preference, exchange in mtas
                     if exchange != ""]
             if len(mtas) == 0:
                 raise EmailUndeliverableError("The domain name %s does not accept email." % domain_i18n)
+
+            deliverability_info["mx"] = mtas
+            deliverability_info["mx_fallback_type"] = None
 
         except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
             # If there was no MX record, fall back to an A record.
             try:
                 response = dns_resolver_resolve_shim(domain, "A")
-                mtas = [(0, str(r)) for r in response]
-                mx_fallback = "A"
+                deliverability_info["mx"] = [(0, str(r)) for r in response]
+                deliverability_info["mx_fallback_type"] = "A"
             except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
                 # If there was no A record, fall back to an AAAA record.
                 try:
                     response = dns_resolver_resolve_shim(domain, "AAAA")
-                    mtas = [(0, str(r)) for r in response]
-                    mx_fallback = "AAAA"
+                    deliverability_info["mx"] = [(0, str(r)) for r in response]
+                    deliverability_info["mx_fallback_type"] = "AAAA"
                 except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
                     # If there was no MX, A, or AAAA record, then mail to
                     # this domain is not deliverable.
                     raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
+
+        try:
+            # Check for a SPF reject all ("v=spf1 -all") record which indicates
+            # no emails are sent from this domain, which like a NULL MX record
+            # would indicate that the domain is not used for email.
+            response = dns_resolver_resolve_shim(domain, "TXT")
+            for rec in response:
+                value = b"".join(rec.strings)
+                if value.startswith(b"v=spf1 "):
+                    deliverability_info["spf"] = value.decode("ascii", errors='replace')
+                    if value == b"v=spf1 -all":
+                        raise EmailUndeliverableError("The domain name %s does not send email." % domain_i18n)
+        except dns.resolver.NoAnswer:
+            # No TXT records means there is no SPF policy, so we cannot take any action.
+            pass
+        except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN):
+            # Failure to resolve at this step will be ignored.
+            pass
 
     except dns.exception.Timeout:
         # A timeout could occur for various reasons, so don't treat it as a failure.
@@ -660,10 +683,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
             "There was an error while checking if the domain name in the email address is deliverable: " + str(e)
         )
 
-    return {
-        "mx": mtas,
-        "mx-fallback": mx_fallback,
-    }
+    return deliverability_info
 
 
 def main():
