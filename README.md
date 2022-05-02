@@ -410,14 +410,18 @@ or likely to cause trouble:
   checks are turned on.
   Most [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml)
   and their subdomains are considered invalid (except see
-  the `test_environment` parameter above).
-* The "quoted string" form of the local part of the email address (RFC
-  5321 4.1.2) is not permitted --- no one uses this anymore anyway.
+  the `test_environment` parameter above), if deliverability checks are
+  turned on. Domain names without a `.` are rejected as a syntax error
+  since no one has an email address directly at a TLD, and a missing
+  TLD is a common user error.
+* Obsolete email syntaxes are rejected:
+  The "quoted string" form of the local part of the email address (RFC
+  5321 4.1.2) is not permitted.
   Quoted forms allow multiple @-signs, space characters, and other
   troublesome conditions. The unsual [(comment) syntax](https://github.com/JoshData/python-email-validator/issues/77)
-  in email addresses is also rejected.
-* The "literal" form for the domain part of an email address (an
-  IP address) is not accepted --- no one uses this anymore anyway.
+  is also rejected. The "literal" form for the domain part of an email address (an
+  IP address in brackets) is rejected. Other obsolete and deprecated syntaxes are
+  rejected. No one uses these forms anymore.
 
 Testing
 -------
