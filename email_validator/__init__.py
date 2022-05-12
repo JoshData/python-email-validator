@@ -251,7 +251,9 @@ def __get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
     return reason.format(prefix, diff, suffix)
 
 
-def caching_resolver(timeout=DEFAULT_TIMEOUT, cache=None):
+def caching_resolver(timeout=None, cache=None):
+    if timeout is None:
+        timeout = DEFAULT_TIMEOUT
     resolver = dns.resolver.Resolver()
     resolver.cache = cache or dns.resolver.LRUCache()
     resolver.lifetime = timeout  # timeout, in seconds
@@ -260,11 +262,11 @@ def caching_resolver(timeout=DEFAULT_TIMEOUT, cache=None):
 
 def validate_email(
     email,
-    allow_smtputf8=ALLOW_SMTPUTF8,
+    allow_smtputf8=None,
     allow_empty_local=False,
-    check_deliverability=CHECK_DELIVERABILITY,
-    test_environment=TEST_ENVIRONMENT,
-    timeout=DEFAULT_TIMEOUT,
+    check_deliverability=None,
+    test_environment=None,
+    timeout=None,
     dns_resolver=None
 ):
     """
@@ -272,6 +274,16 @@ def validate_email(
     information when the address is valid. The email argument can be a str or a bytes instance,
     but if bytes it must be ASCII-only.
     """
+
+    # Fill in default values of arguments.
+    if allow_smtputf8 is None:
+        allow_smtputf8 = ALLOW_SMTPUTF8
+    if check_deliverability is None:
+        check_deliverability = CHECK_DELIVERABILITY
+    if test_environment is None:
+        test_environment = TEST_ENVIRONMENT
+    if timeout is None:
+        timeout = DEFAULT_TIMEOUT
 
     # Allow email to be a str or bytes instance. If bytes,
     # it must be ASCII because that's how the bytes work
@@ -579,6 +591,8 @@ def validate_email_domain_part(domain, test_environment=False):
 def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, dns_resolver=None):
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
+    # (Note that changing the DEFAULT_TIMEOUT module-level attribute
+    #  will not change the default value of this method's timeout argument.)
 
     # If no dns.resolver.Resolver was given, get dnspython's default resolver.
     # Override the default resolver's timeout. This may affect other uses of
