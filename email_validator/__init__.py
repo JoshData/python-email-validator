@@ -251,7 +251,7 @@ def __get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
     return reason.format(prefix, diff, suffix)
 
 
-def caching_resolver(timeout=None, cache=None):
+def caching_resolver(*, timeout=None, cache=None):
     if timeout is None:
         timeout = DEFAULT_TIMEOUT
     resolver = dns.resolver.Resolver()
@@ -262,6 +262,8 @@ def caching_resolver(timeout=None, cache=None):
 
 def validate_email(
     email,
+    # /, # not supported in Python 3.6, 3.7
+    *,
     allow_smtputf8=None,
     allow_empty_local=False,
     check_deliverability=None,
