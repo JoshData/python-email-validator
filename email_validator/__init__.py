@@ -559,8 +559,7 @@ def validate_email_domain_part(domain, test_environment=False):
     if "." not in ascii_domain and not (ascii_domain == "test" and test_environment):
         raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
 
-    # Check special-use and reserved domain names. Raise these as
-    # deliverability errors since they are syntactically valid.
+    # Check special-use and reserved domain names.
     # Some might fail DNS-based deliverability checks, but that
     # can be turned off, so we should fail them all sooner.
     for d in SPECIAL_USE_DOMAIN_NAMES:
@@ -569,12 +568,11 @@ def validate_email_domain_part(domain, test_environment=False):
             continue
 
         if ascii_domain == d or ascii_domain.endswith("." + d):
-            raise EmailUndeliverableError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
+            raise EmailSyntaxError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
 
-    # We also know that all TLDs currently end with a letter, and
-    # we'll consider that a non-DNS based deliverability check.
+    # We also know that all TLDs currently end with a letter.
     if not re.search(r"[A-Za-z]\Z", ascii_domain):
-        raise EmailUndeliverableError(
+        raise EmailSyntaxError(
             "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
         )
 

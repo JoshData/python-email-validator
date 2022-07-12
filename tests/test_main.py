@@ -271,7 +271,7 @@ def test_email_invalid_syntax(email_input, error_msg):
 def test_email_invalid_reserved_domain(email_input):
     # Since these all fail deliverabiltiy from a static list,
     # DNS deliverability checks do not arise.
-    with pytest.raises(EmailUndeliverableError) as exc_info:
+    with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
     # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert "is a special-use or reserved name" in str(exc_info.value)

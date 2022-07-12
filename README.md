@@ -166,7 +166,7 @@ while True:
 
 ### Test addresses
 
-This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailUndeliverableError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost`. However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are three ways you can allow this:
+This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailSyntaxError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost`. However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are three ways you can allow this:
 
 1. Add `test_environment=True` to the call to `validate_email` (see above).
 2. Set `email_validator.TEST_ENVIRONMENT` to `True`.
@@ -410,11 +410,9 @@ or likely to cause trouble:
   (without NULL MX or SPF -all DNS records) if deliverability
   checks are turned on.
   Most [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml)
-  and their subdomains are considered invalid (except see
-  the `test_environment` parameter above), if deliverability checks are
-  turned on. Domain names without a `.` are rejected as a syntax error
-  since no one has an email address directly at a TLD, and a missing
-  TLD is a common user error.
+  and their subdomains and
+  domain names without a `.` are rejected as a syntax error
+  (except see the `test_environment` parameter above).
 * Obsolete email syntaxes are rejected:
   The "quoted string" form of the local part of the email address (RFC
   5321 4.1.2) is not permitted.
