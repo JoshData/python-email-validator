@@ -1,14 +1,14 @@
 os: linux
-dist: xenial
+dist: bionic
 language: python
 cache: pip
 
 python:
-#- '2.7'
 - '3.6'
-- '3.7'
-- '3.8'
+#- '3.7'
+#- '3.8'
 - '3.9'
+- '3.10'
 
 install:
 - make install
