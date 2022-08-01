@@ -69,26 +69,27 @@ account in your application, you might do this:
 from email_validator import validate_email, EmailNotValidError
 
 email = "my+address@mydomain.tld"
+is_new_account = True # False for login pages
 
 try:
-  # Validate & take the normalized form of the email
-  # address for all logic beyond this point (especially
+  # Check that the email address is valid.
+  validation = validate_email(email, check_deliverability=is_new_account)
+
+  # Take the normalized form of the email address
+  # for all logic beyond this point (especially
   # before going to a database query where equality
-  # does not take into account normalization).
-  email = validate_email(email).email
+  # may not take into account Unicode normalization).  
+  email = validation.email
 except EmailNotValidError as e:
-  # email is not valid, exception message is human-readable
+  # Email is not valid.
+  # The exception message is human-readable.
   print(str(e))
 ```
 
 This validates the address and gives you its normalized form. You should
 **put the normalized form in your database** and always normalize before
-checking if an address is in your database.
-
-The validator will accept internationalized email addresses, but not all
-mail systems can send email to an addresses with non-English characters in
-the *local* part of the address (before the @-sign). See the `allow_smtputf8`
-option below.
+checking if an address is in your database. When using this in a login form,
+set `check_deliverability` to `False` to avoid unnecessary DNS queries.
 
 Usage
 -----
@@ -138,7 +139,7 @@ The `validate_email` function also accepts the following keyword arguments
     require the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension.
 
-`check_deliverability=True`: Set to `False` to skip the domain name MX DNS record check.
+`check_deliverability=True`: Set to `False` to skip the domain name MX DNS record check. It is recommended to pass `False` when performing validation for login pages since re-validation of the domain by querying DNS at every login is probably undesirable.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
