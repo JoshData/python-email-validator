@@ -13,7 +13,10 @@ ALLOW_SMTPUTF8 = True
 CHECK_DELIVERABILITY = True
 TEST_ENVIRONMENT = False
 DEFAULT_TIMEOUT = 15  # secs
-
+#Soft validation options
+ALLOW_SPECIAL_DOMAINS = False
+ALLOW_ANY_TOP_LEVEL_DOMAIN = False
+ALLOWED_TOP_LEVEL_DOMAINS = [] #type: ignore
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
 # characters are permitted in email addresses (not taking into
 # account internationalization):
@@ -265,7 +268,10 @@ def validate_email(
     check_deliverability=CHECK_DELIVERABILITY,
     test_environment=TEST_ENVIRONMENT,
     timeout=DEFAULT_TIMEOUT,
-    dns_resolver=None
+    dns_resolver=None,
+    allow_special_domains=ALLOW_SPECIAL_DOMAINS,
+    allow_any_top_level_domain=ALLOW_ANY_TOP_LEVEL_DOMAIN,
+    allowed_top_level_domains=ALLOWED_TOP_LEVEL_DOMAINS #type: ignore
 ):
     """
     Validates an email address, raising an EmailNotValidError if the address is not valid or returning a dict of
@@ -300,7 +306,13 @@ def validate_email(
     ret.smtputf8 = local_part_info["smtputf8"]
 
     # Validate the email address's domain part syntax and get a normalized form.
-    domain_part_info = validate_email_domain_part(parts[1], test_environment=test_environment)
+    domain_part_info = validate_email_domain_part(
+        parts[1],
+        test_environment=test_environment,
+        allow_special_domains=allow_special_domains,
+        allow_any_top_level_domain=allow_any_top_level_domain,
+        allowed_top_level_domains=allowed_top_level_domains
+        )
     ret.domain = domain_part_info["domain"]
     ret.ascii_domain = domain_part_info["ascii_domain"]
 
@@ -460,7 +472,13 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         }
 
 
-def validate_email_domain_part(domain, test_environment=False):
+def validate_email_domain_part(
+    domain, 
+    test_environment=False,
+    allow_special_domains=ALLOW_SPECIAL_DOMAINS,
+    allow_any_top_level_domain=ALLOW_ANY_TOP_LEVEL_DOMAIN,
+    allowed_top_level_domains=ALLOWED_TOP_LEVEL_DOMAINS #type: ignore
+    ):
     # Empty?
     if len(domain) == 0:
         raise EmailSyntaxError("There must be something after the @-sign.")
@@ -550,20 +568,31 @@ def validate_email_domain_part(domain, test_environment=False):
     # deliverability errors since they are syntactically valid.
     # Some might fail DNS-based deliverability checks, but that
     # can be turned off, so we should fail them all sooner.
-    for d in SPECIAL_USE_DOMAIN_NAMES:
-        # See the note near the definition of SPECIAL_USE_DOMAIN_NAMES.
-        if d == "test" and test_environment:
-            continue
+    if not allow_special_domains:
+        for d in SPECIAL_USE_DOMAIN_NAMES:
+            # See the note near the definition of SPECIAL_USE_DOMAIN_NAMES.
+            if d == "test" and test_environment:
+                continue
 
-        if ascii_domain == d or ascii_domain.endswith("." + d):
-            raise EmailUndeliverableError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
+            if ascii_domain == d or ascii_domain.endswith("." + d):
+                raise EmailUndeliverableError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
 
     # We also know that all TLDs currently end with a letter, and
     # we'll consider that a non-DNS based deliverability check.
-    if not re.search(r"[A-Za-z]\Z", ascii_domain):
-        raise EmailUndeliverableError(
-            "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
-        )
+    if not allow_any_top_level_domain:
+        #We check len() not to slow validating if tld were not allowed
+        if len(allowed_top_level_domains) > 0:
+            #We already trust the period of domain name and avoiding IndexError
+            tld = ascii_domain.split('.')[-1]
+            if tld not in allowed_top_level_domains:
+                raise EmailUndeliverableError(
+                    "The domain name %s is not valid. Top-level domain name is not included in allowed_top_level_domains." % domain_i18n
+                )
+        else:
+            if not re.search(r"[A-Za-z]\Z", ascii_domain):
+                raise EmailUndeliverableError(
+                    "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
+                )
 
     # Return the IDNA ASCII-encoded form of the domain, which is how it
     # would be transmitted on the wire (except when used with SMTPUTF8
