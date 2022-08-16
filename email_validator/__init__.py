@@ -13,10 +13,10 @@ ALLOW_SMTPUTF8 = True
 CHECK_DELIVERABILITY = True
 TEST_ENVIRONMENT = False
 DEFAULT_TIMEOUT = 15  # secs
-#Soft validation options
+# Soft validation options
 ALLOW_SPECIAL_DOMAINS = False
 ALLOW_ANY_TOP_LEVEL_DOMAIN = False
-ALLOWED_TOP_LEVEL_DOMAINS = [] #type: ignore
+ALLOWED_TOP_LEVEL_DOMAINS = []  # type: ignore
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
 # characters are permitted in email addresses (not taking into
 # account internationalization):
@@ -271,7 +271,7 @@ def validate_email(
     dns_resolver=None,
     allow_special_domains=ALLOW_SPECIAL_DOMAINS,
     allow_any_top_level_domain=ALLOW_ANY_TOP_LEVEL_DOMAIN,
-    allowed_top_level_domains=ALLOWED_TOP_LEVEL_DOMAINS #type: ignore
+    allowed_top_level_domains=ALLOWED_TOP_LEVEL_DOMAINS  # type: ignore
 ):
     """
     Validates an email address, raising an EmailNotValidError if the address is not valid or returning a dict of
@@ -312,7 +312,7 @@ def validate_email(
         allow_special_domains=allow_special_domains,
         allow_any_top_level_domain=allow_any_top_level_domain,
         allowed_top_level_domains=allowed_top_level_domains
-        )
+    )
     ret.domain = domain_part_info["domain"]
     ret.ascii_domain = domain_part_info["ascii_domain"]
 
@@ -473,11 +473,11 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
 
 def validate_email_domain_part(
-    domain, 
-    test_environment=False,
-    allow_special_domains=ALLOW_SPECIAL_DOMAINS,
-    allow_any_top_level_domain=ALLOW_ANY_TOP_LEVEL_DOMAIN,
-    allowed_top_level_domains=ALLOWED_TOP_LEVEL_DOMAINS #type: ignore
+        domain,
+        test_environment=False,
+        allow_special_domains=ALLOW_SPECIAL_DOMAINS,
+        allow_any_top_level_domain=ALLOW_ANY_TOP_LEVEL_DOMAIN,
+        allowed_top_level_domains=ALLOWED_TOP_LEVEL_DOMAINS  # type: ignore
     ):
     # Empty?
     if len(domain) == 0:
@@ -580,9 +580,9 @@ def validate_email_domain_part(
     # We also know that all TLDs currently end with a letter, and
     # we'll consider that a non-DNS based deliverability check.
     if not allow_any_top_level_domain:
-        #We check len() not to slow validating if tld were not allowed
+        # We check len() not to slow validating if tld were not allowed
         if len(allowed_top_level_domains) > 0:
-            #We already trust the period of domain name and avoiding IndexError
+            # We already trust the period of domain name and avoiding IndexError
             tld = ascii_domain.split('.')[-1]
             if tld not in allowed_top_level_domains:
                 raise EmailUndeliverableError(
