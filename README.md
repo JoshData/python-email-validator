@@ -148,6 +148,11 @@ The `validate_email` function also accepts the following keyword arguments
 
 `test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below).
 
+`allow_special_domains=False`: Turning off EmailUndeliverableError exception for special top-level domains, such as "arpa", "local" and others. Default is False (restricted).
+
+`allow_any_top_level_domain=False`: Turn off EmailUndeliverableError exception for top-level domains, which are not matching with regex **[A-Za-z]\Z**, such as "org123". May be useful for local services in isolated environments with  special local TLD. Default is False (restricted).
+
+`allowed_top_level_domains=[]`: Similar with `allow_any_top_level_domain` but working like whitelist. Will be ignored, if  `allow_any_top_level_domain=True` or if list is empty. Default is [] (no allowed *bad* domains).
 ### DNS timeout and cache
 
 When validating many email addresses or to control the timeout (the default is 15 seconds), create a caching [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to reuse in each call. The `caching_resolver` function returns one easily for you:
