@@ -12,6 +12,7 @@ import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 ALLOW_SMTPUTF8 = True
 CHECK_DELIVERABILITY = True
 TEST_ENVIRONMENT = False
+GLOBALLY_DELIVERABLE = True
 DEFAULT_TIMEOUT = 15  # secs
 
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
@@ -268,6 +269,7 @@ def validate_email(
     allow_empty_local=False,
     check_deliverability=None,
     test_environment=None,
+    globally_deliverable=GLOBALLY_DELIVERABLE,
     timeout=None,
     dns_resolver=None
 ):
@@ -314,7 +316,7 @@ def validate_email(
     ret.smtputf8 = local_part_info["smtputf8"]
 
     # Validate the email address's domain part syntax and get a normalized form.
-    domain_part_info = validate_email_domain_part(parts[1], test_environment=test_environment)
+    domain_part_info = validate_email_domain_part(parts[1], test_environment=test_environment, globally_deliverable=globally_deliverable)
     ret.domain = domain_part_info["domain"]
     ret.ascii_domain = domain_part_info["ascii_domain"]
 
@@ -473,7 +475,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         }
 
 
-def validate_email_domain_part(domain, test_environment=False):
+def validate_email_domain_part(domain, test_environment=False, globally_deliverable=True):
     # Empty?
     if len(domain) == 0:
         raise EmailSyntaxError("There must be something after the @-sign.")
@@ -551,13 +553,20 @@ def validate_email_domain_part(domain, test_environment=False):
     if not m:
         raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
 
-    # All publicly deliverable addresses have domain named with at least
-    # one period, and we'll consider the lack of a period a syntax error
-    # since that will match people's sense of what an email address looks
-    # like. We'll skip this in test environments to allow '@test' email
-    # addresses.
-    if "." not in ascii_domain and not (ascii_domain == "test" and test_environment):
-        raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
+    if globally_deliverable:
+        # All publicly deliverable addresses have domain named with at least
+        # one period, and we'll consider the lack of a period a syntax error
+        # since that will match people's sense of what an email address looks
+        # like. We'll skip this in test environments to allow '@test' email
+        # addresses.
+        if "." not in ascii_domain and not (ascii_domain == "test" and test_environment):
+            raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
+
+        # We also know that all TLDs currently end with a letter.
+        if not re.search(r"[A-Za-z]\Z", ascii_domain):
+            raise EmailSyntaxError(
+                "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
+            )
 
     # Check special-use and reserved domain names.
     # Some might fail DNS-based deliverability checks, but that
@@ -569,12 +578,6 @@ def validate_email_domain_part(domain, test_environment=False):
 
         if ascii_domain == d or ascii_domain.endswith("." + d):
             raise EmailSyntaxError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
-
-    # We also know that all TLDs currently end with a letter.
-    if not re.search(r"[A-Za-z]\Z", ascii_domain):
-        raise EmailSyntaxError(
-            "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
-        )
 
     # Return the IDNA ASCII-encoded form of the domain, which is how it
     # would be transmitted on the wire (except when used with SMTPUTF8

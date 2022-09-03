@@ -7,6 +7,7 @@ Unreleased changes in development
 * The keyword arguments of the public methods are now marked as keyword-only.
 * [pyIsEmail](https://github.com/michaelherold/pyIsEmail)'s test cases are added to the tests.
 * Recommend that check_deliverability be set to False for validation on login pages.
+* Added an undocumented globally_deliverable option.
 
 Version 1.2.1 (May 1, 2022)
 ---------------------------
