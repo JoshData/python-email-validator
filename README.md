@@ -31,26 +31,7 @@ This library is tested with Python 3.6+ but should work in earlier versions:
 
 [![Build Status](https://app.travis-ci.com/JoshData/python-email-validator.svg?branch=main)](https://app.travis-ci.com/JoshData/python-email-validator)
 
----
-
-This library was first published in 2015. The current version is 1.2.1
-(posted May 1, 2022). The main changes in version 1.2 are:
-
-* Rejecting domains with NULL MX records (when deliverability checks
-  are turned on).
-* Rejecting unsafe unicode characters. (Some of these checks you should
-  be doing on all of your user inputs already!)
-* Rejecting most special-use reserved domain names. A new `test_environment`
-  option is added for using `@*.test` domains.
-* Some fixes in the tests.
-
-Unreleased changes in development:
-
-* Deliverability checks now check for 'v=spf1 -all' SPF records as a way to reject more bad domains.
-* Special use domain names now raise EmailSyntaxError instead of EmailUndeliverableError.
-* New module-level attributes are added to override the default values of the keyword arguments and the special-use domains list.
-* The keyword arguments of the public methods are now marked as keyword-only.
-* [pyIsEmail](https://github.com/michaelherold/pyIsEmail)'s test cases are added to the tests.
+[CHANGELOG / Release Notes](CHANGELOG.md)
 
 ---
 
