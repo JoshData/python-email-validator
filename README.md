@@ -31,7 +31,7 @@ This library is tested with Python 3.6+ but should work in earlier versions:
 
 [![Build Status](https://app.travis-ci.com/JoshData/python-email-validator.svg?branch=main)](https://app.travis-ci.com/JoshData/python-email-validator)
 
-[CHANGELOG / Release Notes](CHANGELOG.md)
+View the [CHANGELOG / Release Notes](CHANGELOG.md) for the version history of changes in the library. Occasionally this README is ahead of the latest published package --- see the CHANGELOG for details.
 
 ---
 
@@ -111,7 +111,6 @@ The validator checks that the domain name in the email address has a
 DNS MX record (except a NULL MX record) indicating that it can receive
 email and that it does not have a reject-all SPF record (`v=spf1 -all`)
 which would indicate that it cannot send email.
-(A/AAAA-record MX fallback is also checked.)
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
 reasons servers are good at not giving away whether an address is
@@ -129,7 +128,7 @@ The `validate_email` function also accepts the following keyword arguments
     require the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension. You can also set `email_validator.ALLOW_SMTPUTF8` to `False` to turn it off for all calls by default.
 
-`check_deliverability=True`: Set to `False` to skip DNS record checks for the domain. It is recommended to pass `False` when performing validation for login pages since re-validation of the domain by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
+`check_deliverability=True`: If true, DNS queries check that a non-null MX (or A/AAAA record as an MX fallback) is present for the domain-part of the email address and that a reject-all SPF record is not present. Set to `False` to skip these DNS checks. DNS is slow and sometimes unavailable, so consider whether these checks are useful for your use case. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of the domain by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
