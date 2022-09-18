@@ -425,17 +425,15 @@ The package is distributed as a universal wheel and as a source package.
 
 To release:
 
-* Update the version number.
-* Follow the steps below to publish source and a universal wheel to pypi.
+* Update CHANGELOG.md.
+* Update the version number in setup.cfg.
+* Make a commit with the new version number.
+* Follow the steps below to publish source and a universal wheel to pypi and tag the release.
 * Make a release at https://github.com/JoshData/python-email-validator/releases/new.
 
 ```sh
-pip3 install twine
-rm -rf dist
-python3 setup.py sdist
-python3 setup.py bdist_wheel
-twine upload dist/* # username: __token__ password: pypi API token
-git tag v1.0.XXX # replace with version in setup.cfg
+./release_to_pypi.sh
+git tag v$(grep version setup.cfg | sed "s/.*= //")
 git push --tags
 ```
 

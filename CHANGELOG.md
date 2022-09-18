@@ -1,5 +1,5 @@
-Unreleased changes in development
----------------------------------
+Version 1.3.0 (September 18, 2022)
+----------------------------------
 
 * Deliverability checks now check for 'v=spf1 -all' SPF records as a way to reject more bad domains.
 * Special use domain names now raise EmailSyntaxError instead of EmailUndeliverableError since they are performed even if check_deliverability is off.
