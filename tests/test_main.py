@@ -2,10 +2,11 @@ import dns.resolver
 import re
 import pytest
 from email_validator import EmailSyntaxError, EmailUndeliverableError, \
-                            validate_email, validate_email_deliverability, \
-                            caching_resolver, ValidatedEmail
+                            validate_email, \
+                            ValidatedEmail
+from email_validator.deliverability import caching_resolver, validate_email_deliverability
 # Let's test main but rename it to be clear
-from email_validator import main as validator_main
+from email_validator.__main__ import main as validator_command_line_tool
 
 
 @pytest.mark.parametrize(
@@ -561,7 +562,7 @@ def test_main_single_good_input(monkeypatch, capsys):
     import json
     test_email = "google@google.com"
     monkeypatch.setattr('sys.argv', ['email_validator', test_email])
-    validator_main()
+    validator_command_line_tool()
     stdout, _ = capsys.readouterr()
     output = json.loads(str(stdout))
     assert isinstance(output, dict)
@@ -571,7 +572,7 @@ def test_main_single_good_input(monkeypatch, capsys):
 def test_main_single_bad_input(monkeypatch, capsys):
     bad_email = 'test@..com'
     monkeypatch.setattr('sys.argv', ['email_validator', bad_email])
-    validator_main()
+    validator_command_line_tool()
     stdout, _ = capsys.readouterr()
     assert stdout == 'An email address cannot have a period immediately after the @-sign.\n'
 
@@ -582,7 +583,7 @@ def test_main_multi_input(monkeypatch, capsys):
     test_input = io.StringIO("\n".join(test_cases))
     monkeypatch.setattr('sys.stdin', test_input)
     monkeypatch.setattr('sys.argv', ['email_validator'])
-    validator_main()
+    validator_command_line_tool()
     stdout, _ = capsys.readouterr()
     assert test_cases[0] not in stdout
     assert test_cases[1] not in stdout
@@ -595,7 +596,7 @@ def test_main_input_shim(monkeypatch, capsys):
     monkeypatch.setattr('sys.version_info', (2, 7))
     test_email = b"google@google.com"
     monkeypatch.setattr('sys.argv', ['email_validator', test_email])
-    validator_main()
+    validator_command_line_tool()
     stdout, _ = capsys.readouterr()
     output = json.loads(str(stdout))
     assert isinstance(output, dict)
@@ -606,7 +607,7 @@ def test_main_output_shim(monkeypatch, capsys):
     monkeypatch.setattr('sys.version_info', (2, 7))
     test_email = b"test@.com"
     monkeypatch.setattr('sys.argv', ['email_validator', test_email])
-    validator_main()
+    validator_command_line_tool()
     stdout, _ = capsys.readouterr()
 
     # This looks bad but it has to do with the way python 2.7 prints vs py3

@@ -1,3 +1,8 @@
+In Development
+--------------
+
+* The library has been reorganized internally into smaller modules.
+
 Version 1.3.1 (January 21, 2023)
 --------------------------------
 
