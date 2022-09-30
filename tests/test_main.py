@@ -528,7 +528,7 @@ def test_dict_accessor():
 
 def test_deliverability_found():
     response = validate_email_deliverability('gmail.com', 'gmail.com')
-    assert response.keys() == {'mx', 'mx_fallback_type', 'spf'}
+    assert response.keys() == {'mx', 'mx_fallback_type'}
     assert response['mx_fallback_type'] is None
     assert len(response['mx']) > 1
     assert len(response['mx'][0]) == 2

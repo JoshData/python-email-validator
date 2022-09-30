@@ -109,8 +109,7 @@ later in the document about that.)
 
 The validator checks that the domain name in the email address has a
 DNS MX record (except a NULL MX record) indicating that it can receive
-email and that it does not have a reject-all SPF record (`v=spf1 -all`)
-which would indicate that it cannot send email.
+email (or a fallback A-record, see below).
 There is nothing to be gained by trying to actually contact an SMTP
 server, so that's not done here. For privacy, security, and practicality
 reasons servers are good at not giving away whether an address is
@@ -128,7 +127,7 @@ The `validate_email` function also accepts the following keyword arguments
     require the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension. You can also set `email_validator.ALLOW_SMTPUTF8` to `False` to turn it off for all calls by default.
 
-`check_deliverability=True`: If true, DNS queries check that a non-null MX (or A/AAAA record as an MX fallback) is present for the domain-part of the email address and that a reject-all SPF record is not present. Set to `False` to skip these DNS checks. DNS is slow and sometimes unavailable, so consider whether these checks are useful for your use case. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of the domain by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
+`check_deliverability=True`: If true, a DNS query is made to check that a non-null MX record is present for the domain-part of the email address (or if not, an A/AAAA record as an MX fallback can be present but in that case a reject-all SPF record must not be present). Set to `False` to skip this DNS-based check. DNS is slow and sometimes unavailable, so consider whether these checks are useful for your use case. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of a previously validated domain in your database by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
@@ -382,7 +381,7 @@ are:
 | `smtputf8` | A boolean indicating that the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit messages to this address because the local part of the address has non-ASCII characters (the local part cannot be IDNA-encoded). If `allow_smtputf8=False` is passed as an argument, this flag will always be false because an exception is raised if it would have been true. |
 | `mx` | A list of (priority, domain) tuples of MX records specified in the DNS for the domain (see [RFC 5321 section 5](https://tools.ietf.org/html/rfc5321#section-5)). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
 | `mx_fallback_type` | `None` if an `MX` record is found. If no MX records are actually specified in DNS and instead are inferred, through an obsolete mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
-| `spf` | Any SPF record found while checking deliverability. |
+| `spf` | Any SPF record found while checking deliverability. Only set if the SPF record is queried. |
 
 Assumptions
 -----------
@@ -394,11 +393,10 @@ or likely to cause trouble:
 * The validator assumes the email address is intended to be
   usable on the public Internet. The domain part
   of the email address must be a resolvable domain name
-  (without NULL MX or SPF -all DNS records) if deliverability
-  checks are turned on.
+  (see the deliverability checks described above).
   Most [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml)
-  and their subdomains and
-  domain names without a `.` are rejected as a syntax error
+  and their subdomains, as well as
+  domain names without a `.`, are rejected as a syntax error
   (except see the `test_environment` parameter above).
 * Obsolete email syntaxes are rejected:
   The "quoted string" form of the local part of the email address (RFC

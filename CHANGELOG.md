@@ -1,3 +1,8 @@
+In Development
+--------------
+
+* The new SPF reject-all record check is now limited to domains that do not have MX records but do have an A/AAAA record fallback.
+
 Version 1.3.0 (September 18, 2022)
 ----------------------------------
 

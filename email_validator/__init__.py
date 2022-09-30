@@ -648,7 +648,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
 
         except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
-            # If there was no MX record, fall back to an A record.
+            # If there was no MX record, fall back to an A record, as SMTP servers do.
             try:
                 response = dns_resolver_resolve_shim(domain, "A")
                 deliverability_info["mx"] = [(0, str(r)) for r in response]
@@ -666,23 +666,25 @@ def validate_email_deliverability(domain, domain_i18n, timeout=DEFAULT_TIMEOUT, 
                     # this domain is not deliverable.
                     raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
 
-        try:
-            # Check for a SPF reject all ("v=spf1 -all") record which indicates
-            # no emails are sent from this domain, which like a NULL MX record
-            # would indicate that the domain is not used for email.
-            response = dns_resolver_resolve_shim(domain, "TXT")
-            for rec in response:
-                value = b"".join(rec.strings)
-                if value.startswith(b"v=spf1 "):
-                    deliverability_info["spf"] = value.decode("ascii", errors='replace')
-                    if value == b"v=spf1 -all":
-                        raise EmailUndeliverableError("The domain name %s does not send email." % domain_i18n)
-        except dns.resolver.NoAnswer:
-            # No TXT records means there is no SPF policy, so we cannot take any action.
-            pass
-        except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN):
-            # Failure to resolve at this step will be ignored.
-            pass
+            # Check for a SPF reject-all record ("v=spf1 -all") which indicates
+            # no emails are sent from this domain (similar to a NULL MX record
+            # but for sending rather than receiving). In combination with the
+            # absence of an MX record, this is probably a good sign that the
+            # domain is not used for email.
+            try:
+                response = dns_resolver_resolve_shim(domain, "TXT")
+                for rec in response:
+                    value = b"".join(rec.strings)
+                    if value.startswith(b"v=spf1 "):
+                        deliverability_info["spf"] = value.decode("ascii", errors='replace')
+                        if value == b"v=spf1 -all":
+                            raise EmailUndeliverableError("The domain name %s does not send email." % domain_i18n)
+            except dns.resolver.NoAnswer:
+                # No TXT records means there is no SPF policy, so we cannot take any action.
+                pass
+            except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN):
+                # Failure to resolve at this step will be ignored.
+                pass
 
     except dns.exception.Timeout:
         # A timeout could occur for various reasons, so don't treat it as a failure.
