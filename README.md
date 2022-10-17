@@ -252,13 +252,14 @@ part is converted to [IDNA ASCII](https://tools.ietf.org/html/rfc5891).
 (You probably should not do this at account creation time so you don't
 change the user's login information without telling them.)
 
-### UCS-4 support required for Python 2.7
+### Support for Python 2.7
 
-This library hopefully still works with Python 2.7.
-Note that when using Python 2.7, it is required that it was built with
+The last version of this library supporting Python 2.x is version 1.2.1.
+
+When using Python 2.x, it is required that it was built with
 UCS-4 support (see
-[here](https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string));
-otherwise emails with unicode characters outside of the BMP (Basic
+[here](https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string)).
+Without UCS-4 support, unicode characters outside of the BMP (Basic
 Multilingual Plane) will not validate correctly.
 
 Normalization
