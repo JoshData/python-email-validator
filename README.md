@@ -251,16 +251,6 @@ part is converted to [IDNA ASCII](https://tools.ietf.org/html/rfc5891).
 (You probably should not do this at account creation time so you don't
 change the user's login information without telling them.)
 
-### Support for Python 2.7
-
-The last version of this library supporting Python 2.x is version 1.2.1.
-
-When using Python 2.x, it is required that it was built with
-UCS-4 support (see
-[here](https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string)).
-Without UCS-4 support, unicode characters outside of the BMP (Basic
-Multilingual Plane) will not validate correctly.
-
 Normalization
 -------------
 
@@ -406,6 +396,17 @@ or likely to cause trouble:
   is also rejected. The "literal" form for the domain part of an email address (an
   IP address in brackets) is rejected. Other obsolete and deprecated syntaxes are
   rejected. No one uses these forms anymore.
+
+Support for Python 2.x
+----------------------
+
+The last version of this library supporting Python 2.x is version 1.2.1.
+
+When using Python 2.x, it is required that Python be built with
+UCS-4 support (see
+[here](https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string)).
+Without UCS-4 support, unicode characters outside of the BMP (Basic
+Multilingual Plane) will not validate correctly in internationalized addresses.
 
 Testing
 -------

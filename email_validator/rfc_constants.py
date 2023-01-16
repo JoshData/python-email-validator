@@ -1,5 +1,3 @@
-import sys
-
 # These constants are defined by the email specifications.
 
 # Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
@@ -29,11 +27,3 @@ ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
 DOMAIN_MAX_LENGTH = 255
-
-
-# In Python 2.x, turn the regexes above from bytes regexes into unicode
-# regexes. If Python 3.x had a "ur" string literal prefix we'd use that instead.
-if sys.version_info < (3,):
-    ATEXT = ATEXT.decode("ascii")
-    DOT_ATOM_TEXT = DOT_ATOM_TEXT.decode("ascii")
-    ATEXT_HOSTNAME = ATEXT_HOSTNAME.decode("ascii")

@@ -1,15 +1,7 @@
-import sys
-
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import validate_email_local_part, validate_email_domain_part, get_length_reason
 from .deliverability import validate_email_deliverability
 from .rfc_constants import EMAIL_MAX_LENGTH
-
-# ease compatibility in type checking
-if sys.version_info >= (3,):
-    unicode_class = str
-else:
-    unicode_class = unicode  # noqa: F821
 
 
 def validate_email(
@@ -46,7 +38,7 @@ def validate_email(
     # Allow email to be a str or bytes instance. If bytes,
     # it must be ASCII because that's how the bytes work
     # on the wire with SMTP.
-    if not isinstance(email, (str, unicode_class)):
+    if not isinstance(email, str):
         try:
             email = email.decode("ascii")
         except ValueError:

@@ -591,31 +591,6 @@ def test_main_multi_input(monkeypatch, capsys):
     assert test_cases[3] in stdout
 
 
-def test_main_input_shim(monkeypatch, capsys):
-    import json
-    monkeypatch.setattr('sys.version_info', (2, 7))
-    test_email = b"google@google.com"
-    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
-    validator_command_line_tool()
-    stdout, _ = capsys.readouterr()
-    output = json.loads(str(stdout))
-    assert isinstance(output, dict)
-    assert validate_email(test_email).original_email == output["original_email"]
-
-
-def test_main_output_shim(monkeypatch, capsys):
-    monkeypatch.setattr('sys.version_info', (2, 7))
-    test_email = b"test@.com"
-    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
-    validator_command_line_tool()
-    stdout, _ = capsys.readouterr()
-
-    # This looks bad but it has to do with the way python 2.7 prints vs py3
-    # The \n is part of the print statement, not part of the string, which is what the b'...' is
-    # Since we're mocking py 2.7 here instead of actually using 2.7, this was the closest I could get
-    assert stdout == "b'An email address cannot have a period immediately after the @-sign.'\n"
-
-
 def test_validate_email__with_caching_resolver():
     # unittest.mock.patch("dns.resolver.LRUCache.get") doesn't
     # work --- it causes get to always return an empty list.
