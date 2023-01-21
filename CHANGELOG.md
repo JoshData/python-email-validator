@@ -1,6 +1,7 @@
 In Development
 --------------
 
+* Python versions through 3.5 and dnspython 1.x are no longer supported. Python 3.6+ with dnspython 2.x are now required.
 * The library has been reorganized internally into smaller modules.
 
 Version 1.3.1 (January 21, 2023)

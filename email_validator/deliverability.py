@@ -32,21 +32,6 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
 
     deliverability_info = {}
 
-    def dns_resolver_resolve_shim(domain, record):
-        try:
-            # dns.resolver.Resolver.resolve is new to dnspython 2.x.
-            # https://dnspython.readthedocs.io/en/latest/resolver-class.html#dns.resolver.Resolver.resolve
-            return dns_resolver.resolve(domain, record)
-        except AttributeError:
-            # dnspython 2.x is only available in Python 3.6 and later. For earlier versions
-            # of Python, we maintain compatibility with dnspython 1.x which has a
-            # dnspython.resolver.Resolver.query method instead. The only difference is that
-            # query may treat the domain as relative and use the system's search domains,
-            # which we prevent by adding a "." to the domain name to make it absolute.
-            # dns.resolver.Resolver.query is deprecated in dnspython version 2.x.
-            # https://dnspython.readthedocs.io/en/latest/resolver-class.html#dns.resolver.Resolver.query
-            return dns_resolver.query(domain + ".", record)
-
     try:
         # We need a way to check how timeouts are handled in the tests. So we
         # have a secret variable that if set makes this method always test the
@@ -56,7 +41,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
 
         try:
             # Try resolving for MX records.
-            response = dns_resolver_resolve_shim(domain, "MX")
+            response = dns_resolver.resolve(domain, "MX")
 
             # For reporting, put them in priority order and remove the trailing dot in the qnames.
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
@@ -76,14 +61,14 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
 
             # If there was no MX record, fall back to an A record, as SMTP servers do.
             try:
-                response = dns_resolver_resolve_shim(domain, "A")
+                response = dns_resolver.resolve(domain, "A")
                 deliverability_info["mx"] = [(0, str(r)) for r in response]
                 deliverability_info["mx_fallback_type"] = "A"
             except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
                 # If there was no A record, fall back to an AAAA record.
                 try:
-                    response = dns_resolver_resolve_shim(domain, "AAAA")
+                    response = dns_resolver.resolve(domain, "AAAA")
                     deliverability_info["mx"] = [(0, str(r)) for r in response]
                     deliverability_info["mx_fallback_type"] = "AAAA"
                 except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
@@ -98,7 +83,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
             # absence of an MX record, this is probably a good sign that the
             # domain is not used for email.
             try:
-                response = dns_resolver_resolve_shim(domain, "TXT")
+                response = dns_resolver.resolve(domain, "TXT")
                 for rec in response:
                     value = b"".join(rec.strings)
                     if value.startswith(b"v=spf1 "):
