@@ -128,7 +128,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     try:
         domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+        raise EmailSyntaxError("The part after the @-sign contains invalid characters ({}).".format(str(e)))
 
     # Now we can perform basic checks on the use of periods (since equivalent
     # symbols have been mapped to periods). These checks are needed because the
@@ -166,7 +166,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
                 # one the user supplied. Also I'm not sure if the length check applies
                 # to the internationalized form, the IDNA ASCII form, or even both!
                 raise EmailSyntaxError("The email address is too long after the @-sign.")
-            raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+            raise EmailSyntaxError("The part after the @-sign contains invalid characters (%s)." % str(e))
 
         # Check the syntax of the string returned by idna.encode.
         # It should never fail.
@@ -186,7 +186,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     for label in ascii_domain.split("."):
         if len(label) > DNS_LABEL_LENGTH_LIMIT:
             reason = get_length_reason(label, limit=DNS_LABEL_LENGTH_LIMIT)
-            raise EmailSyntaxError("The part of the email address \"{}\" is too long {}.".format(label, reason))
+            raise EmailSyntaxError("On either side of the @-sign, periods cannot be separated by so many characters {}.".format(reason))
 
     if globally_deliverable:
         # All publicly deliverable addresses have domain named with at least
@@ -223,7 +223,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     try:
         domain_i18n = idna.decode(ascii_domain.encode('ascii'))
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (ascii_domain, str(e)))
+        raise EmailSyntaxError("The part after the @-sign is not valid IDNA ({}).".format(str(e)))
 
     # Return the IDNA ASCII-encoded form of the domain, which is how it
     # would be transmitted on the wire (except when used with SMTPUTF8

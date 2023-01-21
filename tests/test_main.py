@@ -218,22 +218,22 @@ def test_email_valid(email_input, output):
         ('my@..twodots.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@twodots..com', 'An email address cannot have two periods in a row.'),
         ('my@baddash.-.com',
-         'The domain name baddash.-.com contains invalid characters (Label must not start or end with a hyphen).'),
+         'The part after the @-sign contains invalid characters (Label must not start or end with a hyphen).'),
         ('my@baddash.-a.com',
-         'The domain name baddash.-a.com contains invalid characters (Label must not start or end with a hyphen).'),
+         'The part after the @-sign contains invalid characters (Label must not start or end with a hyphen).'),
         ('my@baddash.b-.com',
-         'The domain name baddash.b-.com contains invalid characters (Label must not start or end with a hyphen).'),
+         'The part after the @-sign contains invalid characters (Label must not start or end with a hyphen).'),
         ('my@example.com\n',
-         'The domain name example.com\n contains invalid characters (Codepoint U+000A at position 4 of '
+         'The part after the @-sign contains invalid characters (Codepoint U+000A at position 4 of '
          '\'com\\n\' not allowed).'),
         ('my@example\n.com',
-         'The domain name example\n.com contains invalid characters (Codepoint U+000A at position 8 of '
+         'The part after the @-sign contains invalid characters (Codepoint U+000A at position 8 of '
          '\'example\\n\' not allowed).'),
         ('.leadingdot@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
         ('..twodots@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
         ('twodots..here@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
         ('me@⒈wouldbeinvalid.com',
-         "The domain name ⒈wouldbeinvalid.com contains invalid characters (Codepoint U+2488 not allowed "
+         "The part after the @-sign contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
         ('@example.com', 'There must be something before the @-sign.'),
         ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
