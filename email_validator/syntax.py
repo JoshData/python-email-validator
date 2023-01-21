@@ -1,6 +1,6 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
-    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT, ATEXT_INTL, DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME
+    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT, ATEXT_INTL, DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX
 
 import re
 import unicodedata
@@ -42,7 +42,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         raise EmailSyntaxError("The email address is too long before the @-sign {}.".format(reason))
 
     # Check the local part against the regular expression for the older ASCII requirements.
-    m = re.match(DOT_ATOM_TEXT + "\\Z", local)
+    m = DOT_ATOM_TEXT.match(local)
     if m:
         # Return the local part unchanged and flag that SMTPUTF8 is not needed.
         return {
@@ -53,7 +53,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
 
     else:
         # The local part failed the ASCII check. Now try the extended internationalized requirements.
-        m = re.match(DOT_ATOM_TEXT_INTL + "\\Z", local)
+        m = DOT_ATOM_TEXT_INTL.match(local)
         if not m:
             # It's not a valid internationalized address either. Report which characters were not valid.
             bad_chars = ', '.join(sorted(set(
@@ -141,7 +141,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     if ".." in domain:
         raise EmailSyntaxError("An email address cannot have two periods in a row.")
 
-    if re.match(DOT_ATOM_TEXT_HOSTNAME + "\\Z", domain):
+    if DOT_ATOM_TEXT_HOSTNAME.match(domain):
         ascii_domain = domain
     else:
         # If international characters are present in the domain name, convert
@@ -170,7 +170,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
 
         # Check the syntax of the string returned by idna.encode.
         # It should never fail.
-        m = re.match(DOT_ATOM_TEXT_HOSTNAME + "\\Z", ascii_domain)
+        m = DOT_ATOM_TEXT_HOSTNAME.match(ascii_domain)
         if not m:
             raise EmailSyntaxError("The email address contains invalid characters after the @-sign after IDNA encoding.")
 
@@ -198,7 +198,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
             raise EmailSyntaxError("The part after the @-sign is not valid. It should have a period.")
 
         # We also know that all TLDs currently end with a letter.
-        if not re.search(r"[A-Za-z]\Z", ascii_domain):
+        if not DOMAIN_NAME_REGEX.search(ascii_domain):
             raise EmailSyntaxError("The part after the @-sign is not valid. It is not within a valid top-level domain.")
 
     # Check special-use and reserved domain names.
