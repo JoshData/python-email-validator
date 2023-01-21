@@ -426,9 +426,10 @@ To release:
 
 * Update CHANGELOG.md.
 * Update the version number in setup.cfg.
-* Make a commit with the new version number.
-* Follow the steps below to publish source and a universal wheel to pypi and tag the release.
+* Make & push a commit with the new version number.
+* Make & push a tag (`git tag v... && git push --tags`).
 * Make a release at https://github.com/JoshData/python-email-validator/releases/new.
+* Follow the steps below to publish source and a universal wheel to pypi.
 
 ```sh
 ./release_to_pypi.sh

@@ -1,7 +1,7 @@
-In Development
---------------
+Version 1.3.1 (January 21, 2023)
+--------------------------------
 
-* The new SPF reject-all record check is now limited to domains that do not have MX records but do have an A/AAAA record fallback.
+* The new SPF 'v=spf1 -all' (reject-all) deliverability check is removed in most cases. It now is performed only for domains that do not have MX records but do have an A/AAAA fallback record.
 
 Version 1.3.0 (September 18, 2022)
 ----------------------------------
