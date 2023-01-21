@@ -2,19 +2,19 @@ email-validator: Validate Email Addresses
 =========================================
 
 A robust email address syntax and deliverability validation library for
-Python by [Joshua Tauberer](https://joshdata.me).
+Python 3.6+ by [Joshua Tauberer](https://joshdata.me).
 
-This library validates that a string is of the form `name@example.com`. This is
-the sort of validation you would want for an email-based login form on 
-a website.
+This library validates that a string is of the form `name@example.com` and optionally checks that the domain name is set up to receive email. This is
+the sort of validation you would want for an email-based registration form on 
+a website (but not necessarily for composing an email message).
 
 Key features:
 
 * Checks that an email address has the correct syntax --- good for
-  login forms or other uses related to identifying users.
+  registration/login forms or other uses related to identifying users.
 * Gives friendly error messages when validation fails (appropriate to show
   to end users).
-* (optionally) Checks deliverability: Does the domain name resolve? And you can override the default DNS resolver.
+* (optionally) Checks deliverability: Does the domain name resolve? You can override the default DNS resolver.
 * Supports internationalized domain names and (optionally)
   internationalized local parts, but blocks unsafe characters.
 * Normalizes email addresses (super important for internationalized
@@ -26,8 +26,6 @@ The library is NOT for validation of the To: line in an email message
 And this library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
 [pyIsEmail](https://github.com/michaelherold/pyIsEmail).
-
-This library is tested with Python 3.6+ but should work in earlier versions:
 
 [![Build Status](https://app.travis-ci.com/JoshData/python-email-validator.svg?branch=main)](https://app.travis-ci.com/JoshData/python-email-validator)
 
