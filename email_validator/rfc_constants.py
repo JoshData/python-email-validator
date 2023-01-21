@@ -20,10 +20,12 @@ DOT_ATOM_TEXT_INTL = '[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + ']+)*'
 # the allowed characters of hostnames further. The hyphen cannot be at
 # the beginning or end of a *dot-atom component* of a hostname either.
 ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
+DOT_ATOM_TEXT_HOSTNAME = ATEXT_HOSTNAME + r'(?:\.' + ATEXT_HOSTNAME + r')*'
 
 # Length constants
 # RFC 3696 + errata 1003 + errata 1690 (https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
 # explains the maximum length of an email address is 254 octets.
 EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
-DOMAIN_MAX_LENGTH = 255
+DNS_LABEL_LENGTH_LIMIT = 63  # RFC 1035 2.3.1
+DOMAIN_MAX_LENGTH = 255  # RFC 1035 2.3.4

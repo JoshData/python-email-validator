@@ -1,6 +1,6 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
-    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT, ATEXT_HOSTNAME, ATEXT_INTL
+    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT, ATEXT_INTL, DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME
 
 import re
 import unicodedata
@@ -141,26 +141,77 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     if ".." in domain:
         raise EmailSyntaxError("An email address cannot have two periods in a row.")
 
-    # Regardless of whether international characters are actually used,
-    # first convert to IDNA ASCII. For ASCII-only domains, the transformation
-    # does nothing. If internationalized characters are present, the MTA
-    # must either support SMTPUTF8 or the mail client must convert the
-    # domain name to IDNA before submission.
-    #
-    # Unfortunately this step incorrectly 'fixes' domain names with leading
-    # periods by removing them, so we have to check for this above. It also gives
-    # a funky error message ("No input") when there are two periods in a
-    # row, also checked separately above.
-    try:
-        ascii_domain = idna.encode(domain, uts46=False).decode("ascii")
-    except idna.IDNAError as e:
-        if "Domain too long" in str(e):
-            # We can't really be more specific because UTS-46 normalization means
-            # the length check is applied to a string that is different from the
-            # one the user supplied. Also I'm not sure if the length check applies
-            # to the internationalized form, the IDNA ASCII form, or even both!
-            raise EmailSyntaxError("The email address is too long after the @-sign.")
-        raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+    if re.match(DOT_ATOM_TEXT_HOSTNAME + "\\Z", domain):
+        ascii_domain = domain
+    else:
+        # If international characters are present in the domain name, convert
+        # the domain to IDNA ASCII. If internationalized characters are present,
+        # the MTA must either support SMTPUTF8 or the mail client must convert the
+        # domain name to IDNA before submission.
+        #
+        # Unfortunately this step incorrectly 'fixes' domain names with leading
+        # periods by removing them, so we have to check for this above. It also gives
+        # a funky error message ("No input") when there are two periods in a
+        # row, also checked separately above.
+        #
+        # For ASCII-only domains, the transformation does nothing and is safe to
+        # apply. However, to ensure we don't rely on the idna library for basic
+        # syntax checks, we don't use it if it's not needed.
+        try:
+            ascii_domain = idna.encode(domain, uts46=False).decode("ascii")
+        except idna.IDNAError as e:
+            if "Domain too long" in str(e):
+                # We can't really be more specific because UTS-46 normalization means
+                # the length check is applied to a string that is different from the
+                # one the user supplied. Also I'm not sure if the length check applies
+                # to the internationalized form, the IDNA ASCII form, or even both!
+                raise EmailSyntaxError("The email address is too long after the @-sign.")
+            raise EmailSyntaxError("The domain name %s contains invalid characters (%s)." % (domain, str(e)))
+
+        # Check the syntax of the string returned by idna.encode.
+        # It should never fail.
+        m = re.match(DOT_ATOM_TEXT_HOSTNAME + "\\Z", ascii_domain)
+        if not m:
+            raise EmailSyntaxError("The email address contains invalid characters after the @-sign after IDNA encoding.")
+
+    # RFC 5321 4.5.3.1.2
+    # We're checking the number of bytes (octets) here, which can be much
+    # higher than the number of characters in internationalized domains,
+    # on the assumption that the domain may be transmitted without SMTPUTF8
+    # as IDNA ASCII. (This is also checked by idna.encode, so this exception
+    # is never reached for internationalized domains.)
+    if len(ascii_domain) > DOMAIN_MAX_LENGTH:
+        reason = get_length_reason(ascii_domain, limit=DOMAIN_MAX_LENGTH)
+        raise EmailSyntaxError("The email address is too long after the @-sign {}.".format(reason))
+    for label in ascii_domain.split("."):
+        if len(label) > DNS_LABEL_LENGTH_LIMIT:
+            reason = get_length_reason(label, limit=DNS_LABEL_LENGTH_LIMIT)
+            raise EmailSyntaxError("The part of the email address \"{}\" is too long {}.".format(label, reason))
+
+    if globally_deliverable:
+        # All publicly deliverable addresses have domain named with at least
+        # one period, and we'll consider the lack of a period a syntax error
+        # since that will match people's sense of what an email address looks
+        # like. We'll skip this in test environments to allow '@test' email
+        # addresses.
+        if "." not in ascii_domain and not (ascii_domain == "test" and test_environment):
+            raise EmailSyntaxError("The part after the @-sign is not valid. It should have a period.")
+
+        # We also know that all TLDs currently end with a letter.
+        if not re.search(r"[A-Za-z]\Z", ascii_domain):
+            raise EmailSyntaxError("The part after the @-sign is not valid. It is not within a valid top-level domain.")
+
+    # Check special-use and reserved domain names.
+    # Some might fail DNS-based deliverability checks, but that
+    # can be turned off, so we should fail them all sooner.
+    from . import SPECIAL_USE_DOMAIN_NAMES
+    for d in SPECIAL_USE_DOMAIN_NAMES:
+        # See the note near the definition of SPECIAL_USE_DOMAIN_NAMES.
+        if d == "test" and test_environment:
+            continue
+
+        if ascii_domain == d or ascii_domain.endswith("." + d):
+            raise EmailSyntaxError("The part after the @-sign is a special-use or reserved name that cannot be used with email.")
 
     # We may have been given an IDNA ASCII domain to begin with. Check
     # that the domain actually conforms to IDNA. It could look like IDNA
@@ -173,52 +224,6 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
         domain_i18n = idna.decode(ascii_domain.encode('ascii'))
     except idna.IDNAError as e:
         raise EmailSyntaxError("The domain name %s is not valid IDNA (%s)." % (ascii_domain, str(e)))
-
-    # RFC 5321 4.5.3.1.2
-    # We're checking the number of bytes (octets) here, which can be much
-    # higher than the number of characters in internationalized domains,
-    # on the assumption that the domain may be transmitted without SMTPUTF8
-    # as IDNA ASCII. This is also checked by idna.encode, so this exception
-    # is never reached.
-    if len(ascii_domain) > DOMAIN_MAX_LENGTH:
-        raise EmailSyntaxError("The email address is too long after the @-sign.")
-
-    # A "dot atom text", per RFC 2822 3.2.4, but using the restricted
-    # characters allowed in a hostname (see ATEXT_HOSTNAME above).
-    DOT_ATOM_TEXT = ATEXT_HOSTNAME + r'(?:\.' + ATEXT_HOSTNAME + r')*'
-
-    # Check the regular expression. This is probably entirely redundant
-    # with idna.decode, which also checks this format.
-    m = re.match(DOT_ATOM_TEXT + "\\Z", ascii_domain)
-    if not m:
-        raise EmailSyntaxError("The email address contains invalid characters after the @-sign.")
-
-    if globally_deliverable:
-        # All publicly deliverable addresses have domain named with at least
-        # one period, and we'll consider the lack of a period a syntax error
-        # since that will match people's sense of what an email address looks
-        # like. We'll skip this in test environments to allow '@test' email
-        # addresses.
-        if "." not in ascii_domain and not (ascii_domain == "test" and test_environment):
-            raise EmailSyntaxError("The domain name %s is not valid. It should have a period." % domain_i18n)
-
-        # We also know that all TLDs currently end with a letter.
-        if not re.search(r"[A-Za-z]\Z", ascii_domain):
-            raise EmailSyntaxError(
-                "The domain name %s is not valid. It is not within a valid top-level domain." % domain_i18n
-            )
-
-    # Check special-use and reserved domain names.
-    # Some might fail DNS-based deliverability checks, but that
-    # can be turned off, so we should fail them all sooner.
-    from . import SPECIAL_USE_DOMAIN_NAMES
-    for d in SPECIAL_USE_DOMAIN_NAMES:
-        # See the note near the definition of SPECIAL_USE_DOMAIN_NAMES.
-        if d == "test" and test_environment:
-            continue
-
-        if ascii_domain == d or ascii_domain.endswith("." + d):
-            raise EmailSyntaxError("The domain name %s is a special-use or reserved name that cannot be used with email." % domain_i18n)
 
     # Return the IDNA ASCII-encoded form of the domain, which is how it
     # would be transmitted on the wire (except when used with SMTPUTF8
