@@ -416,6 +416,8 @@ pip install -r test_requirements.txt
 make test
 ```
 
+Tests run with mocked DNS responses. When adding or changing tests, temporarily turn on the `BUILD_MOCKED_DNS_RESPONSE_DATA` flag in `tests/mocked_dns_responses.py` to re-build the database of mocked responses from live queries.
+
 For Project Maintainers
 -----------------------
 

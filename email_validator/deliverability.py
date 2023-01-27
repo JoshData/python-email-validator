@@ -33,12 +33,6 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
     deliverability_info = {}
 
     try:
-        # We need a way to check how timeouts are handled in the tests. So we
-        # have a secret variable that if set makes this method always test the
-        # handling of a timeout.
-        if getattr(validate_email_deliverability, 'TEST_CHECK_TIMEOUT', False):
-            raise dns.exception.Timeout()
-
         try:
             # Try resolving for MX records.
             response = dns_resolver.resolve(domain, "MX")

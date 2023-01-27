@@ -17,10 +17,12 @@ from .deliverability import caching_resolver
 from .exceptions_types import EmailNotValidError
 
 
-def main():
+def main(dns_resolver=None):
+    # The dns_resolver argument is for tests.
+
     if len(sys.argv) == 1:
         # Validate the email addresses pased line-by-line on STDIN.
-        dns_resolver = caching_resolver()
+        dns_resolver = dns_resolver or caching_resolver()
         for line in sys.stdin:
             email = line.strip()
             try:
@@ -31,7 +33,7 @@ def main():
         # Validate the email address passed on the command line.
         email = sys.argv[1]
         try:
-            result = validate_email(email)
+            result = validate_email(email, dns_resolver=dns_resolver)
             print(json.dumps(result.as_dict(), indent=2, sort_keys=True, ensure_ascii=False))
         except EmailNotValidError as e:
             print(e)

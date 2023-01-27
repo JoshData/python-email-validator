@@ -1,0 +1,100 @@
+[
+ {
+  "query": {
+   "name": "gmail.com",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": [
+   "10 alt1.gmail-smtp-in.l.google.com.",
+   "30 alt3.gmail-smtp-in.l.google.com.",
+   "5 gmail-smtp-in.l.google.com.",
+   "20 alt2.gmail-smtp-in.l.google.com.",
+   "40 alt4.gmail-smtp-in.l.google.com."
+  ]
+ },
+ {
+  "query": {
+   "name": "xkxufoekjvjfjeodlfmdfjcu.com",
+   "type": "ANY",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "xkxufoekjvjfjeodlfmdfjcu.com",
+   "type": "AAAA",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "example.com",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": [
+   "0 ."
+  ]
+ },
+ {
+  "query": {
+   "name": "mail.example",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "mail.example",
+   "type": "ANY",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "mail.example",
+   "type": "AAAA",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "mail.example.com",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "mail.example.com",
+   "type": "ANY",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "mail.example.com",
+   "type": "AAAA",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "google.com",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": [
+   "10 smtp.google.com."
+  ]
+ }
+]
