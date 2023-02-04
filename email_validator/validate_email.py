@@ -1,6 +1,5 @@
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import validate_email_local_part, validate_email_domain_part, get_length_reason
-from .deliverability import validate_email_deliverability
 from .rfc_constants import EMAIL_MAX_LENGTH
 
 
@@ -115,6 +114,9 @@ def validate_email(
     if check_deliverability and not test_environment:
         # Validate the email address's deliverability using DNS
         # and update the return dict with metadata.
+
+        # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
+        from .deliverability import validate_email_deliverability
         deliverability_info = validate_email_deliverability(
             ret["domain"], ret["domain_i18n"], timeout, dns_resolver
         )

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
 # Export the main method, helper methods, and the public data types.
-from .validate_email import validate_email  # noqa: F401
-from .deliverability import caching_resolver  # noqa: F401
 from .exceptions_types import *  # noqa: F401,F403
+from .validate_email import validate_email  # noqa: F401
+
+
+def caching_resolver(*args, **kwargs):
+    # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
+    from .deliverability import caching_resolver
+
+    return caching_resolver(*args, **kwargs)
+
 
 # These global attributes are a part of the library's API and can be
 # changed by library users.
