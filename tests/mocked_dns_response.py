@@ -101,7 +101,7 @@ class MockedDnsResponseData:
         # Query the data for a response to an ANY query.
         ANY = dns.rdatatype.from_text("ANY")
         if (key[0], ANY, key[2]) in self.data and self.data[(key[0], ANY, key[2])] is None:
-            raise dns.resolver.NoAnswer()
+            raise dns.resolver.NXDOMAIN()
 
         raise ValueError("Saved DNS data did not contain query: {}".format(key))
 

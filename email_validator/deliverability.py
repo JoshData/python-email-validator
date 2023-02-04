@@ -45,31 +45,33 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
             # email is not deliverable.
             mtas = [(preference, exchange) for preference, exchange in mtas
                     if exchange != ""]
-            if len(mtas) == 0:
+            if len(mtas) == 0:  # null MX only, if there were no MX records originally a NoAnswer exception would have occurred
                 raise EmailUndeliverableError("The domain name %s does not accept email." % domain_i18n)
 
             deliverability_info["mx"] = mtas
             deliverability_info["mx_fallback_type"] = None
 
-        except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-
+        except dns.resolver.NoAnswer:
             # If there was no MX record, fall back to an A record, as SMTP servers do.
             try:
                 response = dns_resolver.resolve(domain, "A")
                 deliverability_info["mx"] = [(0, str(r)) for r in response]
                 deliverability_info["mx_fallback_type"] = "A"
-            except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+
+            except dns.resolver.NoAnswer:
 
                 # If there was no A record, fall back to an AAAA record.
                 try:
                     response = dns_resolver.resolve(domain, "AAAA")
                     deliverability_info["mx"] = [(0, str(r)) for r in response]
                     deliverability_info["mx_fallback_type"] = "AAAA"
-                except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 
+                except dns.resolver.NoAnswer:
                     # If there was no MX, A, or AAAA record, then mail to
-                    # this domain is not deliverable.
-                    raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
+                    # this domain is not deliverable, although the domain
+                    # name has other records (otherwise NXDOMAIN would
+                    # have been raised).
+                    raise EmailUndeliverableError("The domain name %s does not accept email." % domain_i18n)
 
             # Check for a SPF reject-all record ("v=spf1 -all") which indicates
             # no emails are sent from this domain (similar to a NULL MX record
@@ -87,9 +89,18 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
             except dns.resolver.NoAnswer:
                 # No TXT records means there is no SPF policy, so we cannot take any action.
                 pass
-            except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN):
-                # Failure to resolve at this step will be ignored.
-                pass
+
+    except dns.resolver.NXDOMAIN:
+        # The domain name does not exist --- there are no records of any sort
+        # for the domain name.
+        raise EmailUndeliverableError("The domain name %s does not exist." % domain_i18n)
+
+    except dns.resolver.NoNameservers:
+        # All nameservers failed to answer the query. This might be a problem
+        # with local nameservers, maybe? We'll allow the domain to go through.
+        return {
+            "unknown-deliverability": "no_nameservers",
+        }
 
     except dns.exception.Timeout:
         # A timeout could occur for various reasons, so don't treat it as a failure.

@@ -16,7 +16,7 @@
  {
   "query": {
    "name": "xkxufoekjvjfjeodlfmdfjcu.com",
-   "type": "ANY",
+   "type": "MX",
    "class": "IN"
   },
   "answer": []
@@ -24,7 +24,7 @@
  {
   "query": {
    "name": "xkxufoekjvjfjeodlfmdfjcu.com",
-   "type": "AAAA",
+   "type": "ANY",
    "class": "IN"
   },
   "answer": []
@@ -86,8 +86,8 @@
  },
  {
   "query": {
-   "name": "mail.example",
-   "type": "AAAA",
+   "name": "mail.example.com",
+   "type": "MX",
    "class": "IN"
   },
   "answer": []
@@ -96,14 +96,6 @@
   "query": {
    "name": "mail.example.com",
    "type": "ANY",
-   "class": "IN"
-  },
-  "answer": []
- },
- {
-  "query": {
-   "name": "mail.example.com",
-   "type": "AAAA",
    "class": "IN"
   },
   "answer": []
