@@ -2,7 +2,7 @@ import pytest
 import re
 
 from email_validator import EmailUndeliverableError, \
-                            validate_email
+                            validate_email, caching_resolver
 from email_validator.deliverability import validate_email_deliverability
 
 from mocked_dns_response import MockedDnsResponseData, MockedDnsResponseDataCleanup  # noqa: F401
@@ -53,3 +53,24 @@ def test_deliverability_dns_timeout():
     response = validate_email_deliverability('timeout.com', 'timeout.com', dns_resolver=RESOLVER)
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
+
+
+@pytest.mark.network
+def test_caching_dns_resolver():
+    class TestCache:
+        def __init__(self):
+            self.cache = {}
+
+        def get(self, key):
+            return self.cache.get(key)
+
+        def put(self, key, value):
+            self.cache[key] = value
+
+    cache = TestCache()
+    resolver = caching_resolver(timeout=1, cache=cache)
+    validate_email("test@gmail.com", dns_resolver=resolver)
+    assert len(cache.cache) == 1
+
+    validate_email("test@gmail.com", dns_resolver=resolver)
+    assert len(cache.cache) == 1

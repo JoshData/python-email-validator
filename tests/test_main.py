@@ -1,4 +1,6 @@
-from email_validator import validate_email
+import pytest
+
+from email_validator import validate_email, EmailSyntaxError
 # Let's test main but rename it to be clear
 from email_validator.__main__ import main as validator_command_line_tool
 
@@ -45,3 +47,14 @@ def test_main_multi_input(monkeypatch, capsys):
     assert test_cases[1] not in stdout
     assert test_cases[2] in stdout
     assert test_cases[3] in stdout
+
+
+def test_bytes_input():
+    input_email = b"testaddr@example.tld"
+    valid_email = validate_email(input_email, check_deliverability=False)
+    assert isinstance(valid_email.as_dict(), dict)
+    assert valid_email.as_dict()["email"] == input_email.decode("utf8")
+
+    input_email = "testaddr中example.tld".encode("utf32")
+    with pytest.raises(EmailSyntaxError):
+        validate_email(input_email, check_deliverability=False)
