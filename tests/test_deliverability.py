@@ -31,6 +31,11 @@ def test_deliverability_fails():
     with pytest.raises(EmailUndeliverableError, match='The domain name {} does not accept email'.format(domain)):
         validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
 
+    # No MX record, A record fallback, reject-all SPF record.
+    domain = 'nellis.af.mil'
+    with pytest.raises(EmailUndeliverableError, match='The domain name {} does not send email'.format(domain)):
+        validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
+
 
 @pytest.mark.parametrize(
     'email_input',

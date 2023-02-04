@@ -41,6 +41,35 @@
  },
  {
   "query": {
+   "name": "nellis.af.mil",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "nellis.af.mil",
+   "type": "A",
+   "class": "IN"
+  },
+  "answer": [
+   "132.58.234.0"
+  ]
+ },
+ {
+  "query": {
+   "name": "nellis.af.mil",
+   "type": "TXT",
+   "class": "IN"
+  },
+  "answer": [
+   "\"v=spf1 -all\"",
+   "\"MS=ms47108184\""
+  ]
+ },
+ {
+  "query": {
    "name": "mail.example",
    "type": "MX",
    "class": "IN"
@@ -59,14 +88,6 @@
   "query": {
    "name": "mail.example",
    "type": "AAAA",
-   "class": "IN"
-  },
-  "answer": []
- },
- {
-  "query": {
-   "name": "mail.example.com",
-   "type": "MX",
    "class": "IN"
   },
   "answer": []
