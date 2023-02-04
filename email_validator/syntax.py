@@ -130,16 +130,27 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     except idna.IDNAError as e:
         raise EmailSyntaxError("The part after the @-sign contains invalid characters ({}).".format(str(e)))
 
-    # Now we can perform basic checks on the use of periods (since equivalent
-    # symbols have been mapped to periods). These checks are needed because the
-    # IDNA library doesn't handle well domains that have empty labels (i.e. initial
-    # dot, trailing dot, or two dots in a row).
+    # The domain part is made up period-separated "labels." Each label must
+    # have at least one character and cannot start or end with dashes, which
+    # means there are some surprising restrictions on periods and dashes.
+    # Check that before we do IDNA encoding because the IDNA library gives
+    # unfriendly errors for these cases, but after UTS-46 normalization because
+    # it can insert periods and hyphens (from fullwidth characters).
     if domain.endswith("."):
         raise EmailSyntaxError("An email address cannot end with a period.")
     if domain.startswith("."):
         raise EmailSyntaxError("An email address cannot have a period immediately after the @-sign.")
     if ".." in domain:
         raise EmailSyntaxError("An email address cannot have two periods in a row.")
+    if domain.endswith("-"):
+        raise EmailSyntaxError("An email address cannot end with a hyphen.")
+    if domain.startswith("-"):
+        raise EmailSyntaxError("An email address cannot have a hyphen immediately after the @-sign.")
+    if ".-" in domain or "-." in domain:
+        raise EmailSyntaxError("An email address cannot have a period and a hyphen next to each other.")
+    for label in domain.split("."):
+        if re.match(r"(?!xn)..--", label, re.I):  # RFC 5890 invalid R-LDH labels
+            raise EmailSyntaxError("An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.")
 
     if DOT_ATOM_TEXT_HOSTNAME.match(domain):
         ascii_domain = domain
