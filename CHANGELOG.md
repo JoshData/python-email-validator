@@ -1,8 +1,13 @@
 In Development
 --------------
 
-* Python versions through 3.5 and dnspython 1.x are no longer supported. Python 3.6+ with dnspython 2.x are now required.
+* Python versions through 3.5 and dnspython 1.x are no longer supported. Python 3.6+ (now through Python 3.11) with dnspython 2.x are now required.
+* The dnspython package is no longer required if DNS checks are not used.
+* NoNameservers and NXDOMAIN DNS errors are now handled differently: NoNameservers no longer fails validation, and NXDOMAIN now skips checking for an A/AAAA fallback and goes straight to failing validation.
+* Some syntax error messages have changed because they are now checked explicitly rather than as a part of other checks.
+* Some other error messages have changed to not repeat the email address in the error message.
 * The library has been reorganized internally into smaller modules.
+* The tests have been reorganized and expanded. Deliverability tests now mostly use captured DNS responses so they can be run off-line.
 
 Version 1.3.1 (January 21, 2023)
 --------------------------------
