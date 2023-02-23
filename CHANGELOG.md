@@ -12,6 +12,7 @@ There are no significant changes to which email addresses are considered valid/i
 * Some other error messages have changed to not repeat the email address in the error message.
 * The library has been reorganized internally into smaller modules.
 * The tests have been reorganized and expanded. Deliverability tests now mostly use captured DNS responses so they can be run off-line.
+* Type annotations have been added to the exported methods and the ValidatedEmail class and some internal methods.
 
 Version 1.3.1 (January 21, 2023)
 --------------------------------

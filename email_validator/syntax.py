@@ -30,7 +30,7 @@ def safe_character_display(c):
     return unicodedata.name(c, h)
 
 
-def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=False):
+def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_empty_local: bool = False):
     """Validates the syntax of the local part of an email address."""
 
     if len(local) == 0:

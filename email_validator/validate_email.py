@@ -1,20 +1,22 @@
+from typing import Optional, Union
+
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import validate_email_local_part, validate_email_domain_part, get_length_reason
 from .rfc_constants import EMAIL_MAX_LENGTH
 
 
 def validate_email(
-    email,
+    email: Union[str, bytes],
     # /, # not supported in Python 3.6, 3.7
     *,
-    allow_smtputf8=None,
-    allow_empty_local=False,
-    check_deliverability=None,
-    test_environment=None,
-    globally_deliverable=None,
-    timeout=None,
-    dns_resolver=None
-):
+    allow_smtputf8: Optional[bool] = None,
+    allow_empty_local: bool = False,
+    check_deliverability: Optional[bool] = None,
+    test_environment: Optional[bool] = None,
+    globally_deliverable: Optional[bool] = None,
+    timeout: Optional[int] = None,
+    dns_resolver: Optional[object] = None
+) -> ValidatedEmail:
     """
     Validates an email address, raising an EmailNotValidError if the address is not valid or returning a dict of
     information when the address is valid. The email argument can be a str or a bytes instance,
@@ -70,7 +72,11 @@ def validate_email(
 
     # If the email address has an ASCII form, add it.
     if not ret.smtputf8:
-        ret.ascii_email = ret.ascii_local_part + "@" + ret.ascii_domain
+        if not ret.ascii_domain:
+            raise Exception("Missing ASCII domain.")
+        ret.ascii_email = (ret.ascii_local_part or "") + "@" + ret.ascii_domain
+    else:
+        ret.ascii_email = None
 
     # If the email address has an ASCII representation, then we assume it may be
     # transmitted in ASCII (we can't assume SMTPUTF8 will be used on all hops to

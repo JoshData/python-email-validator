@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 class EmailNotValidError(ValueError):
     """Parent class of all exceptions raised by this module."""
     pass
@@ -18,42 +21,42 @@ class ValidatedEmail(object):
     and other information."""
 
     """The email address that was passed to validate_email. (If passed as bytes, this will be a string.)"""
-    original_email = None
+    original_email: str
 
     """The normalized email address, which should always be used in preferance to the original address.
     The normalized address converts an IDNA ASCII domain name to Unicode, if possible, and performs
     Unicode normalization on the local part and on the domain (if originally Unicode). It is the
     concatenation of the local_part and domain attributes, separated by an @-sign."""
-    email = None
+    email: str
 
     """The local part of the email address after Unicode normalization."""
-    local_part = None
+    local_part: str
 
     """The domain part of the email address after Unicode normalization or conversion to
     Unicode from IDNA ascii."""
-    domain = None
+    domain: str
 
     """If not None, a form of the email address that uses 7-bit ASCII characters only."""
-    ascii_email = None
+    ascii_email: Optional[str]
 
     """If not None, the local part of the email address using 7-bit ASCII characters only."""
-    ascii_local_part = None
+    ascii_local_part: Optional[str]
 
-    """If not None, a form of the domain name that uses 7-bit ASCII characters only."""
-    ascii_domain = None
+    """A form of the domain name that uses 7-bit ASCII characters only."""
+    ascii_domain: str
 
     """If True, the SMTPUTF8 feature of your mail relay will be required to transmit messages
     to this address. This flag is True just when ascii_local_part is missing. Otherwise it
     is False."""
-    smtputf8 = None
+    smtputf8: bool
 
     """If a deliverability check is performed and if it succeeds, a list of (priority, domain)
     tuples of MX records specified in the DNS for the domain."""
-    mx = None
+    mx: list
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
-    mx_fallback_type = None
+    mx_fallback_type: str
 
     """Tests use this constructor."""
     def __init__(self, **kwargs):
@@ -96,13 +99,13 @@ class ValidatedEmail(object):
             self.email == other.email
             and self.local_part == other.local_part
             and self.domain == other.domain
-            and self.ascii_email == other.ascii_email
-            and self.ascii_local_part == other.ascii_local_part
-            and self.ascii_domain == other.ascii_domain
+            and getattr(self, 'ascii_email', None) == getattr(other, 'ascii_email', None)
+            and getattr(self, 'ascii_local_part', None) == getattr(other, 'ascii_local_part', None)
+            and getattr(self, 'ascii_domain', None) == getattr(other, 'ascii_domain', None)
             and self.smtputf8 == other.smtputf8
-            and repr(sorted(self.mx) if self.mx else self.mx)
-            == repr(sorted(other.mx) if other.mx else other.mx)
-            and self.mx_fallback_type == other.mx_fallback_type
+            and repr(sorted(self.mx) if getattr(self, 'mx', None) else None)
+            == repr(sorted(other.mx) if getattr(other, 'mx', None) else None)
+            and getattr(self, 'mx_fallback_type', None) == getattr(other, 'mx_fallback_type', None)
         )
 
     """This helps producing the README."""

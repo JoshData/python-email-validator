@@ -15,6 +15,7 @@ install:
 - make install
 
 script:
+- make typing
 - make lint
 - make test
 
