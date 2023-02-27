@@ -27,7 +27,7 @@ And this library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
 [pyIsEmail](https://github.com/michaelherold/pyIsEmail).
 
-[![Build Status](https://app.travis-ci.com/JoshData/python-email-validator.svg?branch=main)](https://app.travis-ci.com/JoshData/python-email-validator)
+[![Build Status](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml/badge.svg)](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml)
 
 View the [CHANGELOG / Release Notes](CHANGELOG.md) for the version history of changes in the library. Occasionally this README is ahead of the latest published package --- see the CHANGELOG for details.
 

@@ -13,7 +13,7 @@ lint:
 
 .PHONY: test
 test:
-	pytest --cov=email_validator
+	PYTHONPATH=.:$PYTHONPATH pytest --cov=email_validator
 
 .PHONY: testcov
 testcov: test
