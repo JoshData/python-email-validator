@@ -1,7 +1,7 @@
 In Development
 --------------
 
-* Python versions through 3.5 and dnspython 1.x are no longer supported. Python 3.6+ (now through Python 3.11) with dnspython 2.x are now required.
+* Python versions through 3.6 and dnspython 1.x are no longer supported. Python 3.7+ with dnspython 2.x are now required.
 * The dnspython package is no longer required if DNS checks are not used.
 * NoNameservers and NXDOMAIN DNS errors are now handled differently: NoNameservers no longer fails validation, and NXDOMAIN now skips checking for an A/AAAA fallback and goes straight to failing validation.
 * Some syntax error messages have changed because they are now checked explicitly rather than as a part of other checks.
