@@ -21,8 +21,9 @@ DOT_ATOM_TEXT_INTL = re.compile('[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + r'
 # must also satisfy the requirements of RFC 952/RFC 1123 which restrict
 # the allowed characters of hostnames further. The hyphen cannot be at
 # the beginning or end of a *dot-atom component* of a hostname either.
-ATEXT_HOSTNAME = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
-DOT_ATOM_TEXT_HOSTNAME = re.compile(ATEXT_HOSTNAME + r'(?:\.' + ATEXT_HOSTNAME + r')*\Z')
+ATEXT_HOSTNAME_INTL = re.compile(r"[a-zA-Z0-9\-\." + "\u0080-\U0010FFFF" + "]")
+HOSTNAME_LABEL = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
+DOT_ATOM_TEXT_HOSTNAME = re.compile(HOSTNAME_LABEL + r'(?:\.' + HOSTNAME_LABEL + r')*\Z')
 DOMAIN_NAME_REGEX = re.compile(r"[A-Za-z]\Z")  # all TLDs currently end with a letter
 
 # Length constants

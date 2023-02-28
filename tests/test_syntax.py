@@ -226,21 +226,21 @@ def test_email_valid(email_input, output):
         ('my@baddashfw.－a.com', 'An email address cannot have a period and a hyphen next to each other.'),
         ('my@baddashfw.b－.com', 'An email address cannot have a period and a hyphen next to each other.'),
         ('my@example.com\n',
-         'The part after the @-sign contains invalid characters (Codepoint U+000A at position 4 of '
-         '\'com\\n\' not allowed).'),
+         'The part after the @-sign contains invalid characters: U+000A.'),
         ('my@example\n.com',
-         'The part after the @-sign contains invalid characters (Codepoint U+000A at position 8 of '
-         '\'example\\n\' not allowed).'),
-        ('.leadingdot@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
-        ('..twodots@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
-        ('twodots..here@domain.com', 'The email address contains invalid characters before the @-sign: FULL STOP.'),
+         'The part after the @-sign contains invalid characters: U+000A.'),
+        ('me@x!', 'The part after the @-sign contains invalid characters: \'!\'.'),
+        ('me@x ', 'The part after the @-sign contains invalid characters: SPACE.'),
+        ('.leadingdot@domain.com', 'An email address cannot start with a period.'),
+        ('twodots..here@domain.com', 'An email address cannot have two periods in a row.'),
+        ('trailingdot.@domain.email', 'An email address cannot have a period immediately before the @-sign.'),
         ('me@⒈wouldbeinvalid.com',
          "The part after the @-sign contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
         ('@example.com', 'There must be something before the @-sign.'),
-        ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
-        ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
-        ('my\n@example.com', 'The email address contains invalid characters before the @-sign: \'\\n\'.'),
+        ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
+        ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
+        ('my\n@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
         ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
         ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', 'The email address is too long (4 characters too many).'),
@@ -253,7 +253,6 @@ def test_email_valid(email_input, output):
         ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (at least 1 character too many).'),
         ('me@bad-tld-1', 'The part after the @-sign is not valid. It should have a period.'),
         ('me@bad.tld-2', 'The part after the @-sign is not valid. It is not within a valid top-level domain.'),
-        ('me@x!', 'The part after the @-sign contains invalid characters (Codepoint U+0021 at position 2 of \'x!\' not allowed).'),
         ('me@xn--0.tld', 'The part after the @-sign is not valid IDNA (Invalid A-label).'),
         ('me@yy--0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
         ('me@yy－－0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
@@ -289,25 +288,43 @@ def test_email_invalid_reserved_domain(email_input):
 
 
 @pytest.mark.parametrize(
-    'email_input',
+    ('s', 'expected_error'),
     [
-        ('white space@test'),
-        ('\n@test'),
-        ('\u2005@test'),  # four-per-em space (Zs)
-        ('\u009C@test'),  # string terminator (Cc)
-        ('\u200B@test'),  # zero-width space (Cf)
-        ('\u202Dforward-\u202Ereversed@test'),  # BIDI (Cf)
-        ('\uD800@test'),  # surrogate (Cs)
-        ('\uE000@test'),  # private use (Co)
-        ('\uFDEF@test'),  # unassigned (Cn)
-        ('\u0300@test'),  # grave accent (M)
+        ('\u2005', 'FOUR-PER-EM SPACE'),  # four-per-em space (Zs)
+        ('\u0300', 'COMBINING GRAVE ACCENT'),  # grave accent (M)
+        ('\u009C', 'U+009C'),  # string terminator (Cc)
+        ('\u200B', 'ZERO WIDTH SPACE'),  # zero-width space (Cf)
+        ('\u202Dforward-\u202Ereversed', 'LEFT-TO-RIGHT OVERRIDE, RIGHT-TO-LEFT OVERRIDE'),  # BIDI (Cf)
+        ('\uD800', 'U+D800'),  # surrogate (Cs)
+        ('\uE000', 'U+E000'),  # private use (Co)
+        ('\U0010FDEF', 'U+0010FDEF'),  # priate use (Co)
+        ('\uFDEF', 'U+FDEF'),  # unassigned (Cn)
     ],
 )
-def test_email_unsafe_character(email_input):
+def test_email_unsafe_character(s, expected_error):
+    # Check for various unsafe characters:
+
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(s + "@test", test_environment=True)
+    assert str(exc_info.value) == f"The email address contains unsafe characters: {expected_error}."
+
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email("test@" + s, test_environment=True)
+    assert "The email address contains unsafe characters" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    ('email_input', 'expected_error'),
+    [
+        ('white space@test', 'The email address contains invalid characters before the @-sign: SPACE.'),
+        ('\n@test', 'The email address contains invalid characters before the @-sign: U+000A.'),
+    ],
+)
+def test_email_invalid_character(email_input, expected_error):
     # Check for various unsafe characters:
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, test_environment=True)
-    assert "invalid character" in str(exc_info.value)
+    assert str(exc_info.value) == expected_error
 
 
 def test_email_test_domain_name_in_test_environment():
