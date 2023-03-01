@@ -18,9 +18,8 @@ ATEXT_INTL = ATEXT + u"\u0080-\U0010FFFF"
 DOT_ATOM_TEXT_INTL = re.compile('[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + r']+)*\Z')
 
 # The domain part of the email address, after IDNA (ASCII) encoding,
-# must also satisfy the requirements of RFC 952/RFC 1123 which restrict
-# the allowed characters of hostnames further. The hyphen cannot be at
-# the beginning or end of a *dot-atom component* of a hostname either.
+# must also satisfy the requirements of RFC 952/RFC 1123 Section 2.1 which
+# restrict the allowed characters of hostnames further.
 ATEXT_HOSTNAME_INTL = re.compile(r"[a-zA-Z0-9\-\." + "\u0080-\U0010FFFF" + "]")
 HOSTNAME_LABEL = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 DOT_ATOM_TEXT_HOSTNAME = re.compile(HOSTNAME_LABEL + r'(?:\.' + HOSTNAME_LABEL + r')*\Z')
@@ -31,5 +30,5 @@ DOMAIN_NAME_REGEX = re.compile(r"[A-Za-z]\Z")  # all TLDs currently end with a l
 # explains the maximum length of an email address is 254 octets.
 EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
-DNS_LABEL_LENGTH_LIMIT = 63  # RFC 1035 2.3.1
-DOMAIN_MAX_LENGTH = 255  # RFC 1035 2.3.4
+DNS_LABEL_LENGTH_LIMIT = 63  # in "octets", RFC 1035 2.3.1
+DOMAIN_MAX_LENGTH = 255  # in "octets", RFC 1035 2.3.4 and RFC 5321 4.5.3.1.2

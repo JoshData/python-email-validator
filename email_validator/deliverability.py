@@ -34,15 +34,16 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
 
     try:
         try:
-            # Try resolving for MX records.
+            # Try resolving for MX records (RFC 5321 Section 5).
             response = dns_resolver.resolve(domain, "MX")
 
             # For reporting, put them in priority order and remove the trailing dot in the qnames.
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
 
-            # Remove "null MX" records from the list (their value is (0, ".") but we've stripped
-            # trailing dots, so the 'exchange' is just ""). If there was only a null MX record,
-            # email is not deliverable.
+            # RFC 7505: Null MX (0, ".") records signify the domain does not accept email.
+            # Remove null MX records from the mtas list (but we've stripped trailing dots,
+            # so the 'exchange' is just "") so we can check if there are no non-null MX
+            # records remaining.
             mtas = [(preference, exchange) for preference, exchange in mtas
                     if exchange != ""]
             if len(mtas) == 0:  # null MX only, if there were no MX records originally a NoAnswer exception would have occurred
@@ -52,7 +53,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
             deliverability_info["mx_fallback_type"] = None
 
         except dns.resolver.NoAnswer:
-            # If there was no MX record, fall back to an A record, as SMTP servers do.
+            # If there was no MX record, fall back to an A record. (RFC 5321 Section 5)
             try:
                 response = dns_resolver.resolve(domain, "A")
                 deliverability_info["mx"] = [(0, str(r)) for r in response]
@@ -61,6 +62,7 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
             except dns.resolver.NoAnswer:
 
                 # If there was no A record, fall back to an AAAA record.
+                # (It's unclear if SMTP servers actually do this.)
                 try:
                     response = dns_resolver.resolve(domain, "AAAA")
                     deliverability_info["mx"] = [(0, str(r)) for r in response]
@@ -73,8 +75,8 @@ def validate_email_deliverability(domain, domain_i18n, timeout=None, dns_resolve
                     # have been raised).
                     raise EmailUndeliverableError("The domain name %s does not accept email." % domain_i18n)
 
-            # Check for a SPF reject-all record ("v=spf1 -all") which indicates
-            # no emails are sent from this domain (similar to a NULL MX record
+            # Check for a SPF (RFC 7208) reject-all record ("v=spf1 -all") which indicates
+            # no emails are sent from this domain (similar to a Null MX record
             # but for sending rather than receiving). In combination with the
             # absence of an MX record, this is probably a good sign that the
             # domain is not used for email.
