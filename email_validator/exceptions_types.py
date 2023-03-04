@@ -60,10 +60,6 @@ class ValidatedEmail(object):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    """As a convenience, str(...) on instances of this class return the normalized address."""
-    def __self__(self):
-        return self.normalized_email
-
     def __repr__(self):
         return f"<ValidatedEmail {self.email}>"
 
