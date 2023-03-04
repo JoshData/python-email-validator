@@ -4,28 +4,31 @@ email-validator: Validate Email Addresses
 A robust email address syntax and deliverability validation library for
 Python 3.7+ by [Joshua Tauberer](https://joshdata.me).
 
-This library validates that a string is of the form `name@example.com` and optionally checks that the domain name is set up to receive email. This is
-the sort of validation you would want for an email-based registration form on 
-a website (but not necessarily for composing an email message).
+This library validates that a string is of the form `name@example.com`
+and optionally checks that the domain name is set up to receive email.
+This is the sort of validation you would want when you are identifying
+users by their email address like on a registration/login form (but not
+necessarily for composing an email message, see below).
 
 Key features:
 
 * Checks that an email address has the correct syntax --- good for
   registration/login forms or other uses related to identifying users.
-* Gives friendly error messages when validation fails (appropriate to show
-  to end users).
-* (optionally) Checks deliverability: Does the domain name resolve? You can override the default DNS resolver.
-* Supports internationalized domain names and (optionally)
-  internationalized local parts, but blocks unsafe characters.
-* Normalizes email addresses (super important for internationalized
+  Rejects obsolete email address syntax that you'd find unexpected.
+* Gives friendly English error messages when validation fails that you
+  can display to end-users.
+* Checks deliverability (optional): Does the domain name resolve?
+  (You can override the default DNS resolver to add query caching.)
+* Supports internationalized domain names and internationalized local parts.
+  Blocks unsafe characters for your safety.
+* Normalizes email addresses (important for internationalized
   addresses! see below).
 
-The library is NOT for validation of the To: line in an email message
-(e.g. `My Name <my@address.com>`), which
-[flanker](https://github.com/mailgun/flanker) is more appropriate for.
-And this library does NOT permit obsolete forms of email addresses, so
+This library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
-[pyIsEmail](https://github.com/michaelherold/pyIsEmail).
+[pyIsEmail](https://github.com/michaelherold/pyIsEmail) or try
+[flanker](https://github.com/mailgun/flanker) if you are parsing the
+To: line of an email.
 
 [![Build Status](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml/badge.svg)](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml)
 
@@ -42,7 +45,7 @@ This package [is on PyPI](https://pypi.org/project/email-validator/), so:
 pip install email-validator
 ```
 
-`pip3` also works.
+(You might need to use `pip3` depending on your local environment.)
 
 Quick Start
 -----------
@@ -82,8 +85,7 @@ Usage
 ### Overview
 
 The module provides a function `validate_email(email_address)` which
-takes an email address (either a `str` or `bytes`, but only non-internationalized
-addresses are allowed when passing a `bytes`) and:
+takes an email address and:
 
 - Raises a `EmailNotValidError` with a helpful, human-readable error
   message explaining why the email address is not valid, or
@@ -121,18 +123,19 @@ greylisting).
 The `validate_email` function also accepts the following keyword arguments
 (defaults are as shown below):
 
+`check_deliverability=True`: If true, a DNS query is made to check that a non-null MX record is present for the domain-part of the email address (or if not, an A/AAAA record as an MX fallback can be present but in that case a reject-all SPF record must not be present). Set to `False` to skip this DNS-based check. DNS is slow and sometimes unavailable, so consider whether these checks are useful for your use case. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of a previously validated domain in your database by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
+
+`dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
+
+`test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below). You can also set `email_validator.TEST_ENVIRONMENT` to `True` to turn it on for all calls by default.
+
 `allow_smtputf8=True`: Set to `False` to prohibit internationalized addresses that would
     require the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension. You can also set `email_validator.ALLOW_SMTPUTF8` to `False` to turn it off for all calls by default.
 
-`check_deliverability=True`: If true, a DNS query is made to check that a non-null MX record is present for the domain-part of the email address (or if not, an A/AAAA record as an MX fallback can be present but in that case a reject-all SPF record must not be present). Set to `False` to skip this DNS-based check. DNS is slow and sometimes unavailable, so consider whether these checks are useful for your use case. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of a previously validated domain in your database by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
-
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
     
-`dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
-
-`test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below). You can also set `email_validator.TEST_ENVIRONMENT` to `True` to turn it on for all calls by default.
 
 ### DNS timeout and cache
 
@@ -180,13 +183,8 @@ domain names are converted into a special IDNA ASCII "[Punycode](https://www.rfc
 form starting with `xn--`. When an email address has non-ASCII
 characters in its domain part, the domain part is replaced with its IDNA
 ASCII equivalent form in the process of mail transmission. Your mail
-submission library probably does this for you transparently. Note that
-most web browsers are currently in transition between IDNA 2003 (RFC
-3490) and IDNA 2008 (RFC 5891) and [compliance around the web is not
-very
-good](http://archives.miloush.net/michkap/archive/2012/02/27/10273315.html)
-in any case, so be aware that edge cases are handled differently by
-different applications and libraries. This library conforms to IDNA 2008
+submission library probably does this for you transparently. ([Compliance
+around the web is not very good though](http://archives.miloush.net/michkap/archive/2012/02/27/10273315.html).) This library conforms to IDNA 2008
 using the [idna](https://github.com/kjd/idna) module by Kim Davies.
 
 ### Internationalized local parts
@@ -305,7 +303,7 @@ ValidatedEmail(
   smtputf8=False)
 ```
 
-For the fictitious address `example@ツ.life`, which has an
+For the fictitious but valid address `example@ツ.ⓁⒾⒻⒺ`, which has an
 internationalized domain but ASCII local part, the returned object is:
 
 ```python
@@ -320,13 +318,9 @@ ValidatedEmail(
 
 ```
 
-Note that `smtputf8` is `False` even though the domain part is
-internationalized because
-[SMTPUTF8](https://tools.ietf.org/html/rfc6531) is only needed if the
-local part of the address is internationalized (the domain part can be
-converted to IDNA ASCII Punycode). Also note that the `email` and `domain`
-fields provide a normalized form of the email address and domain name
-(casefolding and Unicode normalization as required by IDNA 2008).
+Note that the `email` and `domain` fields provide a normalized form of the
+email address, domain name, and (in other cases) local part (see earlier
+discussion of normalization), which you should use in your database.
 
 Calling `validate_email` with the ASCII form of the above email address,
 `example@xn--bdk.life`, returns the exact same information (i.e., the
@@ -390,21 +384,11 @@ or likely to cause trouble:
   The "quoted string" form of the local part of the email address (RFC
   5321 4.1.2) is not permitted.
   Quoted forms allow multiple @-signs, space characters, and other
-  troublesome conditions. The unsual [(comment) syntax](https://github.com/JoshData/python-email-validator/issues/77)
+  troublesome conditions. The unusual [(comment) syntax](https://github.com/JoshData/python-email-validator/issues/77)
   is also rejected. The "literal" form for the domain part of an email address (an
   IP address in brackets) is rejected. Other obsolete and deprecated syntaxes are
   rejected. No one uses these forms anymore.
 
-Support for Python 2.x
-----------------------
-
-The last version of this library supporting Python 2.x is version 1.2.1.
-
-When using Python 2.x, it is required that Python be built with
-UCS-4 support (see
-[here](https://stackoverflow.com/questions/29109944/python-returns-length-of-2-for-single-unicode-character-string)).
-Without UCS-4 support, unicode characters outside of the BMP (Basic
-Multilingual Plane) will not validate correctly in internationalized addresses.
 
 Testing
 -------

@@ -2,12 +2,14 @@
 #
 # Usage:
 #
-# python -m email_validator
+# python -m email_validator test@example.org
+# python -m email_validator < LIST_OF_ADDRESSES.TXT
 #
 # Provide email addresses to validate either as a command-line argument
-# or in STDIN separated by newlines. No output will be given for valid
-# email addresses. Validation errors will be printed for invalid email
-# addresses.
+# or in STDIN separated by newlines. Validation errors will be printed for
+# invalid email addresses. When passing an email address on the command
+# line, if the email address is valid, information about it will be printed.
+# When using STDIN, no output will be given for valid email addresses.
 
 import json
 import sys
