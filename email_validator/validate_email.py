@@ -101,7 +101,7 @@ def validate_email(
             reason = get_length_reason(ret.email, utf8=True)
         else:
             reason = "(when converted to IDNA ASCII)"
-        raise EmailSyntaxError("The email address is too long {}.".format(reason))
+        raise EmailSyntaxError(f"The email address is too long {reason}.")
     if len(ret.email.encode("utf8")) > EMAIL_MAX_LENGTH:
         if len(ret.email) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the UTF-8
@@ -109,7 +109,7 @@ def validate_email(
             reason = get_length_reason(ret.email, utf8=True)
         else:
             reason = "(when encoded in bytes)"
-        raise EmailSyntaxError("The email address is too long {}.".format(reason))
+        raise EmailSyntaxError(f"The email address is too long {reason}.")
 
     if check_deliverability and not test_environment:
         # Validate the email address's deliverability using DNS

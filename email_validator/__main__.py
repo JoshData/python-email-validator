@@ -30,7 +30,7 @@ def main(dns_resolver=None):
             try:
                 validate_email(email, dns_resolver=dns_resolver)
             except EmailNotValidError as e:
-                print("{} {}".format(email, e))
+                print(f"{email} {e}")
     else:
         # Validate the email address passed on the command line.
         email = sys.argv[1]

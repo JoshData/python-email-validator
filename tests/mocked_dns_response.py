@@ -103,7 +103,7 @@ class MockedDnsResponseData:
         if (key[0], ANY, key[2]) in self.data and self.data[(key[0], ANY, key[2])] is None:
             raise dns.resolver.NXDOMAIN()
 
-        raise ValueError("Saved DNS data did not contain query: {}".format(key))
+        raise ValueError(f"Saved DNS data did not contain query: {key}")
 
     def put(self, key, value):
         # Build the DNS data by saving the live query response.

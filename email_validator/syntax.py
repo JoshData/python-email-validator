@@ -10,10 +10,9 @@ import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
     """Helper function to return an error message related to invalid length."""
     diff = len(addr) - limit
-    reason = "({}{} character{} too many)"
     prefix = "at least " if utf8 else ""
     suffix = "s" if diff > 1 else ""
-    return reason.format(prefix, diff, suffix)
+    return f"({prefix}{diff} character{suffix} too many)"
 
 
 def safe_character_display(c):
@@ -23,9 +22,9 @@ def safe_character_display(c):
 
     # Construct a hex string in case the unicode name doesn't exist.
     if ord(c) < 0xFFFF:
-        h = "U+{:04x}".format(ord(c)).upper()
+        h = f"U+{ord(c):04x}".upper()
     else:
-        h = "U+{:08x}".format(ord(c)).upper()
+        h = f"U+{ord(c):08x}".upper()
 
     # Return the character name or, if it has no name, the hex string.
     return unicodedata.name(c, h)
@@ -55,7 +54,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
     # instead.
     if len(local) > LOCAL_PART_MAX_LENGTH:
         reason = get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
-        raise EmailSyntaxError("The email address is too long before the @-sign {}.".format(reason))
+        raise EmailSyntaxError(f"The email address is too long before the @-sign {reason}.")
 
     # Check the local part against the non-internationalized regular expression.
     # Most email addresses match this regex so it's probably fastest to check this first.
@@ -231,7 +230,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     try:
         domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The part after the @-sign contains invalid characters ({}).".format(str(e)))
+        raise EmailSyntaxError(f"The part after the @-sign contains invalid characters ({e}).")
 
     # The domain part is made up period-separated "labels." Each label must
     # have at least one character and cannot start or end with dashes, which
@@ -274,7 +273,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
                 # one the user supplied. Also I'm not sure if the length check applies
                 # to the internationalized form, the IDNA ASCII form, or even both!
                 raise EmailSyntaxError("The email address is too long after the @-sign.")
-            raise EmailSyntaxError("The part after the @-sign contains invalid characters (%s)." % str(e))
+            raise EmailSyntaxError(f"The part after the @-sign contains invalid characters ({e}).")
 
         # Check the syntax of the string returned by idna.encode.
         # It should never fail.
@@ -291,14 +290,14 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     # is never reached for internationalized domains.)
     if len(ascii_domain) > DOMAIN_MAX_LENGTH:
         reason = get_length_reason(ascii_domain, limit=DOMAIN_MAX_LENGTH)
-        raise EmailSyntaxError("The email address is too long after the @-sign {}.".format(reason))
+        raise EmailSyntaxError(f"The email address is too long after the @-sign {reason}.")
 
     # Also check the label length limit.
     # (RFC 1035 2.3.1)
     for label in ascii_domain.split("."):
         if len(label) > DNS_LABEL_LENGTH_LIMIT:
             reason = get_length_reason(label, limit=DNS_LABEL_LENGTH_LIMIT)
-            raise EmailSyntaxError("After the @-sign, periods cannot be separated by so many characters {}.".format(reason))
+            raise EmailSyntaxError(f"After the @-sign, periods cannot be separated by so many characters {reason}.")
 
     if globally_deliverable:
         # All publicly deliverable addresses have domain named with at least
@@ -337,7 +336,7 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
     try:
         domain_i18n = idna.decode(ascii_domain.encode('ascii'))
     except idna.IDNAError as e:
-        raise EmailSyntaxError("The part after the @-sign is not valid IDNA ({}).".format(str(e)))
+        raise EmailSyntaxError(f"The part after the @-sign is not valid IDNA ({e}).")
 
     # Check for invalid characters after normalization. These
     # should never arise. See the similar checks above.

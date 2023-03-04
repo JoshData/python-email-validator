@@ -65,7 +65,7 @@ class ValidatedEmail(object):
         return self.normalized_email
 
     def __repr__(self):
-        return "<ValidatedEmail {}>".format(self.email)
+        return f"<ValidatedEmail {self.email}>"
 
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""

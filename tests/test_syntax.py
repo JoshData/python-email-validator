@@ -559,4 +559,4 @@ def test_pyisemail_tests(email_input, status):
         with pytest.raises(EmailSyntaxError):
             validate_email(email_input, test_environment=True)
     else:
-        raise ValueError("status {} is not recognized".format(status))
+        raise ValueError(f"status {status} is not recognized")

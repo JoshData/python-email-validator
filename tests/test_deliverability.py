@@ -23,17 +23,17 @@ def test_deliverability_found():
 def test_deliverability_fails():
     # No MX record.
     domain = 'xkxufoekjvjfjeodlfmdfjcu.com'
-    with pytest.raises(EmailUndeliverableError, match='The domain name {} does not exist'.format(domain)):
+    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not exist'):
         validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
 
     # Null MX record.
     domain = 'example.com'
-    with pytest.raises(EmailUndeliverableError, match='The domain name {} does not accept email'.format(domain)):
+    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not accept email'):
         validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
 
     # No MX record, A record fallback, reject-all SPF record.
     domain = 'nellis.af.mil'
-    with pytest.raises(EmailUndeliverableError, match='The domain name {} does not send email'.format(domain)):
+    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not send email'):
         validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
 
 
