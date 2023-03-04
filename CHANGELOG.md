@@ -1,4 +1,4 @@
-2.0.0-dev1
+2.0.0-dev2
 ----------
 
 This is a pre-release for version 2.0.0.
