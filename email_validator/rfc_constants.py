@@ -6,6 +6,7 @@ import re
 # characters are permitted in email addresses (not taking into
 # account internationalization):
 ATEXT = r'a-zA-Z0-9_!#\$%&\'\*\+\-/=\?\^`\{\|\}~'
+ATEXT_RE = re.compile('[.' + ATEXT + ']')  # ATEXT plus dots
 
 # A "dot atom text", per RFC 2822 3.2.4:
 DOT_ATOM_TEXT = re.compile('[' + ATEXT + ']+(?:\\.[' + ATEXT + r']+)*\Z')
@@ -15,6 +16,7 @@ DOT_ATOM_TEXT = re.compile('[' + ATEXT + ']+(?:\\.[' + ATEXT + r']+)*\Z')
 # RFC3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
 ATEXT_INTL = ATEXT + u"\u0080-\U0010FFFF"
+ATEXT_INTL_RE = re.compile('[.' + ATEXT_INTL + ']')  # ATEXT_INTL plus dots
 DOT_ATOM_TEXT_INTL = re.compile('[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + r']+)*\Z')
 
 # The domain part of the email address, after IDNA (ASCII) encoding,

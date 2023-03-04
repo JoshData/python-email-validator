@@ -1,6 +1,6 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
-    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT, ATEXT_INTL, ATEXT_HOSTNAME_INTL, DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX
+    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_RE, ATEXT_HOSTNAME_INTL, DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX
 
 import re
 import unicodedata
@@ -57,26 +57,13 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
         reason = get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
         raise EmailSyntaxError("The email address is too long before the @-sign {}.".format(reason))
 
-    # Check for invalid characters.
-    # (RFC 2822 Section 3.2.4 / RFC 5322 Section 3.2.3, plus RFC 6531 section 3.3
-    # if internationalized local parts are allowed)
-    atext_re = re.compile('[.' + (ATEXT if not allow_smtputf8 else ATEXT_INTL) + ']')
-    bad_chars = set(
-        safe_character_display(c)
-        for c in local
-        if not atext_re.match(c)
-    )
-    if bad_chars:
-        raise EmailSyntaxError("The email address contains invalid characters before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")
-
-    # Check for dot errors imposted by the dot-atom rule.
-    # (RFC 2822 3.2.4)
-    check_dot_atom(local, 'An email address cannot start with a {}.', 'An email address cannot have a {} immediately before the @-sign.', is_hostname=False)
-
     # Check the local part against the non-internationalized regular expression.
+    # Most email addresses match this regex so it's probably fastest to check this first.
     # (RFC 2822 3.2.4)
     m = DOT_ATOM_TEXT.match(local)
     if m:
+        # It's valid.
+
         # Return the local part unchanged and flag that SMTPUTF8 is not needed.
         return {
             "local_part": local,
@@ -84,17 +71,11 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
             "smtputf8": False,
         }
 
-    else:
-        # The local part failed the ASCII check. Now try the extended internationalized requirements.
-        # This should already be handled by the bad_chars and check_dot_atom tests above.
-        # It's the same pattern but with additional characters permitted.
-        m = DOT_ATOM_TEXT_INTL.match(local)
-        if not m:
-            raise EmailSyntaxError("The email address contains invalid characters before the @-sign.")
-        # It would be valid if internationalized characters were allowed by the caller.
-        if not allow_smtputf8:
-            raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
-
+    # The local part failed the ASCII check. Try the extended character set
+    # for internationalized addresses. It's the same pattern but with additional
+    # characters permitted.
+    m = DOT_ATOM_TEXT_INTL.match(local)
+    if m and allow_smtputf8:
         # It's valid.
 
         # RFC 6532 section 3.1 also says that Unicode NFC normalization should be applied,
@@ -121,6 +102,27 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
             "ascii_local_part": None,  # no ASCII form is possible
             "smtputf8": True,
         }
+
+    # It's not a valid local part either non-internationalized or internationalized.
+    # Let's find out why.
+
+    # Check for invalid characters.
+    # (RFC 2822 Section 3.2.4 / RFC 5322 Section 3.2.3, plus RFC 6531 section 3.3)
+    bad_chars = set(
+        safe_character_display(c)
+        for c in local
+        if not (ATEXT_INTL_RE if allow_smtputf8 else ATEXT_RE).match(c)
+    )
+    if bad_chars:
+        raise EmailSyntaxError("The email address contains invalid characters before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")
+
+    # Check for dot errors imposted by the dot-atom rule.
+    # (RFC 2822 3.2.4)
+    check_dot_atom(local, 'An email address cannot start with a {}.', 'An email address cannot have a {} immediately before the @-sign.', is_hostname=False)
+
+    # All of the reasons should already have been checked, but just in case
+    # we have a fallback message.
+    raise EmailSyntaxError("The email address contains invalid characters before the @-sign.")
 
 
 def check_unsafe_chars(s):
