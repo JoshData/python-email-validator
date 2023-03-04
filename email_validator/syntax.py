@@ -75,8 +75,24 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
     # for internationalized addresses. It's the same pattern but with additional
     # characters permitted.
     m = DOT_ATOM_TEXT_INTL.match(local)
-    if m and allow_smtputf8:
+    if m:
         # It's valid.
+
+        # But international characters in the local part may not be permitted.
+        if not allow_smtputf8:
+            # Check for invalid characters against the non-internationalized
+            # permitted character set.
+            # (RFC 2822 Section 3.2.4 / RFC 5322 Section 3.2.3)
+            bad_chars = set(
+                safe_character_display(c)
+                for c in local
+                if not ATEXT_RE.match(c)
+            )
+            if bad_chars:
+                raise EmailSyntaxError("Internationalized characters before the @-sign are not supported: " + ", ".join(sorted(bad_chars)) + ".")
+
+            # Although the check above should always find something, fall back to this just in case.
+            raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
 
         # RFC 6532 section 3.1 also says that Unicode NFC normalization should be applied,
         # so we'll return the normalized local part in the return value.
@@ -111,7 +127,7 @@ def validate_email_local_part(local, allow_smtputf8=True, allow_empty_local=Fals
     bad_chars = set(
         safe_character_display(c)
         for c in local
-        if not (ATEXT_INTL_RE if allow_smtputf8 else ATEXT_RE).match(c)
+        if not ATEXT_INTL_RE.match(c)
     )
     if bad_chars:
         raise EmailSyntaxError("The email address contains invalid characters before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")

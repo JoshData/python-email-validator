@@ -57,6 +57,31 @@ from email_validator import EmailSyntaxError, \
             ),
         ),
         (
+            'jeff@臺網中心.tw',
+            ValidatedEmail(
+                local_part='jeff',
+                ascii_local_part='jeff',
+                smtputf8=False,
+                ascii_domain='xn--fiqq24b10vi0d.tw',
+                domain='臺網中心.tw',
+                email='jeff@臺網中心.tw',
+                ascii_email='jeff@xn--fiqq24b10vi0d.tw',
+            ),
+        ),
+    ],
+)
+def test_email_valid(email_input, output):
+    # These addresses do not require SMTPUTF8. See test_email_valid_intl_local_part
+    # for addresses that are valid but require SMTPUTF8. Check that it passes with
+    # allow_smtput8 both on and off.
+    assert validate_email(email_input, check_deliverability=False, allow_smtputf8=False) == output
+    assert validate_email(email_input, check_deliverability=False, allow_smtputf8=True) == output
+
+
+@pytest.mark.parametrize(
+    'email_input,output',
+    [
+        (
             '伊昭傑@郵件.商務',
             ValidatedEmail(
                 local_part='伊昭傑',
@@ -104,18 +129,6 @@ from email_validator import EmailSyntaxError, \
                 ascii_domain='xn--fiqq24b10vi0d.tw',
                 domain='臺網中心.tw',
                 email='葉士豪@臺網中心.tw',
-            ),
-        ),
-        (
-            'jeff@臺網中心.tw',
-            ValidatedEmail(
-                local_part='jeff',
-                ascii_local_part='jeff',
-                smtputf8=False,
-                ascii_domain='xn--fiqq24b10vi0d.tw',
-                domain='臺網中心.tw',
-                email='jeff@臺網中心.tw',
-                ascii_email='jeff@xn--fiqq24b10vi0d.tw',
             ),
         ),
         (
@@ -200,9 +213,14 @@ from email_validator import EmailSyntaxError, \
         ),
     ],
 )
-def test_email_valid(email_input, output):
-    # print(f'({email_input!r}, {validate_email(email_input, check_deliverability=False)!r}),')
+def test_email_valid_intl_local_part(email_input, output):
+    # Check that it passes when allow_smtputf8 is True.
     assert validate_email(email_input, check_deliverability=False) == output
+
+    # Check that it fails when allow_smtputf8 is False.
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input, allow_smtputf8=False, check_deliverability=False)
+    assert "Internationalized characters before the @-sign are not supported: " in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -263,7 +281,6 @@ def test_email_invalid_syntax(email_input, error_msg):
     # checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
-    # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert str(exc_info.value) == error_msg
 
 
@@ -283,7 +300,6 @@ def test_email_invalid_reserved_domain(email_input):
     # DNS deliverability checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
-    # print(f'({email_input!r}, {str(exc_info.value)!r}),')
     assert "is a special-use or reserved name" in str(exc_info.value)
 
 
@@ -317,13 +333,28 @@ def test_email_unsafe_character(s, expected_error):
     ('email_input', 'expected_error'),
     [
         ('white space@test', 'The email address contains invalid characters before the @-sign: SPACE.'),
+        ('test@white space', 'The part after the @-sign contains invalid characters: SPACE.'),
         ('\n@test', 'The email address contains invalid characters before the @-sign: U+000A.'),
+        ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
     ],
 )
 def test_email_invalid_character(email_input, expected_error):
-    # Check for various unsafe characters:
+    # Check for various unsafe test_email_invalid_character_smtputf8:
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, test_environment=True)
+    assert str(exc_info.value) == expected_error
+
+
+@pytest.mark.parametrize(
+    ('email_input', 'expected_error'),
+    [
+        ('λambdaツ@test', 'Internationalized characters before the @-sign are not supported: \'λ\', \'ツ\'.'),
+    ],
+)
+def test_email_invalid_character_smtputf8(email_input, expected_error):
+    # Check for various unsafe characters:
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input, allow_smtputf8=False, test_environment=True)
     assert str(exc_info.value) == expected_error
 
 
