@@ -1,8 +1,12 @@
-In Development
---------------
+2.0.0-dev1
+----------
 
-* Python versions through 3.6 and dnspython 1.x are no longer supported. Python 3.7+ with dnspython 2.x are now required.
-* The dnspython package is no longer required if DNS checks are not used.
+This is a pre-release for version 2.0.0.
+
+There are no significant changes to which email addresses are considered valid/invalid, but there are many changes in error messages and internal improvements to the library, and Python 3.7+ is now required.
+
+* Python 2.x and 3.x versions through 3.6, and dnspython 1.x, are no longer supported. Python 3.7+ with dnspython 2.x are now required.
+* The dnspython package is no longer required if DNS checks are not used, although it will install automatically.
 * NoNameservers and NXDOMAIN DNS errors are now handled differently: NoNameservers no longer fails validation, and NXDOMAIN now skips checking for an A/AAAA fallback and goes straight to failing validation.
 * Some syntax error messages have changed because they are now checked explicitly rather than as a part of other checks.
 * Some other error messages have changed to not repeat the email address in the error message.
