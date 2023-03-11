@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 
 # Export the main method, helper methods, and the public data types.
-from .exceptions_types import *  # noqa: F401,F403
-from .validate_email import validate_email  # noqa: F401
+from .exceptions_types import ValidatedEmail, EmailNotValidError, \
+                              EmailSyntaxError, EmailUndeliverableError
+from .validate_email import validate_email
+
+
+__all__ = ["validate_email",
+           "ValidatedEmail", "EmailNotValidError",
+           "EmailSyntaxError", "EmailUndeliverableError"]
 
 
 def caching_resolver(*args, **kwargs):
