@@ -8,7 +8,8 @@ from .validate_email import validate_email
 
 __all__ = ["validate_email",
            "ValidatedEmail", "EmailNotValidError",
-           "EmailSyntaxError", "EmailUndeliverableError"]
+           "EmailSyntaxError", "EmailUndeliverableError",
+           "caching_resolver"]
 
 
 def caching_resolver(*args, **kwargs):
