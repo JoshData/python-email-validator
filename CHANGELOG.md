@@ -1,9 +1,9 @@
-2.0.0-dev1
+2.0.0-dev4
 ----------
 
 This is a pre-release for version 2.0.0.
 
-There are no significant changes to which email addresses are considered valid/invalid, but there are many changes in error messages and internal improvements to the library, and Python 3.7+ is now required.
+There are no significant changes to which email addresses are considered valid/invalid, but there are many changes in error messages and internal improvements to the library including the addition of type annotations, and Python 3.7+ is now required.
 
 * Python 2.x and 3.x versions through 3.6, and dnspython 1.x, are no longer supported. Python 3.7+ with dnspython 2.x are now required.
 * The dnspython package is no longer required if DNS checks are not used, although it will install automatically.
@@ -12,6 +12,7 @@ There are no significant changes to which email addresses are considered valid/i
 * Some other error messages have changed to not repeat the email address in the error message.
 * The library has been reorganized internally into smaller modules.
 * The tests have been reorganized and expanded. Deliverability tests now mostly use captured DNS responses so they can be run off-line.
+* Type annotations have been added to the exported methods and the ValidatedEmail class and some internal methods.
 
 Version 1.3.1 (January 21, 2023)
 --------------------------------

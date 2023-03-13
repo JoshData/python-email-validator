@@ -11,6 +11,10 @@ lint:
 	#python setup.py check -rms
 	flake8 --ignore=E501,E126,W503 email_validator tests
 
+.PHONY: typing
+typing:
+	mypy email_validator/*.py tests/*.py
+
 .PHONY: test
 test:
 	PYTHONPATH=.:$PYTHONPATH pytest --cov=email_validator
@@ -21,7 +25,7 @@ testcov: test
 	@coverage html
 
 .PHONY: all
-all: testcov lint
+all: typing testcov lint
 
 .PHONY: clean
 clean:
