@@ -421,6 +421,3 @@ To release:
 git tag v$(grep version setup.cfg | sed "s/.*= //")
 git push --tags
 ```
-
-Notes: The wheel is specified as universal in the file `setup.cfg` by the `universal = 1` key in the
-`[bdist_wheel]` section.
