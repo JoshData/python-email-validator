@@ -23,6 +23,7 @@ Key features:
   Blocks unsafe characters for your safety.
 * Normalizes email addresses (important for internationalized
   addresses! see below).
+* Python type annotations are used.
 
 This library does NOT permit obsolete forms of email addresses, so
 if you need strict validation against the email specs exactly, use
@@ -411,13 +412,13 @@ To release:
 
 * Update CHANGELOG.md.
 * Update the version number in setup.cfg.
-* Make & push a commit with the new version number.
-* Make & push a tag (`git tag v... && git push --tags`).
+* Make & push a commit with the new version number and make sure tests pass.
+* Make & push a tag (see command below).
 * Make a release at https://github.com/JoshData/python-email-validator/releases/new.
-* Follow the steps below to publish source and a universal wheel to pypi.
+* Publish a source and wheel distribution to pypi (see command below).
 
 ```sh
-./release_to_pypi.sh
 git tag v$(grep version setup.cfg | sed "s/.*= //")
 git push --tags
+./release_to_pypi.sh
 ```
