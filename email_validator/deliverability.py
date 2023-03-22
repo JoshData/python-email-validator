@@ -31,6 +31,8 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             timeout = DEFAULT_TIMEOUT
         dns_resolver = dns.resolver.get_default_resolver()
         dns_resolver.lifetime = timeout
+    elif timeout is not None:
+        raise ValueError("It's not valid to pass both timeout and dns_resolver.")
 
     deliverability_info: Dict[str, Any] = {}
 

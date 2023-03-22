@@ -40,7 +40,7 @@ def validate_email(
         test_environment = TEST_ENVIRONMENT
     if globally_deliverable is None:
         globally_deliverable = GLOBALLY_DELIVERABLE
-    if timeout is None:
+    if timeout is None and dns_resolver is None:
         timeout = DEFAULT_TIMEOUT
 
     # Allow email to be a str or bytes instance. If bytes,
