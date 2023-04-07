@@ -226,6 +226,24 @@ def test_email_valid_intl_local_part(email_input, output):
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [
+        ('"unnecessarily.quoted.local.part"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
+        ('"quoted..local.part"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
+        ('"quoted.with.at@"@example.com', 'The email address is not valid. It must have exactly one @-sign.'),
+        ('"quoted with space"@example.com', 'The email address contains invalid characters before the @-sign: \'\"\', SPACE.'),
+        ('"quoted.with.dquote\\""@example.com', 'The email address contains invalid characters before the @-sign: "\\", \'"\'.'),
+        ('"unnecessarily.quoted.with.unicode.λ"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
+        ('"quoted.with..unicode.λ"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
+        ('"quoted.with.extraneous.\\escape"@example.com', 'The email address contains invalid characters before the @-sign: "\\", \'"\'.'),
+    ])
+def test_email_valid_only_if_quoted_local_part(email_input, error_msg):
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input)
+    assert str(exc_info.value) == error_msg
+
+
+@pytest.mark.parametrize(
+    'email_input,error_msg',
+    [
         ('my@localhost', 'The part after the @-sign is not valid. It should have a period.'),
         ('my@.leadingdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@．leadingfwdot.com', 'An email address cannot have a period immediately after the @-sign.'),
@@ -261,11 +279,8 @@ def test_email_valid_intl_local_part(email_input, output):
         ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('my\n@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
-<<<<<<< HEAD
-=======
         ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
         ('bad"quotes"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
->>>>>>> 6146614 (fixup)
         ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
         ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
         ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', 'The email address is too long (4 characters too many).'),
@@ -343,7 +358,7 @@ def test_email_unsafe_character(s, expected_error):
         ('λambdaツ@test', 'Internationalized characters before the @-sign are not supported: \'λ\', \'ツ\'.'),
     ],
 )
-def test_email_invalid_character_smtputf8(email_input, expected_error):
+def test_email_invalid_character_smtputf8_off(email_input, expected_error):
     # Check that internationalized characters are rejected if allow_smtputf8=False.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, allow_smtputf8=False, test_environment=True)

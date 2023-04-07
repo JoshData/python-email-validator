@@ -17,6 +17,8 @@ def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
 
 def safe_character_display(c):
     # Return safely displayable characters in quotes.
+    if c == '\\':
+        return f"\"{c}\""  # can't use repr because it escapes it
     if unicodedata.category(c)[0] in ("L", "N", "P", "S"):
         return repr(c)
 
