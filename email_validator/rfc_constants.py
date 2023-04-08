@@ -27,6 +27,15 @@ HOSTNAME_LABEL = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 DOT_ATOM_TEXT_HOSTNAME = re.compile(HOSTNAME_LABEL + r'(?:\.' + HOSTNAME_LABEL + r')*\Z')
 DOMAIN_NAME_REGEX = re.compile(r"[A-Za-z]\Z")  # all TLDs currently end with a letter
 
+# Quoted-string local part (RFC 5321 4.1.2, internationalized by RFC 6531 section 3.3)
+# The permitted characters in a quoted string are the characters in the range
+# 32-126, except that quotes and (literal) backslashes can only appear when escaped
+# by a backslash. When internationalized, UTF8 strings are also permitted except
+# the ASCII characters that are not previously permitted (see above).
+# QUOTED_LOCAL_PART_ADDR = re.compile(r"^\"((?:[\u0020-\u0021\u0023-\u005B\u005D-\u007E]|\\[\u0020-\u007E])*)\"@(.*)")
+QUOTED_LOCAL_PART_ADDR = re.compile(r"^\"((?:[^\"\\]|\\.)*)\"@(.*)")
+QTEXT_INTL = re.compile(r"[\u0020-\u007E\u0080-\U0010FFFF]")
+
 # Length constants
 # RFC 3696 + errata 1003 + errata 1690 (https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
 # explains the maximum length of an email address is 254 octets.

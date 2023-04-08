@@ -224,21 +224,29 @@ def test_email_valid_intl_local_part(email_input, output):
 
 
 @pytest.mark.parametrize(
-    'email_input,error_msg',
+    'email_input,normalized_local_part',
     [
-        ('"unnecessarily.quoted.local.part"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
-        ('"quoted..local.part"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
-        ('"quoted.with.at@"@example.com', 'The email address is not valid. It must have exactly one @-sign.'),
-        ('"quoted with space"@example.com', 'The email address contains invalid characters before the @-sign: \'\"\', SPACE.'),
-        ('"quoted.with.dquote\\""@example.com', 'The email address contains invalid characters before the @-sign: "\\", \'"\'.'),
-        ('"unnecessarily.quoted.with.unicode.λ"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
-        ('"quoted.with..unicode.λ"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
-        ('"quoted.with.extraneous.\\escape"@example.com', 'The email address contains invalid characters before the @-sign: "\\", \'"\'.'),
+        ('"unnecessarily.quoted.local.part"@example.com', 'unnecessarily.quoted.local.part'),
+        ('"quoted..local.part"@example.com', '"quoted..local.part"'),
+        ('"quoted.with.at@"@example.com', '"quoted.with.at@"'),
+        ('"quoted with space"@example.com', '"quoted with space"'),
+        ('"quoted.with.dquote\\""@example.com', '"quoted.with.dquote\\""'),
+        ('"unnecessarily.quoted.with.unicode.λ"@example.com', 'unnecessarily.quoted.with.unicode.λ'),
+        ('"quoted.with..unicode.λ"@example.com', '"quoted.with..unicode.λ"'),
+        ('"quoted.with.extraneous.\\escape"@example.com', 'quoted.with.extraneous.escape'),
     ])
-def test_email_valid_only_if_quoted_local_part(email_input, error_msg):
+def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_part):
+    # These addresses are invalid with the default allow_quoted_local=False option.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
-    assert str(exc_info.value) == error_msg
+    assert str(exc_info.value) == 'Quoting the part before the @-sign is not allowed here.'
+
+    # But they are valid if quoting is allowed.
+    validated = validate_email(email_input, allow_quoted_local=True, check_deliverability=False)
+
+    # Check that the normalized form correctly removed unnecessary backslash escaping
+    # and even the quoting if they weren't necessary.
+    assert validated.local_part == normalized_local_part
 
 
 @pytest.mark.parametrize(
@@ -356,6 +364,7 @@ def test_email_unsafe_character(s, expected_error):
     ('email_input', 'expected_error'),
     [
         ('λambdaツ@test', 'Internationalized characters before the @-sign are not supported: \'λ\', \'ツ\'.'),
+        ('"quoted.with..unicode.λ"@example.com', 'Internationalized characters before the @-sign are not supported: \'λ\'.'),
     ],
 )
 def test_email_invalid_character_smtputf8_off(email_input, expected_error):
@@ -424,7 +433,7 @@ def test_email_test_domain_name_in_test_environment():
         ['a@abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghikl.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghikl.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghikl.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg.hij', 'ISEMAIL_RFC5322_TOOLONG'],
         ['a@abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghikl.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghikl.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghikl.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefg.hijk', 'ISEMAIL_RFC5322_DOMAIN_TOOLONG'],
         ['"test"@iana.org', 'ISEMAIL_RFC5321_QUOTEDSTRING'],
-        ['""@iana.org', 'ISEMAIL_RFC5321_QUOTEDSTRING'],
+        # ['""@iana.org', 'ISEMAIL_RFC5321_QUOTEDSTRING'], # we think an empty quoted string should be invalid
         ['"""@iana.org', 'ISEMAIL_ERR_EXPECTING_ATEXT'],
         ['"\\a"@iana.org', 'ISEMAIL_RFC5321_QUOTEDSTRING'],
         ['"\\""@iana.org', 'ISEMAIL_RFC5321_QUOTEDSTRING'],
@@ -549,6 +558,13 @@ def test_pyisemail_tests(email_input, status):
     if status == "ISEMAIL_VALID":
         # All standard email address forms should not raise an exception.
         validate_email(email_input, test_environment=True)
+
+    elif status == "ISEMAIL_RFC5321_QUOTEDSTRING":
+        # Only valid with an option.
+        with pytest.raises(EmailSyntaxError):
+            validate_email(email_input, test_environment=True)
+        validate_email(email_input, allow_quoted_local=True, test_environment=True)
+
     elif "_ERR_" in status or "_TOOLONG" in status \
          or "_CFWS_FWS" in status or "_CFWS_COMMENT" in status \
          or "_IPV6" in status or status == "ISEMAIL_RFC5322_DOMAIN":
@@ -557,13 +573,14 @@ def test_pyisemail_tests(email_input, status):
         # The ISEMAIL_RFC5322_DOMAIN diagnosis appears to be a syntactically invalid domain.
         with pytest.raises(EmailSyntaxError):
             validate_email(email_input, test_environment=True)
+
     elif "_DEPREC_" in status \
-         or "RFC5321_QUOTEDSTRING" in status \
          or "DOMAINLITERAL" in status or "_DOMLIT_" in status or "_ADDRESSLITERAL" in status:
-        # Quoted strings in the local part, domain literals (IP addresses in brackets),
+        # Domain literals (IP addresses in brackets)
         # and other deprecated syntax are valid email addresses and are accepted by pyIsEmail,
         # but we reject them.
         with pytest.raises(EmailSyntaxError):
             validate_email(email_input, test_environment=True)
+
     else:
         raise ValueError(f"status {status} is not recognized")

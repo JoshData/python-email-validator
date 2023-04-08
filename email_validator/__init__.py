@@ -25,9 +25,10 @@ def caching_resolver(*args, **kwargs):
 # Default values for keyword arguments.
 
 ALLOW_SMTPUTF8 = True
+ALLOW_QUOTED_LOCAL = False
+GLOBALLY_DELIVERABLE = True
 CHECK_DELIVERABILITY = True
 TEST_ENVIRONMENT = False
-GLOBALLY_DELIVERABLE = True
 DEFAULT_TIMEOUT = 15  # secs
 
 # IANA Special Use Domain Names
