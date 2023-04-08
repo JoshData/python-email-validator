@@ -1,10 +1,12 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
-    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_RE, ATEXT_HOSTNAME_INTL, DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX
+    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
+    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX
 
 import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
+from typing import Optional
 
 
 def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
@@ -32,7 +34,8 @@ def safe_character_display(c):
     return unicodedata.name(c, h)
 
 
-def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_empty_local: bool = False):
+def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_empty_local: bool = False,
+                              quoted_local_part: bool = False):
     """Validates the syntax of the local part of an email address."""
 
     if len(local) == 0:
@@ -61,24 +64,32 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     # Check the local part against the non-internationalized regular expression.
     # Most email addresses match this regex so it's probably fastest to check this first.
     # (RFC 2822 3.2.4)
+    # All local parts matching the dot-atom rule are also valid as a quoted string
+    # so if it was originally quoted (quoted_local_part is True) and this regex matches,
+    # it's ok.
+    # (RFC 5321 4.1.2).
     m = DOT_ATOM_TEXT.match(local)
     if m:
-        # It's valid.
+        # It's valid. And since it's just the permitted ASCII characters,
+        # it's normalized and safe. If the local part was originally quoted,
+        # the quoting was unnecessary and it'll be returned as normalized to
+        # non-quoted form.
 
-        # Return the local part unchanged and flag that SMTPUTF8 is not needed.
+        # Return the local part and flag that SMTPUTF8 is not needed.
         return {
             "local_part": local,
             "ascii_local_part": local,
             "smtputf8": False,
         }
 
-    # The local part failed the ASCII check. Try the extended character set
+    # The local part failed the basic dot-atom check. Try the extended character set
     # for internationalized addresses. It's the same pattern but with additional
     # characters permitted.
+    # RFC 6531 section 3.3.
+    valid: Optional[str] = None
+    requires_smtputf8 = False
     m = DOT_ATOM_TEXT_INTL.match(local)
     if m:
-        # It's valid.
-
         # But international characters in the local part may not be permitted.
         if not allow_smtputf8:
             # Check for invalid characters against the non-internationalized
@@ -95,15 +106,56 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
             # Although the check above should always find something, fall back to this just in case.
             raise EmailSyntaxError("Internationalized characters before the @-sign are not supported.")
 
-        # RFC 6532 section 3.1 also says that Unicode NFC normalization should be applied,
+        # It's valid.
+        valid = "dot-atom"
+        requires_smtputf8 = True
+
+    # There are no syntactic restrictions on quoted local parts, so if
+    # it was originally quoted, it is probably valid. More characters
+    # are allowed, like @-signs, spaces, and quotes, and there are no
+    # restrictions on the placement of dots, as in dot-atom local parts.
+    elif quoted_local_part:
+        # Check for invalid characters in a quoted string local part.
+        # (RFC 5321 4.1.2. RFC 5322 lists additional permitted *obsolete*
+        # characters which are *not* allowed here. RFC 6531 section 3.3
+        # extends the range to UTF8 strings.)
+        bad_chars = set(
+            safe_character_display(c)
+            for c in local
+            if not QTEXT_INTL.match(c)
+        )
+        if bad_chars:
+            raise EmailSyntaxError("The email address contains invalid characters in quotes before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")
+
+        # See if any characters are outside of the ASCII range.
+        bad_chars = set(
+            safe_character_display(c)
+            for c in local
+            if not (32 <= ord(c) <= 126)
+        )
+        if bad_chars:
+            requires_smtputf8 = True
+
+            # International characters in the local part may not be permitted.
+            if not allow_smtputf8:
+                raise EmailSyntaxError("Internationalized characters before the @-sign are not supported: " + ", ".join(sorted(bad_chars)) + ".")
+
+        # It's valid.
+        valid = "quoted"
+
+    # If the local part matches the internationalized dot-atom form or was quoted,
+    # perform normalization and additional checks for Unicode strings.
+    if valid:
+        # RFC 6532 section 3.1 says that Unicode NFC normalization should be applied,
         # so we'll return the normalized local part in the return value.
         local = unicodedata.normalize("NFC", local)
 
         # Check that the local part is a valid, safe, and sensible Unicode string.
         # Some of this may be redundant with the range U+0080 to U+10FFFF that is checked
-        # by DOT_ATOM_TEXT_INTL. Other characters may be permitted by the email specs, but
-        # they may not be valid, safe, or sensible Unicode strings.
-        check_unsafe_chars(local)
+        # by DOT_ATOM_TEXT_INTL and QTEXT_INTL. Other characters may be permitted by the
+        # email specs, but they may not be valid, safe, or sensible Unicode strings.
+        # See the function for rationale.
+        check_unsafe_chars(local, allow_space=(valid == "quoted"))
 
         # Try encoding to UTF-8. Failure is possible with some characters like
         # surrogate code points, but those are checked above. Still, we don't
@@ -113,15 +165,22 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         except ValueError:
             raise EmailSyntaxError("The email address contains an invalid character.")
 
-        # Flag that SMTPUTF8 will be required for deliverability.
+        # If this address passes only by the quoted string form, re-quote it
+        # and backslash-escape quotes and backslashes (removing any unnecessary
+        # escapes). Per RFC 5321 4.1.2, "all quoted forms MUST be treated as equivalent,
+        # and the sending system SHOULD transmit the form that uses the minimum quoting possible."
+        if valid == "quoted":
+            local = '"' + re.sub(r'(["\\])', r'\\\1', local) + '"'
+
         return {
             "local_part": local,
-            "ascii_local_part": None,  # no ASCII form is possible
-            "smtputf8": True,
+            "ascii_local_part": local if not requires_smtputf8 else None,
+            "smtputf8": requires_smtputf8,
         }
 
-    # It's not a valid local part either non-internationalized or internationalized.
-    # Let's find out why.
+    # It's not a valid local part. Let's find out why.
+    # (Since quoted local parts are all valid or handled above, these checks
+    # don't apply in those cases.)
 
     # Check for invalid characters.
     # (RFC 2822 Section 3.2.4 / RFC 5322 Section 3.2.3, plus RFC 6531 section 3.3)
@@ -142,7 +201,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     raise EmailSyntaxError("The email address contains invalid characters before the @-sign.")
 
 
-def check_unsafe_chars(s):
+def check_unsafe_chars(s, allow_space=False):
     # Check for unsafe characters or characters that would make the string
     # invalid or non-sensible Unicode.
     bad_chars = set()
@@ -158,13 +217,25 @@ def check_unsafe_chars(s):
             # sensible.
             if i == 0:
                 bad_chars.add(c)
+        elif category == "Zs":
+            # Spaces outside of the ASCII range are not specifically disallowed in
+            # internationalized addresses as far as I can tell, but they violate
+            # the spirit of the non-internationalized specification that email
+            # addresses do not contain ASCII spaces when not quoted. Excluding
+            # ASCII spaces when not quoted is handled directly by the atom regex.
+            #
+            # In quoted-string local parts, spaces are explicitly permitted, and
+            # the ASCII space has category Zs, so we must allow it here, and we'll
+            # allow all Unicode spaces to be consistent.
+            if not allow_space:
+                bad_chars.add(c)
         elif category[0] == "Z":
-            # Spaces and line/paragraph characters (Z) outside of the ASCII range
-            # are not specifically disallowed as far as I can tell, but they
-            # violate the spirit of the non-internationalized specification that
-            # email addresses do not contain spaces or line breaks when not quoted.
+            # The two line and paragraph separator characters (in categories Zl and Zp)
+            # are not specifically disallowed in internationalized addresses
+            # as far as I can tell, but they violate the spirit of the non-internationalized
+            # specification that email addresses do not contain line breaks when not quoted.
             bad_chars.add(c)
-        elif category[0] == "C":
+        elif category[0] in ("C", "Z"):
             # Control, format, surrogate, private use, and unassigned code points (C)
             # are all unsafe in various ways. Control and format characters can affect
             # text rendering if the email address is concatenated with other text.

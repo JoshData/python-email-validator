@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import validate_email_local_part, validate_email_domain_part, get_length_reason
-from .rfc_constants import EMAIL_MAX_LENGTH
+from .rfc_constants import EMAIL_MAX_LENGTH, QUOTED_LOCAL_PART_ADDR
 
 
 def validate_email(
@@ -11,6 +11,7 @@ def validate_email(
     *,
     allow_smtputf8: Optional[bool] = None,
     allow_empty_local: bool = False,
+    allow_quoted_local: Optional[bool] = None,
     check_deliverability: Optional[bool] = None,
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
@@ -24,9 +25,12 @@ def validate_email(
     """
 
     # Fill in default values of arguments.
-    from . import ALLOW_SMTPUTF8, CHECK_DELIVERABILITY, TEST_ENVIRONMENT, GLOBALLY_DELIVERABLE, DEFAULT_TIMEOUT
+    from . import ALLOW_SMTPUTF8, ALLOW_QUOTED_LOCAL, GLOBALLY_DELIVERABLE, \
+        CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
     if allow_smtputf8 is None:
         allow_smtputf8 = ALLOW_SMTPUTF8
+    if allow_quoted_local is None:
+        allow_quoted_local = ALLOW_QUOTED_LOCAL
     if check_deliverability is None:
         check_deliverability = CHECK_DELIVERABILITY
     if test_environment is None:
@@ -45,25 +49,48 @@ def validate_email(
         except ValueError:
             raise EmailSyntaxError("The email address is not valid ASCII.")
 
-    # At-sign.
-    parts = email.split('@')
-    if len(parts) != 2:
-        raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+    # Typical email addresses have a single @-sign, but the
+    # awkward "quoted string" local part form (RFC 5321 4.1.2)
+    # allows @-signs (and escaped quotes) to appear in the local
+    # part if the local part is quoted. If the address is quoted,
+    # split it at a non-escaped @-sign and unescape the escaping.
+    quoted_local_part = False
+    m = QUOTED_LOCAL_PART_ADDR.match(email)
+    if m:
+        quoted_local_part = True
+        local_part, domain_part = m.groups()
+
+        # Remove backslashes.
+        import re
+        local_part = re.sub(r"\\(.)", "\\1", local_part)
+
+    else:
+        # Split at the one and only at-sign.
+        parts = email.split('@')
+        if len(parts) != 2:
+            raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+        local_part, domain_part = parts
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
     ret.original_email = email
 
     # Validate the email address's local part syntax and get a normalized form.
-    local_part_info = validate_email_local_part(parts[0],
+    # If the original address was quoted and the decoded local part is a valid
+    # unquoted local part, then we'll get back a normalized (unescaped) local
+    # part.
+    local_part_info = validate_email_local_part(local_part,
                                                 allow_smtputf8=allow_smtputf8,
-                                                allow_empty_local=allow_empty_local)
+                                                allow_empty_local=allow_empty_local,
+                                                quoted_local_part=quoted_local_part)
+    if quoted_local_part and not allow_quoted_local:
+        raise EmailSyntaxError("Quoting the part before the @-sign is not allowed here.")
     ret.local_part = local_part_info["local_part"]
     ret.ascii_local_part = local_part_info["ascii_local_part"]
     ret.smtputf8 = local_part_info["smtputf8"]
 
     # Validate the email address's domain part syntax and get a normalized form.
-    domain_part_info = validate_email_domain_part(parts[1], test_environment=test_environment, globally_deliverable=globally_deliverable)
+    domain_part_info = validate_email_domain_part(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
     ret.domain = domain_part_info["domain"]
     ret.ascii_domain = domain_part_info["ascii_domain"]
 

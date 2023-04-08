@@ -19,17 +19,18 @@ Key features:
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
   (You can override the default DNS resolver to add query caching.)
-* Supports internationalized domain names and internationalized local parts.
+* Supports internationalized domain names and internationalized local parts,
+  and with an option deprecated quoted-string local parts.
   Blocks unsafe characters for your safety.
 * Normalizes email addresses (important for internationalized
-  addresses! see below).
+  and quoted-string addresses! see below).
 * Python type annotations are used.
 
-This library does NOT permit obsolete forms of email addresses, so
-if you need strict validation against the email specs exactly, use
+This library does NOT permit obsolete forms of email addresses by default,
+so if you need strict validation against the email specs exactly, use
 [pyIsEmail](https://github.com/michaelherold/pyIsEmail) or try
 [flanker](https://github.com/mailgun/flanker) if you are parsing the
-To: line of an email.
+"To:" line of an email.
 
 [![Build Status](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml/badge.svg)](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml)
 
@@ -103,8 +104,8 @@ But when an email address is valid, an object is returned containing
 a normalized form of the email address (which you should use!) and
 other information.
 
-The validator doesn't permit obsoleted forms of email addresses that no
-one uses anymore even though they are still valid and deliverable, since
+The validator doesn't, by default, permit obsoleted forms of email addresses
+that no one uses anymore even though they are still valid and deliverable, since
 they will probably give you grief if you're using email for login. (See
 later in the document about that.)
 
@@ -133,6 +134,8 @@ The `validate_email` function also accepts the following keyword arguments
 `allow_smtputf8=True`: Set to `False` to prohibit internationalized addresses that would
     require the
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension. You can also set `email_validator.ALLOW_SMTPUTF8` to `False` to turn it off for all calls by default.
+
+`allow_quoted_local=False`: Set to `True` to allow obscure and potentially problematic email addresses in which the part of the address before the @-sign contains spaces, @-signs, or other surprising characters when the local part is surrounded in quotes (so-called quoted-string local parts). In the object returned by `validate_email`, the normalized local part removes any unnecessary backslash-escaping and even removes the surrounding quotes if the address would be valid without them. You can also set `email_validator.ALLOW_QUOTED_LOCAL` to `True` to turn this on for all calls by default.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
@@ -288,6 +291,11 @@ and conversion from Punycode to Unicode characters.
 3.1](https://tools.ietf.org/html/rfc6532#section-3.1) and [RFC 5895
 (IDNA 2008) section 2](http://www.ietf.org/rfc/rfc5895.txt).)
 
+Normalization is also applied to quoted-string local parts if you have
+allowed them by the `allow_quoted_local` option. Unnecessary backslash
+escaping is removed and even the surrounding quotes are removed if they
+are unnecessary.
+
 Examples
 --------
 
@@ -355,9 +363,9 @@ are:
 
 | Field | Value |
 | -----:|-------|
-| `email` | The normalized form of the email address that you should put in your database. This merely combines the `local_part` and `domain` fields (see below). |
+| `email` | The normalized form of the email address that you should put in your database. This combines the `local_part` and `domain` fields (see below). |
 | `ascii_email` | If set, an ASCII-only form of the email address by replacing the domain part with [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt). This field will be present when an ASCII-only form of the email address exists (including if the email address is already ASCII). If the local part of the email address contains internationalized characters, `ascii_email` will be `None`. If set, it merely combines `ascii_local_part` and `ascii_domain`. |
-| `local_part` | The local part of the given email address (before the @-sign) with Unicode NFC normalization applied. |
+| `local_part` | The normalized local part of the given email address (before the @-sign). Normalization includes Unicode NFC normalization and removing unnecessary quoted-string quotes and backslashes. If `allow_quoted_local` is True and the surrounding quotes are necessary, the quotes _will_ be present in this field. |
 | `ascii_local_part` | If set, the local part, which is composed of ASCII characters only. |
 | `domain` | The canonical internationalized Unicode form of the domain part of the email address. If the returned string contains non-ASCII characters, either the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit the message or else the email address's domain part must be converted to IDNA ASCII first: Use `ascii_domain` field instead. |
 | `ascii_domain` | The [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)-encoded form of the domain part of the given email address, as it would be transmitted on the wire. |
@@ -383,9 +391,9 @@ or likely to cause trouble:
   (except see the `test_environment` parameter above).
 * Obsolete email syntaxes are rejected:
   The "quoted string" form of the local part of the email address (RFC
-  5321 4.1.2) is not permitted.
-  Quoted forms allow multiple @-signs, space characters, and other
-  troublesome conditions. The unusual [(comment) syntax](https://github.com/JoshData/python-email-validator/issues/77)
+  5321 4.1.2) is not permitted unless `allow_quoted_local=True` is given
+  (see above).
+  The unusual ["(comment)" syntax](https://github.com/JoshData/python-email-validator/issues/77)
   is also rejected. The "literal" form for the domain part of an email address (an
   IP address in brackets) is rejected. Other obsolete and deprecated syntaxes are
   rejected. No one uses these forms anymore.
