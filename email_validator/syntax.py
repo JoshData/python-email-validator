@@ -45,7 +45,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
                 "smtputf8": False,
             }
 
-    # Check the length of the local part by couting characters.
+    # Check the length of the local part by counting characters.
     # (RFC 5321 4.5.3.1.1)
     # We're checking the number of characters here. If the local part
     # is ASCII-only, then that's the same as bytes (octets). If it's
@@ -97,7 +97,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         # so we'll return the normalized local part in the return value.
         local = unicodedata.normalize("NFC", local)
 
-        # Check for unsafe characters.
+        # Check that the local part is a valid, safe, and sensible Unicode string.
         # Some of this may be redundant with the range U+0080 to U+10FFFF that is checked
         # by DOT_ATOM_TEXT_INTL. Other characters may be permitted by the email specs, but
         # they may not be valid, safe, or sensible Unicode strings.

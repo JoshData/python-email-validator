@@ -256,9 +256,16 @@ def test_email_valid_intl_local_part(email_input, output):
          "The part after the @-sign contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
         ('@example.com', 'There must be something before the @-sign.'),
+        ('white space@test', 'The email address contains invalid characters before the @-sign: SPACE.'),
+        ('test@white space', 'The part after the @-sign contains invalid characters: SPACE.'),
         ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('my\n@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
+<<<<<<< HEAD
+=======
+        ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
+        ('bad"quotes"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
+>>>>>>> 6146614 (fixup)
         ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
         ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
         ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', 'The email address is too long (4 characters too many).'),
@@ -318,7 +325,8 @@ def test_email_invalid_reserved_domain(email_input):
     ],
 )
 def test_email_unsafe_character(s, expected_error):
-    # Check for various unsafe characters:
+    # Check for various unsafe characters that are permitted by the email
+    # specs but should be disallowed for being unsafe or not sensible Unicode.
 
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(s + "@test", test_environment=True)
@@ -332,27 +340,11 @@ def test_email_unsafe_character(s, expected_error):
 @pytest.mark.parametrize(
     ('email_input', 'expected_error'),
     [
-        ('white space@test', 'The email address contains invalid characters before the @-sign: SPACE.'),
-        ('test@white space', 'The part after the @-sign contains invalid characters: SPACE.'),
-        ('\n@test', 'The email address contains invalid characters before the @-sign: U+000A.'),
-        ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
-    ],
-)
-def test_email_invalid_character(email_input, expected_error):
-    # Check for various unsafe test_email_invalid_character_smtputf8:
-    with pytest.raises(EmailSyntaxError) as exc_info:
-        validate_email(email_input, test_environment=True)
-    assert str(exc_info.value) == expected_error
-
-
-@pytest.mark.parametrize(
-    ('email_input', 'expected_error'),
-    [
         ('λambdaツ@test', 'Internationalized characters before the @-sign are not supported: \'λ\', \'ツ\'.'),
     ],
 )
 def test_email_invalid_character_smtputf8(email_input, expected_error):
-    # Check for various unsafe characters:
+    # Check that internationalized characters are rejected if allow_smtputf8=False.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, allow_smtputf8=False, test_environment=True)
     assert str(exc_info.value) == expected_error
@@ -545,7 +537,7 @@ def test_pyisemail_tests(email_input, status):
     elif "_ERR_" in status or "_TOOLONG" in status \
          or "_CFWS_FWS" in status or "_CFWS_COMMENT" in status \
          or "_IPV6" in status or status == "ISEMAIL_RFC5322_DOMAIN":
-        # Invalid syntax, extranous whitespace, and "(comments)" should be rejected.
+        # Invalid syntax, extraneous whitespace, and "(comments)" should be rejected.
         # The _IPV6_ diagnoses appear to represent syntactically invalid domain literals.
         # The ISEMAIL_RFC5322_DOMAIN diagnosis appears to be a syntactically invalid domain.
         with pytest.raises(EmailSyntaxError):

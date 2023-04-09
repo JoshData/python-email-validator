@@ -13,7 +13,7 @@ DOT_ATOM_TEXT = re.compile('[' + ATEXT + ']+(?:\\.[' + ATEXT + r']+)*\Z')
 
 # RFC 6531 section 3.3 extends the allowed characters in internationalized
 # addresses to also include three specific ranges of UTF8 defined in
-# RFC3629 section 4, which appear to be the Unicode code points from
+# RFC 3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
 ATEXT_INTL = ATEXT + u"\u0080-\U0010FFFF"
 ATEXT_INTL_RE = re.compile('[.' + ATEXT_INTL + ']')  # ATEXT_INTL plus dots
