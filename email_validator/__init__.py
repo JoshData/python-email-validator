@@ -26,6 +26,7 @@ def caching_resolver(*args, **kwargs):
 
 ALLOW_SMTPUTF8 = True
 ALLOW_QUOTED_LOCAL = False
+ALLOW_DOMAIN_LITERAL = False
 GLOBALLY_DELIVERABLE = True
 CHECK_DELIVERABILITY = True
 TEST_ENVIRONMENT = False

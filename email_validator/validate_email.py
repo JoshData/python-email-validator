@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
-from .syntax import validate_email_local_part, validate_email_domain_part, get_length_reason
+from .syntax import validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, get_length_reason
 from .rfc_constants import EMAIL_MAX_LENGTH, QUOTED_LOCAL_PART_ADDR
 
 
@@ -12,6 +12,7 @@ def validate_email(
     allow_smtputf8: Optional[bool] = None,
     allow_empty_local: bool = False,
     allow_quoted_local: Optional[bool] = None,
+    allow_domain_literal: Optional[bool] = None,
     check_deliverability: Optional[bool] = None,
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
@@ -25,12 +26,14 @@ def validate_email(
     """
 
     # Fill in default values of arguments.
-    from . import ALLOW_SMTPUTF8, ALLOW_QUOTED_LOCAL, GLOBALLY_DELIVERABLE, \
-        CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
+    from . import ALLOW_SMTPUTF8, ALLOW_QUOTED_LOCAL, ALLOW_DOMAIN_LITERAL, \
+        GLOBALLY_DELIVERABLE, CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
     if allow_smtputf8 is None:
         allow_smtputf8 = ALLOW_SMTPUTF8
     if allow_quoted_local is None:
         allow_quoted_local = ALLOW_QUOTED_LOCAL
+    if allow_domain_literal is None:
+        allow_domain_literal = ALLOW_DOMAIN_LITERAL
     if check_deliverability is None:
         check_deliverability = CHECK_DELIVERABILITY
     if test_environment is None:
@@ -90,9 +93,24 @@ def validate_email(
     ret.smtputf8 = local_part_info["smtputf8"]
 
     # Validate the email address's domain part syntax and get a normalized form.
-    domain_part_info = validate_email_domain_part(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
-    ret.domain = domain_part_info["domain"]
-    ret.ascii_domain = domain_part_info["ascii_domain"]
+    is_domain_literal = False
+    if len(domain_part) == 0:
+        raise EmailSyntaxError("There must be something after the @-sign.")
+
+    elif domain_part.startswith("[") and domain_part.endswith("]"):
+        # Parse the address in the domain literal and get back a normalized domain.
+        domain_part_info = validate_email_domain_literal(domain_part[1:-1], allow_domain_literal=allow_domain_literal)
+        ret.domain = domain_part_info["domain"]
+        ret.ascii_domain = domain_part_info["domain"]  # Domain literals are always ASCII.
+        ret.domain_address = domain_part_info["domain_address"]
+        is_domain_literal = True  # Prevent deliverability checks.
+
+    else:
+        # Check the syntax of the domain and get back a normalized
+        # internationalized and ASCII form.
+        domain_part_info = validate_email_domain_name(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
+        ret.domain = domain_part_info["domain"]
+        ret.ascii_domain = domain_part_info["ascii_domain"]
 
     # Construct the complete normalized form.
     ret.email = ret.local_part + "@" + ret.domain
@@ -147,6 +165,10 @@ def validate_email(
     if check_deliverability and not test_environment:
         # Validate the email address's deliverability using DNS
         # and update the return dict with metadata.
+
+        if is_domain_literal:
+            # There is nothing to check --- skip deliverability checks.
+            return ret
 
         # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
         from .deliverability import validate_email_deliverability

@@ -14,13 +14,12 @@ Key features:
 
 * Checks that an email address has the correct syntax --- good for
   registration/login forms or other uses related to identifying users.
-  Rejects obsolete email address syntax that you'd find unexpected.
+  By default, rejects obsolete email address syntax that you'd find unexpected.
 * Gives friendly English error messages when validation fails that you
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
   (You can override the default DNS resolver to add query caching.)
-* Supports internationalized domain names and internationalized local parts,
-  and with an option deprecated quoted-string local parts.
+* Supports internationalized domain names and internationalized local parts.
   Blocks unsafe characters for your safety.
 * Normalizes email addresses (important for internationalized
   and quoted-string addresses! see below).
@@ -107,7 +106,7 @@ other information.
 The validator doesn't, by default, permit obsoleted forms of email addresses
 that no one uses anymore even though they are still valid and deliverable, since
 they will probably give you grief if you're using email for login. (See
-later in the document about that.)
+later in the document about how to allow some obsolete forms.)
 
 The validator checks that the domain name in the email address has a
 DNS MX record (except a NULL MX record) indicating that it can receive
@@ -136,6 +135,8 @@ The `validate_email` function also accepts the following keyword arguments
     [SMTPUTF8](https://tools.ietf.org/html/rfc6531) extension. You can also set `email_validator.ALLOW_SMTPUTF8` to `False` to turn it off for all calls by default.
 
 `allow_quoted_local=False`: Set to `True` to allow obscure and potentially problematic email addresses in which the part of the address before the @-sign contains spaces, @-signs, or other surprising characters when the local part is surrounded in quotes (so-called quoted-string local parts). In the object returned by `validate_email`, the normalized local part removes any unnecessary backslash-escaping and even removes the surrounding quotes if the address would be valid without them. You can also set `email_validator.ALLOW_QUOTED_LOCAL` to `True` to turn this on for all calls by default.
+
+`allow_domain_literal=False`: Set to `True` to allow bracketed IPv4 and "IPv6:"-prefixd IPv6 addresses in the domain part of the email address. No deliverability checks are performed for these addresses. In the object returned by `validate_email`, the normalized domain will use the condensed IPv6 format, if applicable. The object's `domain_address` attribute will hold the parsed `ipaddress.IPv4Address` or `ipaddress.IPv6Address` object if applicable. You can also set `email_validator.ALLOW_DOMAIN_LITERAL` to `True` to turn this on for all calls by default.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
@@ -291,10 +292,12 @@ and conversion from Punycode to Unicode characters.
 3.1](https://tools.ietf.org/html/rfc6532#section-3.1) and [RFC 5895
 (IDNA 2008) section 2](http://www.ietf.org/rfc/rfc5895.txt).)
 
-Normalization is also applied to quoted-string local parts if you have
-allowed them by the `allow_quoted_local` option. Unnecessary backslash
-escaping is removed and even the surrounding quotes are removed if they
-are unnecessary.
+Normalization is also applied to quoted-string local parts and domain
+literal IPv6 addresses if you have allowed them by the `allow_quoted_local`
+and `allow_domain_literal` options. In quoted-string local parts, unnecessary
+backslash escaping is removed and even the surrounding quotes are removed if
+they are unnecessary. For IPv6 domain literals, the IPv6 address is
+normalized to condensed form.
 
 Examples
 --------
@@ -369,6 +372,7 @@ are:
 | `ascii_local_part` | If set, the local part, which is composed of ASCII characters only. |
 | `domain` | The canonical internationalized Unicode form of the domain part of the email address. If the returned string contains non-ASCII characters, either the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit the message or else the email address's domain part must be converted to IDNA ASCII first: Use `ascii_domain` field instead. |
 | `ascii_domain` | The [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)-encoded form of the domain part of the given email address, as it would be transmitted on the wire. |
+| `domain_address` | If domain literals are allowed and if the email address contains one, an `ipaddress.IPv4Address` or `ipaddress.IPv6Address` object. |
 | `smtputf8` | A boolean indicating that the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit messages to this address because the local part of the address has non-ASCII characters (the local part cannot be IDNA-encoded). If `allow_smtputf8=False` is passed as an argument, this flag will always be false because an exception is raised if it would have been true. |
 | `mx` | A list of (priority, domain) tuples of MX records specified in the DNS for the domain (see [RFC 5321 section 5](https://tools.ietf.org/html/rfc5321#section-5)). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
 | `mx_fallback_type` | `None` if an `MX` record is found. If no MX records are actually specified in DNS and instead are inferred, through an obsolete mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
@@ -390,13 +394,12 @@ or likely to cause trouble:
   domain names without a `.`, are rejected as a syntax error
   (except see the `test_environment` parameter above).
 * Obsolete email syntaxes are rejected:
-  The "quoted string" form of the local part of the email address (RFC
-  5321 4.1.2) is not permitted unless `allow_quoted_local=True` is given
-  (see above).
   The unusual ["(comment)" syntax](https://github.com/JoshData/python-email-validator/issues/77)
-  is also rejected. The "literal" form for the domain part of an email address (an
-  IP address in brackets) is rejected. Other obsolete and deprecated syntaxes are
-  rejected. No one uses these forms anymore.
+  is rejected. Extremely old obsolete syntaxes are
+  rejected. Quoted-string local parts and domain-literal addresses
+  are rejected by default, but there are options to allow them (see above).
+  No one uses these forms anymore, and I can't think of any reason why anyone
+  using this library would need to accept them.
 
 
 Testing

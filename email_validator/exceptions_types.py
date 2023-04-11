@@ -36,6 +36,9 @@ class ValidatedEmail(object):
     Unicode from IDNA ascii."""
     domain: str
 
+    """If the domain part is a domain literal, the IPv4Address or IPv6Address object."""
+    domain_address: object
+
     """If not None, a form of the email address that uses 7-bit ASCII characters only."""
     ascii_email: Optional[str]
 
@@ -118,4 +121,7 @@ class ValidatedEmail(object):
 
     """Convenience method for accessing ValidatedEmail as a dict"""
     def as_dict(self):
-        return self.__dict__
+        d = self.__dict__
+        if d.get('domain_address'):
+            d['domain_address'] = repr(d['domain_address'])
+        return d

@@ -28,8 +28,8 @@ def main(dns_resolver=None):
 
     # Set options from environment variables.
     options = {}
-    for varname in ('ALLOW_SMTPUTF8', 'ALLOW_QUOTED_LOCAL', 'GLOBALLY_DELIVERABLE',
-                    'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
+    for varname in ('ALLOW_SMTPUTF8', 'ALLOW_QUOTED_LOCAL', 'ALLOW_DOMAIN_LITERAL',
+                    'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
         if varname in os.environ:
             options[varname.lower()] = bool(os.environ[varname])
     for varname in ('DEFAULT_TIMEOUT',):

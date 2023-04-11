@@ -1,11 +1,12 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
     DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
-    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX
+    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS
 
 import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
+import ipaddress
 from typing import Optional
 
 
@@ -272,12 +273,8 @@ def check_dot_atom(label, start_descr, end_descr, is_hostname):
             raise EmailSyntaxError("An email address cannot have a period and a hyphen next to each other.")
 
 
-def validate_email_domain_part(domain, test_environment=False, globally_deliverable=True):
+def validate_email_domain_name(domain, test_environment=False, globally_deliverable=True):
     """Validates the syntax of the domain part of an email address."""
-
-    # Empty?
-    if len(domain) == 0:
-        raise EmailSyntaxError("There must be something after the @-sign.")
 
     # Check for invalid characters before normalization.
     # (RFC 952 plus RFC 6531 section 3.3 for internationalized addresses)
@@ -432,3 +429,63 @@ def validate_email_domain_part(domain, test_environment=False, globally_delivera
         "ascii_domain": ascii_domain,
         "domain": domain_i18n,
     }
+
+
+def validate_email_domain_literal(domain_literal, allow_domain_literal=False):
+    # This is obscure domain-literal syntax. Parse it and return
+    # a compressed/normalized address.
+    # RFC 5321 4.1.3 and RFC 5322 3.4.1.
+
+    # Try to parse the domain literal as an IPv4 address.
+    # There is no tag for IPv4 addresses, so we can never
+    # be sure if the user intends an IPv4 address.
+    if re.match(r"^[0-9\.]+$", domain_literal):
+        try:
+            addr = ipaddress.IPv4Address(domain_literal)
+        except ValueError as e:
+            raise EmailSyntaxError(f"The address in brackets after the @-sign is not valid: It is not an IPv4 address ({e}) or is missing an address literal tag.")
+        if not allow_domain_literal:
+            raise EmailSyntaxError("A bracketed IPv4 address after the @-sign is not allowed here.")
+
+        # Return the IPv4Address object and the domain back unchanged.
+        return {
+            "domain_address": addr,
+            "domain": f"[{addr}]",
+        }
+
+    # If it begins with "IPv6:" it's an IPv6 address.
+    if domain_literal.startswith("IPv6:"):
+        try:
+            addr = ipaddress.IPv6Address(domain_literal[5:])
+        except ValueError as e:
+            raise EmailSyntaxError(f"The IPv6 address in brackets after the @-sign is not valid ({e}).")
+        if not allow_domain_literal:
+            raise EmailSyntaxError("A bracketed IPv6 address after the @-sign is not allowed here.")
+
+        # Return the IPv6Address object and construct a normalized
+        # domain literal.
+        return {
+            "domain_address": addr,
+            "domain": f"[IPv6:{addr.compressed}]",
+        }
+
+    if ":" not in domain_literal:
+        raise EmailSyntaxError("The part after the @-sign in brackets is not an IPv4 address and has no address literal tag.")
+
+    # The tag (the part before the colon) has character restrictions,
+    # but since it must come from a registry of tags (in which only "IPv6" is defined),
+    # there's no need to check the syntax of the tag. See RFC 5321 4.1.2.
+
+    # Check for permitted ASCII characters. This actually doesn't matter
+    # since there will be an exception after anyway.
+    bad_chars = set(
+        safe_character_display(c)
+        for c in domain_literal
+        if not DOMAIN_LITERAL_CHARS.match(c)
+    )
+    if bad_chars:
+        raise EmailSyntaxError("The part after the @-sign contains invalid characters in brackets: " + ", ".join(sorted(bad_chars)) + ".")
+
+    # There are no other domain literal tags.
+    # https://www.iana.org/assignments/address-literal-tags/address-literal-tags.xhtml
+    raise EmailSyntaxError("The part after the @-sign contains an invalid address literal tag in brackets.")

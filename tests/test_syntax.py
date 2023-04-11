@@ -249,6 +249,23 @@ def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_par
     assert validated.local_part == normalized_local_part
 
 
+def test_domain_literal():
+    # Check parsing IPv4 addresses.
+    validated = validate_email("me@[127.0.0.1]", allow_domain_literal=True)
+    assert validated.domain == "[127.0.0.1]"
+    assert repr(validated.domain_address) == "IPv4Address('127.0.0.1')"
+
+    # Check parsing IPv6 addresses.
+    validated = validate_email("me@[IPv6:::1]", allow_domain_literal=True)
+    assert validated.domain == "[IPv6:::1]"
+    assert repr(validated.domain_address) == "IPv6Address('::1')"
+
+    # Check that IPv6 addresses are normalized.
+    validated = validate_email("me@[IPv6:0000:0000:0000:0000:0000:0000:0000:0001]", allow_domain_literal=True)
+    assert validated.domain == "[IPv6:::1]"
+    assert repr(validated.domain_address) == "IPv6Address('::1')"
+
+
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [
@@ -304,6 +321,13 @@ def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_par
         ('me@xn--0.tld', 'The part after the @-sign is not valid IDNA (Invalid A-label).'),
         ('me@yy--0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
         ('me@yy－－0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
+        ('me@[127.0.0.1]', 'A bracketed IPv4 address after the @-sign is not allowed here.'),
+        ('me@[127.0.0.999]', 'The address in brackets after the @-sign is not valid: It is not an IPv4 address (Octet 999 (> 255) not permitted in \'127.0.0.999\') or is missing an address literal tag.'),
+        ('me@[IPv6:::1]', 'A bracketed IPv6 address after the @-sign is not allowed here.'),
+        ('me@[IPv6:::G]', 'The IPv6 address in brackets after the @-sign is not valid (Only hex digits permitted in \'G\' in \'::G\').'),
+        ('me@[tag:text]', 'The part after the @-sign contains an invalid address literal tag in brackets.'),
+        ('me@[untaggedtext]', 'The part after the @-sign in brackets is not an IPv4 address and has no address literal tag.'),
+        ('me@[tag:invalid space]', 'The part after the @-sign contains invalid characters in brackets: SPACE.'),
     ],
 )
 def test_email_invalid_syntax(email_input, error_msg):
@@ -565,31 +589,50 @@ def test_email_test_domain_name_in_test_environment():
 )
 def test_pyisemail_tests(email_input, status):
     if status == "ISEMAIL_VALID":
-        # All standard email address forms should not raise an exception.
+        # All standard email address forms should not raise an exception
+        # with any set of parsing options.
         validate_email(email_input, test_environment=True)
+        validate_email(email_input, allow_quoted_local=True, allow_domain_literal=True, test_environment=True)
 
     elif status == "ISEMAIL_RFC5321_QUOTEDSTRING":
-        # Only valid with an option.
+        # Quoted-literal local parts are only valid with an option.
         with pytest.raises(EmailSyntaxError):
             validate_email(email_input, test_environment=True)
         validate_email(email_input, allow_quoted_local=True, test_environment=True)
 
+    elif "_ADDRESSLITERAL" in status or status == 'ISEMAIL_RFC5321_IPV6DEPRECATED':
+        # Domain literals with IPv4 or IPv6 addresses are only valid with an option.
+        # I am not sure if the ISEMAIL_RFC5321_IPV6DEPRECATED case should be rejected:
+        # The Python ipaddress module accepts it.
+        with pytest.raises(EmailSyntaxError):
+            validate_email(email_input, test_environment=True)
+        validate_email(email_input, allow_domain_literal=True, test_environment=True)
+
+    elif "_DOMLIT_" in status or "DOMAINLITERAL" in status or "_IPV6" in status:
+        # Invalid domain literals even when allow_domain_literal=True.
+        # The _DOMLIT_ diagnoses appear to be invalid domain literals.
+        # The DOMAINLITERAL diagnoses appear to be valid domain literals that can't
+        # be parsed as an IPv4 or IPv6 address.
+        # The _IPV6_ diagnoses appear to represent syntactically invalid domain literals.
+        with pytest.raises(EmailSyntaxError):
+            validate_email(email_input, allow_domain_literal=True, test_environment=True)
+
     elif "_ERR_" in status or "_TOOLONG" in status \
          or "_CFWS_FWS" in status or "_CFWS_COMMENT" in status \
-         or "_IPV6" in status or status == "ISEMAIL_RFC5322_DOMAIN":
+         or status == "ISEMAIL_RFC5322_DOMAIN":
         # Invalid syntax, extraneous whitespace, and "(comments)" should be rejected.
-        # The _IPV6_ diagnoses appear to represent syntactically invalid domain literals.
         # The ISEMAIL_RFC5322_DOMAIN diagnosis appears to be a syntactically invalid domain.
+        # These are invalid with any set of options.
         with pytest.raises(EmailSyntaxError):
             validate_email(email_input, test_environment=True)
+            validate_email(email_input, allow_quoted_local=True, allow_domain_literal=True, test_environment=True)
 
-    elif "_DEPREC_" in status \
-         or "DOMAINLITERAL" in status or "_DOMLIT_" in status or "_ADDRESSLITERAL" in status:
-        # Domain literals (IP addresses in brackets)
-        # and other deprecated syntax are valid email addresses and are accepted by pyIsEmail,
-        # but we reject them.
+    elif "_DEPREC_" in status:
+        # Various deprecated syntax are valid email addresses and are accepted by pyIsEmail,
+        # but we reject them even with extended options.
         with pytest.raises(EmailSyntaxError):
             validate_email(email_input, test_environment=True)
+            validate_email(email_input, allow_quoted_local=True, allow_domain_literal=True, test_environment=True)
 
     else:
         raise ValueError(f"status {status} is not recognized")

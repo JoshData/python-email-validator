@@ -27,6 +27,9 @@ HOSTNAME_LABEL = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
 DOT_ATOM_TEXT_HOSTNAME = re.compile(HOSTNAME_LABEL + r'(?:\.' + HOSTNAME_LABEL + r')*\Z')
 DOMAIN_NAME_REGEX = re.compile(r"[A-Za-z]\Z")  # all TLDs currently end with a letter
 
+# Domain literal (RFC 5322 3.4.1)
+DOMAIN_LITERAL_CHARS = re.compile(r"[\u0021-\u00FA\u005E-\u007E]")
+
 # Quoted-string local part (RFC 5321 4.1.2, internationalized by RFC 6531 section 3.3)
 # The permitted characters in a quoted string are the characters in the range
 # 32-126, except that quotes and (literal) backslashes can only appear when escaped
