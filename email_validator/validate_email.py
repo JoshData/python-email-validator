@@ -173,7 +173,7 @@ def validate_email(
         # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
         from .deliverability import validate_email_deliverability
         deliverability_info = validate_email_deliverability(
-            ret["domain"], ret["domain_i18n"], timeout, dns_resolver
+            ret.ascii_domain, ret.domain, timeout, dns_resolver
         )
         for key, value in deliverability_info.items():
             setattr(ret, key, value)

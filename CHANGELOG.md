@@ -15,6 +15,7 @@ There are no significant changes to which email addresses are considered valid/i
 * The tests have been reorganized and expanded. Deliverability tests now mostly use captured DNS responses so they can be run off-line.
 * The __main__ tool now reads options to validate_email from environment variables.
 * Type annotations have been added to the exported methods and the ValidatedEmail class and some internal methods.
+* The old dict-like pattern for the return value of validate_email is deprecated.
 
 Version 1.3.1 (January 21, 2023)
 --------------------------------

@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional
 
 
@@ -72,6 +73,7 @@ class ValidatedEmail(object):
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""
     def __getitem__(self, key):
+        warnings.warn("dict-like access to the return value of validate_email is deprecated and may not be supported in the future.", DeprecationWarning, stacklevel=2)
         if key == "email":
             return self.email
         if key == "email_ascii":
