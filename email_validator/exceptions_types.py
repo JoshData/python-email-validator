@@ -22,13 +22,13 @@ class ValidatedEmail(object):
     and other information."""
 
     """The email address that was passed to validate_email. (If passed as bytes, this will be a string.)"""
-    original_email: str
+    original: str
 
     """The normalized email address, which should always be used in preferance to the original address.
     The normalized address converts an IDNA ASCII domain name to Unicode, if possible, and performs
     Unicode normalization on the local part and on the domain (if originally Unicode). It is the
     concatenation of the local_part and domain attributes, separated by an @-sign."""
-    email: str
+    normalized: str
 
     """The local part of the email address after Unicode normalization."""
     local_part: str
@@ -68,14 +68,22 @@ class ValidatedEmail(object):
             setattr(self, k, v)
 
     def __repr__(self):
-        return f"<ValidatedEmail {self.email}>"
+        return f"<ValidatedEmail {self.normalized}>"
+
+    """For backwards compatibility, support old field names."""
+    def __getattr__(self, key):
+        if key == "original_email":
+            return self.original
+        if key == "email":
+            return self.normalized
+        raise AttributeError()
 
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""
     def __getitem__(self, key):
         warnings.warn("dict-like access to the return value of validate_email is deprecated and may not be supported in the future.", DeprecationWarning, stacklevel=2)
         if key == "email":
-            return self.email
+            return self.normalized
         if key == "email_ascii":
             return self.ascii_email
         if key == "local":
@@ -97,7 +105,7 @@ class ValidatedEmail(object):
         if not isinstance(other, ValidatedEmail):
             return False
         return (
-            self.email == other.email
+            self.normalized == other.normalized
             and self.local_part == other.local_part
             and self.domain == other.domain
             and getattr(self, 'ascii_email', None) == getattr(other, 'ascii_email', None)

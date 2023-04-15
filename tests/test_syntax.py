@@ -16,7 +16,7 @@ from email_validator import EmailSyntaxError, \
                 smtputf8=False,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email='Abc@example.tld',
+                normalized='Abc@example.tld',
                 ascii_email='Abc@example.tld',
             ),
         ),
@@ -28,7 +28,7 @@ from email_validator import EmailSyntaxError, \
                 smtputf8=False,
                 ascii_domain='test-example.com',
                 domain='test-example.com',
-                email='Abc.123@test-example.com',
+                normalized='Abc.123@test-example.com',
                 ascii_email='Abc.123@test-example.com',
             ),
         ),
@@ -40,7 +40,7 @@ from email_validator import EmailSyntaxError, \
                 smtputf8=False,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email='user+mailbox/department=shipping@example.tld',
+                normalized='user+mailbox/department=shipping@example.tld',
                 ascii_email='user+mailbox/department=shipping@example.tld',
             ),
         ),
@@ -52,7 +52,7 @@ from email_validator import EmailSyntaxError, \
                 smtputf8=False,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email="!#$%&'*+-/=?^_`.{|}~@example.tld",
+                normalized="!#$%&'*+-/=?^_`.{|}~@example.tld",
                 ascii_email="!#$%&'*+-/=?^_`.{|}~@example.tld",
             ),
         ),
@@ -64,7 +64,7 @@ from email_validator import EmailSyntaxError, \
                 smtputf8=False,
                 ascii_domain='xn--fiqq24b10vi0d.tw',
                 domain='臺網中心.tw',
-                email='jeff@臺網中心.tw',
+                normalized='jeff@臺網中心.tw',
                 ascii_email='jeff@xn--fiqq24b10vi0d.tw',
             ),
         ),
@@ -74,8 +74,12 @@ def test_email_valid(email_input, output):
     # These addresses do not require SMTPUTF8. See test_email_valid_intl_local_part
     # for addresses that are valid but require SMTPUTF8. Check that it passes with
     # allow_smtput8 both on and off.
-    assert validate_email(email_input, check_deliverability=False, allow_smtputf8=False) == output
+    emailinfo = validate_email(email_input, check_deliverability=False, allow_smtputf8=False)
+    assert emailinfo == output
     assert validate_email(email_input, check_deliverability=False, allow_smtputf8=True) == output
+
+    # Check that the old way to access the normalized form still works.
+    assert emailinfo.email == emailinfo.normalized
 
 
 @pytest.mark.parametrize(
@@ -88,7 +92,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--5nqv22n.xn--lhr59c',
                 domain='郵件.商務',
-                email='伊昭傑@郵件.商務',
+                normalized='伊昭傑@郵件.商務',
             ),
         ),
         (
@@ -98,7 +102,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--l2bl7a9d.xn--o1b8dj2ki',
                 domain='मोहन.ईन्फो',
-                email='राम@मोहन.ईन्फो',
+                normalized='राम@मोहन.ईन्फो',
             ),
         ),
         (
@@ -108,7 +112,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--80ajglhfv.xn--j1aef',
                 domain='екзампл.ком',
-                email='юзер@екзампл.ком',
+                normalized='юзер@екзампл.ком',
             ),
         ),
         (
@@ -118,7 +122,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--mxahbxey0c.xn--xxaf0a',
                 domain='εχαμπλε.ψομ',
-                email='θσερ@εχαμπλε.ψομ',
+                normalized='θσερ@εχαμπλε.ψομ',
             ),
         ),
         (
@@ -128,7 +132,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--fiqq24b10vi0d.tw',
                 domain='臺網中心.tw',
-                email='葉士豪@臺網中心.tw',
+                normalized='葉士豪@臺網中心.tw',
             ),
         ),
         (
@@ -138,7 +142,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--fiqq24b10vi0d.xn--kpry57d',
                 domain='臺網中心.台灣',
-                email='葉士豪@臺網中心.台灣',
+                normalized='葉士豪@臺網中心.台灣',
             ),
         ),
         (
@@ -148,7 +152,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--fiqq24b10vi0d.tw',
                 domain='臺網中心.tw',
-                email='jeff葉@臺網中心.tw',
+                normalized='jeff葉@臺網中心.tw',
             ),
         ),
         (
@@ -158,7 +162,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email='ñoñó@example.tld',
+                normalized='ñoñó@example.tld',
             ),
         ),
         (
@@ -168,7 +172,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email='我買@example.tld',
+                normalized='我買@example.tld',
             ),
         ),
         (
@@ -178,7 +182,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email='甲斐黒川日本@example.tld',
+                normalized='甲斐黒川日本@example.tld',
             ),
         ),
         (
@@ -188,7 +192,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='example.tld',
                 domain='example.tld',
-                email='чебурашкаящик-с-апельсинами.рф@example.tld',
+                normalized='чебурашкаящик-с-апельсинами.рф@example.tld',
             ),
         ),
         (
@@ -198,7 +202,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='domain.with.idn.tld',
                 domain='domain.with.idn.tld',
-                email='उदाहरण.परीक्ष@domain.with.idn.tld',
+                normalized='उदाहरण.परीक्ष@domain.with.idn.tld',
             ),
         ),
         (
@@ -208,7 +212,7 @@ def test_email_valid(email_input, output):
                 smtputf8=True,
                 ascii_domain='xn--qxaa9ba.gr',
                 domain='εεττ.gr',
-                email='ιωάννης@εεττ.gr',
+                normalized='ιωάννης@εεττ.gr',
             ),
         ),
     ],

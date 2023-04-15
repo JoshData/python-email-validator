@@ -65,11 +65,11 @@ try:
   # Check that the email address is valid. Turn on check_deliverability
   # for first-time validations like on account creation pages (but not
   # login pages).
-  validation = validate_email(email, check_deliverability=False)
+  emailinfo = validate_email(email, check_deliverability=False)
 
   # After this point, use only the normalized form of the email address,
   # especially before going to a database query.
-  email = validation.email
+  email = emailinfo.normalized
 
 except EmailNotValidError as e:
 
@@ -158,7 +158,7 @@ from email_validator import validate_email, caching_resolver
 resolver = caching_resolver(timeout=10)
 
 while True:
-  email = validate_email(email, dns_resolver=resolver).email
+  validate_email(email, dns_resolver=resolver)
 ```
 
 ### Test addresses
@@ -249,8 +249,8 @@ This library gives you back the ASCII-ized form in the `ascii_email`
 field in the returned object, which you can get like this:
 
 ```python
-valid = validate_email(email, allow_smtputf8=False)
-email = valid.ascii_email
+emailinfo = validate_email(email, allow_smtputf8=False)
+email = emailinfo.ascii_email
 ```
 
 The local part is left alone (if it has internationalized characters
@@ -266,7 +266,7 @@ Normalization
 
 The use of Unicode in email addresses introduced a normalization
 problem. Different Unicode strings can look identical and have the same
-semantic meaning to the user. The `email` field returned on successful
+semantic meaning to the user. The `normalized` field returned on successful
 validation provides the correctly normalized form of the given email
 address.
 
@@ -275,9 +275,9 @@ equivalent in domain names to their ASCII counterparts. This library
 normalizes them to their ASCII counterparts:
 
 ```python
-valid = validate_email("me@Ｄｏｍａｉｎ.com")
-print(valid.email)
-print(valid.ascii_email)
+emailinfo = validate_email("me@Ｄｏｍａｉｎ.com")
+print(emailinfo.normalized)
+print(emailinfo.ascii_email)
 # prints "me@domain.com" twice
 ```
 
@@ -321,7 +321,7 @@ For the email address `test@joshdata.me`, the returned object is:
 
 ```python
 ValidatedEmail(
-  email='test@joshdata.me',
+  normalized='test@joshdata.me',
   local_part='test',
   domain='joshdata.me',
   ascii_email='test@joshdata.me',
@@ -335,7 +335,7 @@ internationalized domain but ASCII local part, the returned object is:
 
 ```python
 ValidatedEmail(
-  email='example@ツ.life',
+  normalized='example@ツ.life',
   local_part='example',
   domain='ツ.life',
   ascii_email='example@xn--bdk.life',
@@ -345,20 +345,20 @@ ValidatedEmail(
 
 ```
 
-Note that the `email` and `domain` fields provide a normalized form of the
+Note that `normalized` and other fields provide a normalized form of the
 email address, domain name, and (in other cases) local part (see earlier
 discussion of normalization), which you should use in your database.
 
 Calling `validate_email` with the ASCII form of the above email address,
 `example@xn--bdk.life`, returns the exact same information (i.e., the
-`email` field always will contain Unicode characters, not Punycode).
+`normalized` field always will contain Unicode characters, not Punycode).
 
 For the fictitious address `ツ-test@joshdata.me`, which has an
 internationalized local part, the returned object is:
 
 ```python
 ValidatedEmail(
-  email='ツ-test@joshdata.me',
+  normalized='ツ-test@joshdata.me',
   local_part='ツ-test',
   domain='joshdata.me',
   ascii_email=None,
@@ -368,10 +368,8 @@ ValidatedEmail(
 ```
 
 Now `smtputf8` is `True` and `ascii_email` is `None` because the local
-part of the address is internationalized. The `local_part` and `email` fields
-return the normalized form of the address: certain Unicode characters
-(such as angstrom and ohm) may be replaced by other equivalent code
-points (a-with-ring and omega).
+part of the address is internationalized. The `local_part` and `normalized` fields
+return the normalized form of the address.
 
 Return value
 ------------
@@ -381,8 +379,8 @@ are:
 
 | Field | Value |
 | -----:|-------|
-| `email` | The normalized form of the email address that you should put in your database. This combines the `local_part` and `domain` fields (see below). |
-| `ascii_email` | If set, an ASCII-only form of the email address by replacing the domain part with [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt). This field will be present when an ASCII-only form of the email address exists (including if the email address is already ASCII). If the local part of the email address contains internationalized characters, `ascii_email` will be `None`. If set, it merely combines `ascii_local_part` and `ascii_domain`. |
+| `normalized` | The normalized form of the email address that you should put in your database. This combines the `local_part` and `domain` fields (see below). |
+| `ascii_email` | If set, an ASCII-only form of the normalized email address by replacing the domain part with [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt). This field will be present when an ASCII-only form of the email address exists (including if the email address is already ASCII). If the local part of the email address contains internationalized characters, `ascii_email` will be `None`. If set, it merely combines `ascii_local_part` and `ascii_domain`. |
 | `local_part` | The normalized local part of the given email address (before the @-sign). Normalization includes Unicode NFC normalization and removing unnecessary quoted-string quotes and backslashes. If `allow_quoted_local` is True and the surrounding quotes are necessary, the quotes _will_ be present in this field. |
 | `ascii_local_part` | If set, the local part, which is composed of ASCII characters only. |
 | `domain` | The canonical internationalized Unicode form of the domain part of the email address. If the returned string contains non-ASCII characters, either the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit the message or else the email address's domain part must be converted to IDNA ASCII first: Use `ascii_domain` field instead. |

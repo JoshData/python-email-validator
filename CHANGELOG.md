@@ -11,6 +11,7 @@ There are no significant changes to which email addresses are considered valid/i
 * Some syntax error messages have changed because they are now checked explicitly rather than as a part of other checks.
 * The quoted-string local part syntax (e.g. multiple @-signs, spaces, etc. if surrounded by quotes) and domain-literal addresses (e.g. @[192.XXX...] or @[IPv6:...]) are now parsed but not considered valid by default. Better error messages are now given for these addresses since it can be confusing for a technically valid address to be rejected, and new allow_quoted_local and allow_domain_literal options are added to allow these addresses if you really need them.
 * Some other error messages have changed to not repeat the email address in the error message.
+* The `email` field on the returned `ValidatedEmail` object has been renamed to `normalized` to be clearer about its importance, but access via `.email` is also still supported.
 * The library has been reorganized internally into smaller modules.
 * The tests have been reorganized and expanded. Deliverability tests now mostly use captured DNS responses so they can be run off-line.
 * The __main__ tool now reads options to validate_email from environment variables.

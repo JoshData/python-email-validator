@@ -13,7 +13,7 @@ def test_dict_accessor():
     input_email = "testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
     assert isinstance(valid_email.as_dict(), dict)
-    assert valid_email.as_dict()["original_email"] == input_email
+    assert valid_email.as_dict()["original"] == input_email
 
 
 def test_main_single_good_input(monkeypatch, capsys):
@@ -24,7 +24,7 @@ def test_main_single_good_input(monkeypatch, capsys):
     stdout, _ = capsys.readouterr()
     output = json.loads(str(stdout))
     assert isinstance(output, dict)
-    assert validate_email(test_email, dns_resolver=RESOLVER).original_email == output["original_email"]
+    assert validate_email(test_email, dns_resolver=RESOLVER).original == output["original"]
 
 
 def test_main_single_bad_input(monkeypatch, capsys):
@@ -53,7 +53,7 @@ def test_bytes_input():
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
     assert isinstance(valid_email.as_dict(), dict)
-    assert valid_email.as_dict()["email"] == input_email.decode("utf8")
+    assert valid_email.as_dict()["normalized"] == input_email.decode("utf8")
 
     input_email = "testaddr中example.tld".encode("utf32")
     with pytest.raises(EmailSyntaxError):

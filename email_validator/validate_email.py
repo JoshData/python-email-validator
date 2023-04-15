@@ -76,7 +76,7 @@ def validate_email(
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
-    ret.original_email = email
+    ret.original = email
 
     # Validate the email address's local part syntax and get a normalized form.
     # If the original address was quoted and the decoded local part is a valid
@@ -113,7 +113,7 @@ def validate_email(
         ret.ascii_domain = domain_part_info["ascii_domain"]
 
     # Construct the complete normalized form.
-    ret.email = ret.local_part + "@" + ret.domain
+    ret.normalized = ret.local_part + "@" + ret.domain
 
     # If the email address has an ASCII form, add it.
     if not ret.smtputf8:
@@ -144,20 +144,20 @@ def validate_email(
     #
     # See the length checks on the local part and the domain.
     if ret.ascii_email and len(ret.ascii_email) > EMAIL_MAX_LENGTH:
-        if ret.ascii_email == ret.email:
+        if ret.ascii_email == ret.normalized:
             reason = get_length_reason(ret.ascii_email)
-        elif len(ret.email) > EMAIL_MAX_LENGTH:
+        elif len(ret.normalized) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the ASCII
             # form is definitely going to be too long.
-            reason = get_length_reason(ret.email, utf8=True)
+            reason = get_length_reason(ret.normalized, utf8=True)
         else:
             reason = "(when converted to IDNA ASCII)"
         raise EmailSyntaxError(f"The email address is too long {reason}.")
-    if len(ret.email.encode("utf8")) > EMAIL_MAX_LENGTH:
-        if len(ret.email) > EMAIL_MAX_LENGTH:
+    if len(ret.normalized.encode("utf8")) > EMAIL_MAX_LENGTH:
+        if len(ret.normalized) > EMAIL_MAX_LENGTH:
             # If there are more than 254 characters, then the UTF-8
             # encoding is definitely going to be too long.
-            reason = get_length_reason(ret.email, utf8=True)
+            reason = get_length_reason(ret.normalized, utf8=True)
         else:
             reason = "(when encoded in bytes)"
         raise EmailSyntaxError(f"The email address is too long {reason}.")
