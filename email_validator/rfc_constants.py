@@ -43,3 +43,10 @@ EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
 DNS_LABEL_LENGTH_LIMIT = 63  # in "octets", RFC 1035 2.3.1
 DOMAIN_MAX_LENGTH = 255  # in "octets", RFC 1035 2.3.4 and RFC 5321 4.5.3.1.2
+
+# RFC 2142
+CASE_INSENSITIVE_MAILBOX_NAMES = [
+    'info', 'marking', 'sales', 'support',  # section 3
+    'abuse', 'noc', 'security',  # section 4
+    'postmaster', 'hostmaster', 'usenet', 'news', 'webmaster', 'www', 'uucp', 'ftp',  # section 5
+]

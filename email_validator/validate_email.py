@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, get_length_reason
-from .rfc_constants import EMAIL_MAX_LENGTH, QUOTED_LOCAL_PART_ADDR
+from .rfc_constants import EMAIL_MAX_LENGTH, QUOTED_LOCAL_PART_ADDR, CASE_INSENSITIVE_MAILBOX_NAMES
 
 
 def validate_email(
@@ -91,6 +91,15 @@ def validate_email(
     ret.local_part = local_part_info["local_part"]
     ret.ascii_local_part = local_part_info["ascii_local_part"]
     ret.smtputf8 = local_part_info["smtputf8"]
+
+    # Some local parts are required to be case-insensitive, so we should normalize
+    # to lowercase.
+    # RFC 2142
+    if ret.ascii_local_part is not None \
+       and ret.ascii_local_part.lower() in CASE_INSENSITIVE_MAILBOX_NAMES \
+       and ret.local_part is not None:
+        ret.ascii_local_part = ret.ascii_local_part.lower()
+        ret.local_part = ret.local_part.lower()
 
     # Validate the email address's domain part syntax and get a normalized form.
     is_domain_literal = False

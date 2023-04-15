@@ -417,6 +417,11 @@ def test_email_test_domain_name_in_test_environment():
     validate_email("anything@mycompany.test", test_environment=True)
 
 
+def test_case_insensitive_mailbox_name():
+    validate_email("POSTMASTER@test", test_environment=True).normalized = "postmaster@test"
+    validate_email("NOT-POSTMASTER@test", test_environment=True).normalized = "NOT-POSTMASTER@test"
+
+
 # This is the pyIsEmail (https://github.com/michaelherold/pyIsEmail) test suite.
 #
 # The test data was extracted by:

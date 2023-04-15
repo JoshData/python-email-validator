@@ -312,7 +312,8 @@ literal IPv6 addresses if you have allowed them by the `allow_quoted_local`
 and `allow_domain_literal` options. In quoted-string local parts, unnecessary
 backslash escaping is removed and even the surrounding quotes are removed if
 they are unnecessary. For IPv6 domain literals, the IPv6 address is
-normalized to condensed form.
+normalized to condensed form. [RFC 2142](https://datatracker.ietf.org/doc/html/rfc2142)
+also requires lowercase normalization for some specific mailbox names like `postmaster@`.
 
 Examples
 --------
