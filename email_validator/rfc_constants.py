@@ -2,16 +2,13 @@
 
 import re
 
-# Based on RFC 2822 section 3.2.4 / RFC 5322 section 3.2.3, these
-# characters are permitted in email addresses (not taking into
-# account internationalization):
+# Based on RFC 5322 3.2.3, these characters are permitted in email
+# addresses (not taking into account internationalization) separated by dots:
 ATEXT = r'a-zA-Z0-9_!#\$%&\'\*\+\-/=\?\^`\{\|\}~'
 ATEXT_RE = re.compile('[.' + ATEXT + ']')  # ATEXT plus dots
-
-# A "dot atom text", per RFC 2822 3.2.4:
 DOT_ATOM_TEXT = re.compile('[' + ATEXT + ']+(?:\\.[' + ATEXT + r']+)*\Z')
 
-# RFC 6531 section 3.3 extends the allowed characters in internationalized
+# RFC 6531 3.3 extends the allowed characters in internationalized
 # addresses to also include three specific ranges of UTF8 defined in
 # RFC 3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
@@ -20,7 +17,7 @@ ATEXT_INTL_RE = re.compile('[.' + ATEXT_INTL + ']')  # ATEXT_INTL plus dots
 DOT_ATOM_TEXT_INTL = re.compile('[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + r']+)*\Z')
 
 # The domain part of the email address, after IDNA (ASCII) encoding,
-# must also satisfy the requirements of RFC 952/RFC 1123 Section 2.1 which
+# must also satisfy the requirements of RFC 952/RFC 1123 2.1 which
 # restrict the allowed characters of hostnames further.
 ATEXT_HOSTNAME_INTL = re.compile(r"[a-zA-Z0-9\-\." + "\u0080-\U0010FFFF" + "]")
 HOSTNAME_LABEL = r'(?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]*)?[a-zA-Z0-9])'
@@ -30,7 +27,7 @@ DOMAIN_NAME_REGEX = re.compile(r"[A-Za-z]\Z")  # all TLDs currently end with a l
 # Domain literal (RFC 5322 3.4.1)
 DOMAIN_LITERAL_CHARS = re.compile(r"[\u0021-\u00FA\u005E-\u007E]")
 
-# Quoted-string local part (RFC 5321 4.1.2, internationalized by RFC 6531 section 3.3)
+# Quoted-string local part (RFC 5321 4.1.2, internationalized by RFC 6531 3.3)
 # The permitted characters in a quoted string are the characters in the range
 # 32-126, except that quotes and (literal) backslashes can only appear when escaped
 # by a backslash. When internationalized, UTF8 strings are also permitted except

@@ -14,22 +14,23 @@ Key features:
 
 * Checks that an email address has the correct syntax --- good for
   registration/login forms or other uses related to identifying users.
-  By default, rejects obsolete email address syntax that you'd find unexpected.
 * Gives friendly English error messages when validation fails that you
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
   (You can override the default DNS resolver to add query caching.)
 * Supports internationalized domain names and internationalized local parts.
-  Blocks unsafe characters for your safety.
+* Rejects addresses with unsafe Unicode characters, obsolete email address
+  syntax that you'd find unexpected, special use domain names like
+  `@localhost`, and domains without a dot by default. This is an
+  opinionated library!
 * Normalizes email addresses (important for internationalized
   and quoted-string addresses! see below).
 * Python type annotations are used.
 
-This library does NOT permit obsolete forms of email addresses by default,
-so if you need strict validation against the email specs exactly, use
-[pyIsEmail](https://github.com/michaelherold/pyIsEmail) or try
-[flanker](https://github.com/mailgun/flanker) if you are parsing the
-"To:" line of an email.
+This is an opinionated library. You should definitely also consider using
+the less-opinionated [pyIsEmail](https://github.com/michaelherold/pyIsEmail) and
+[flanker](https://github.com/mailgun/flanker) if they are better for your
+use case.
 
 [![Build Status](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml/badge.svg)](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml)
 
@@ -57,21 +58,23 @@ account in your application, you might do this:
 ```python
 from email_validator import validate_email, EmailNotValidError
 
-email = "my+address@mydomain.tld"
-is_new_account = True # False for login pages
+email = "my+address@example.org"
 
 try:
-  # Check that the email address is valid.
-  validation = validate_email(email, check_deliverability=is_new_account)
 
-  # Take the normalized form of the email address
-  # for all logic beyond this point (especially
-  # before going to a database query where equality
-  # may not take into account Unicode normalization).  
+  # Check that the email address is valid. Turn on check_deliverability
+  # for first-time validations like on account creation pages (but not
+  # login pages).
+  validation = validate_email(email, check_deliverability=False)
+
+  # After this point, use only the normalized form of the email address,
+  # especially before going to a database query.
   email = validation.email
+
 except EmailNotValidError as e:
-  # Email is not valid.
-  # The exception message is human-readable.
+
+  # The exception message is human-readable explanation of why it's
+  # not a valid (or deliverable) email address.
   print(str(e))
 ```
 
@@ -108,12 +111,15 @@ that no one uses anymore even though they are still valid and deliverable, since
 they will probably give you grief if you're using email for login. (See
 later in the document about how to allow some obsolete forms.)
 
-The validator checks that the domain name in the email address has a
-DNS MX record (except a NULL MX record) indicating that it can receive
-email (or a fallback A-record, see below).
-There is nothing to be gained by trying to actually contact an SMTP
-server, so that's not done here. For privacy, security, and practicality
-reasons servers are good at not giving away whether an address is
+The validator optionally checks that the domain name in the email address has
+a DNS MX record indicating that it can receive email. (Except a Null MX record.
+If there is no MX record, a fallback A/AAAA-record is permitted, unless
+a reject-all SPF record is present.) DNS is slow and sometimes unavailable or
+unreliable, so consider whether these checks are useful for your use case and
+turn them off if they aren't.
+There is nothing to be gained by trying to actually contact an SMTP server, so
+that's not done here. For privacy, security, and practicality reasons, servers
+are good at not giving away whether an address is
 deliverable or not: email addresses that appear to accept mail at first
 can bounce mail after a delay, and bounced mail may indicate a temporary
 failure of a good email address (sometimes an intentional failure, like
@@ -124,11 +130,11 @@ greylisting).
 The `validate_email` function also accepts the following keyword arguments
 (defaults are as shown below):
 
-`check_deliverability=True`: If true, a DNS query is made to check that a non-null MX record is present for the domain-part of the email address (or if not, an A/AAAA record as an MX fallback can be present but in that case a reject-all SPF record must not be present). Set to `False` to skip this DNS-based check. DNS is slow and sometimes unavailable, so consider whether these checks are useful for your use case. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of a previously validated domain in your database by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
+`check_deliverability=True`: If true, DNS queries are made to check that the domain name in the email address (the part after the @-sign) can receive mail, as described above. Set to `False` to skip this DNS-based check. It is recommended to pass `False` when performing validation for login pages (but not account creation pages) since re-validation of a previously validated domain in your database by querying DNS at every login is probably undesirable. You can also set `email_validator.CHECK_DELIVERABILITY` to `False` to turn this off for all calls by default.
 
-`dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown above is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
+`dns_resolver=None`: Pass an instance of [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to control the DNS resolver including setting a timeout and [a cache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html). The `caching_resolver` function shown below is a helper function to construct a dns.resolver.Resolver with a [LRUCache](https://dnspython.readthedocs.io/en/latest/resolver-caching.html#dns.resolver.LRUCache). Reuse the same resolver instance across calls to `validate_email` to make use of the cache.
 
-`test_environment=False`: DNS-based deliverability checks are disabled and  `test` and `subdomain.test` domain names are permitted (see below). You can also set `email_validator.TEST_ENVIRONMENT` to `True` to turn it on for all calls by default.
+`test_environment=False`: If `True`, DNS-based deliverability checks are disabled and  `test` and `**.test` domain names are permitted (see below). You can also set `email_validator.TEST_ENVIRONMENT` to `True` to turn it on for all calls by default.
 
 `allow_smtputf8=True`: Set to `False` to prohibit internationalized addresses that would
     require the
@@ -157,18 +163,18 @@ while True:
 
 ### Test addresses
 
-This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailSyntaxError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost`. However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are three ways you can allow this:
+This library rejects email addresess that use the [Special Use Domain Names](https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml) `invalid`, `localhost`, `test`, and some others by raising `EmailSyntaxError`. This is to protect your system from abuse: You probably don't want a user to be able to cause an email to be sent to `localhost` (although they might be able to still do so via a malicious MX record). However, in your non-production test environments you may want to use `@test` or `@myname.test` email addresses. There are three ways you can allow this:
 
 1. Add `test_environment=True` to the call to `validate_email` (see above).
-2. Set `email_validator.TEST_ENVIRONMENT` to `True`.
-3. Remove the special-use domain name that you want to use from `email_validator.SPECIAL_USE_DOMAIN_NAMES`:
+2. Set `email_validator.TEST_ENVIRONMENT` to `True` globally.
+3. Remove the special-use domain name that you want to use from `email_validator.SPECIAL_USE_DOMAIN_NAMES`, e.g.:
 
 ```python
 import email_validator
 email_validator.SPECIAL_USE_DOMAIN_NAMES.remove("test")
 ```
 
-It is tempting to use `@example.com/net/org` in tests. These domains are reserved to IANA for use in documentation so there is no risk of accidentally emailing someone at those domains. But beware that this library will reject these domain names if DNS-based deliverability checks are not disabled because these domains do not resolve to domains that accept email. In tests, consider using your own domain name or `@test` or `@myname.test` instead.
+It is tempting to use `@example.com/net/org` in tests. They are *not* in this library's `SPECIAL_USE_DOMAIN_NAMES` list so you can, but shouldn't, use them. These domains are reserved to IANA for use in documentation so there is no risk of accidentally emailing someone at those domains. But beware that this library will nevertheless reject these domain names if DNS-based deliverability checks are not disabled because these domains do not resolve to domains that accept email. In tests, consider using your own domain name or `@test` or `@myname.test` instead.
 
 Internationalized email addresses
 ---------------------------------
@@ -205,8 +211,9 @@ especially when the email address is concatenated with other text, so this
 library tries to protect you by not permitting resvered, non-, private use,
 formatting (which can be used to alter the display order of characters),
 whitespace, and control characters, and combining characters
-as the first character (so that they cannot combine with something outside
-of the email address string). See https://qntm.org/safe and https://trojansource.codes/
+as the first character of the local part and the domain name (so that they
+cannot combine with something outside of the email address string or with
+the @-sign). See https://qntm.org/safe and https://trojansource.codes/
 for relevant prior work. (Other than whitespace, these are checks that
 you should be applying to nearly all user inputs in a security-sensitive
 context.)
@@ -255,17 +262,23 @@ change the user's login information without telling them.)
 Normalization
 -------------
 
+### Unicode Normalization
+
 The use of Unicode in email addresses introduced a normalization
 problem. Different Unicode strings can look identical and have the same
 semantic meaning to the user. The `email` field returned on successful
 validation provides the correctly normalized form of the given email
-address:
+address.
+
+For example, the CJK fullwidth Latin letters are considered semantically
+equivalent in domain names to their ASCII counterparts. This library
+normalizes them to their ASCII counterparts:
 
 ```python
 valid = validate_email("me@Ｄｏｍａｉｎ.com")
-email = valid.ascii_email
-print(email)
-# prints: me@domain.com
+print(valid.email)
+print(valid.ascii_email)
+# prints "me@domain.com" twice
 ```
 
 Because an end-user might type their email address in different (but
@@ -291,6 +304,8 @@ and conversion from Punycode to Unicode characters.
 (See [RFC 6532 (internationalized email) section
 3.1](https://tools.ietf.org/html/rfc6532#section-3.1) and [RFC 5895
 (IDNA 2008) section 2](http://www.ietf.org/rfc/rfc5895.txt).)
+
+### Other Normalization
 
 Normalization is also applied to quoted-string local parts and domain
 literal IPv6 addresses if you have allowed them by the `allow_quoted_local`

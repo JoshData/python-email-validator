@@ -306,6 +306,7 @@ def test_domain_literal():
         ('my\n@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
         ('bad"quotes"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
+        ('obsolete."quoted".atom@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
         ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
         ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
         ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', 'The email address is too long (4 characters too many).'),
