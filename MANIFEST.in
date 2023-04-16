@@ -1,3 +1,2 @@
-include email_validator.py
 include LICENSE README.md
 recursive-include tests *.json *.py
