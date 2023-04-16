@@ -1,9 +1,7 @@
-2.0.0-dev4
-----------
+2.0.0 (April 15, 2023)
+----------------------
 
-This is a pre-release for version 2.0.0.
-
-There are no significant changes to which email addresses are considered valid/invalid with default options, but there are many changes in error messages and internal improvements to the library including the addition of type annotations. New options are added to allow quoted-string local parts and domain-literal addresses, but they are off by default. And Python 3.7+ is now required.
+This is a major update to the library, but since email address specs haven't changed there should be no significant changes to which email addresses are considered valid or invalid with default options. There are new options for accepting unusual email addresses that were previously always rejected, some changes to how DNS errors are handled, many changes in error message text, and major internal improvements including the addition of type annotations. Python 3.7+ is now required. Details follow:
 
 * Python 2.x and 3.x versions through 3.6, and dnspython 1.x, are no longer supported. Python 3.7+ with dnspython 2.x are now required.
 * The dnspython package is no longer required if DNS checks are not used, although it will install automatically.
