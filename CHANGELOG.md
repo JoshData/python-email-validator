@@ -17,7 +17,7 @@ This is a major update to the library, but since email address specs haven't cha
 * Type annotations have been added to the exported methods and the ValidatedEmail class and some internal methods.
 * The old dict-like pattern for the return value of validate_email is deprecated.
 
-Version 2.0.0.post1 corrects some packaging issues.
+Versions 2.0.0.post1 and 2.0.0.post2 corrected some packaging issues. 2.0.0.post2 also added a check for an invalid combination of arguments.
 
 Version 1.3.1 (January 21, 2023)
 --------------------------------
