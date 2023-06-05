@@ -84,7 +84,6 @@ class ValidatedEmail(object):
         warnings.warn("ValidatedEmail.email is deprecated and will be removed, use ValidatedEmail.normalized instead", DeprecationWarning)
         return self.normalized
 
-
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""
     def __getitem__(self, key):

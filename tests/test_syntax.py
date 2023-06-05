@@ -78,8 +78,12 @@ def test_email_valid(email_input, output):
     assert emailinfo == output
     assert validate_email(email_input, check_deliverability=False, allow_smtputf8=True) == output
 
-    # Check that the old way to access the normalized form still works.
-    assert emailinfo.email == emailinfo.normalized
+    # Check that the old `email` attribute to access the normalized form still works
+    # if the DeprecationWarning is suppressed.
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        assert emailinfo.email == emailinfo.normalized
 
 
 @pytest.mark.parametrize(
