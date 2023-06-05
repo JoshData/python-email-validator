@@ -58,3 +58,10 @@ def test_bytes_input():
     input_email = "testaddr中example.tld".encode("utf32")
     with pytest.raises(EmailSyntaxError):
         validate_email(input_email, check_deliverability=False)
+
+
+def test_deprecation():
+    input_email = b"testaddr@example.tld"
+    valid_email = validate_email(input_email, check_deliverability=False)
+    with pytest.raises(DeprecationWarning):
+        assert valid_email.email is not None

@@ -4,12 +4,12 @@
 from .exceptions_types import ValidatedEmail, EmailNotValidError, \
                               EmailSyntaxError, EmailUndeliverableError
 from .validate_email import validate_email
-
+from .version import __version__
 
 __all__ = ["validate_email",
            "ValidatedEmail", "EmailNotValidError",
            "EmailSyntaxError", "EmailUndeliverableError",
-           "caching_resolver"]
+           "caching_resolver", "__version__"]
 
 
 def caching_resolver(*args, **kwargs):
