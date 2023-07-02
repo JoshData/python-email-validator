@@ -7,8 +7,8 @@ from .rfc_constants import EMAIL_MAX_LENGTH, QUOTED_LOCAL_PART_ADDR, CASE_INSENS
 
 def validate_email(
     email: Union[str, bytes],
-    # /, # not supported in Python 3.6, 3.7
-    *,
+    /,  # prior arguments are positional-only
+    *,  # subsequent arguments are keyword-only
     allow_smtputf8: Optional[bool] = None,
     allow_empty_local: bool = False,
     allow_quoted_local: Optional[bool] = None,
