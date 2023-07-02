@@ -69,8 +69,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     # so if it was originally quoted (quoted_local_part is True) and this regex matches,
     # it's ok.
     # (RFC 5321 4.1.2 / RFC 5322 3.2.4).
-    m = DOT_ATOM_TEXT.match(local)
-    if m:
+    if DOT_ATOM_TEXT.match(local):
         # It's valid. And since it's just the permitted ASCII characters,
         # it's normalized and safe. If the local part was originally quoted,
         # the quoting was unnecessary and it'll be returned as normalized to
@@ -89,8 +88,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     # RFC 6531 section 3.3.
     valid: Optional[str] = None
     requires_smtputf8 = False
-    m = DOT_ATOM_TEXT_INTL.match(local)
-    if m:
+    if DOT_ATOM_TEXT_INTL.match(local):
         # But international characters in the local part may not be permitted.
         if not allow_smtputf8:
             # Check for invalid characters against the non-internationalized
@@ -347,8 +345,7 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
 
         # Check the syntax of the string returned by idna.encode.
         # It should never fail.
-        m = DOT_ATOM_TEXT_HOSTNAME.match(ascii_domain)
-        if not m:
+        if not DOT_ATOM_TEXT_HOSTNAME.match(ascii_domain):
             raise EmailSyntaxError("The email address contains invalid characters after the @-sign after IDNA encoding.")
 
     # Check the length of the domain name in bytes.
