@@ -2,7 +2,7 @@ email-validator: Validate Email Addresses
 =========================================
 
 A robust email address syntax and deliverability validation library for
-Python 3.7+ by [Joshua Tauberer](https://joshdata.me).
+Python by [Joshua Tauberer](https://joshdata.me).
 
 This library validates that a string is of the form `name@example.com`
 and optionally checks that the domain name is set up to receive email.

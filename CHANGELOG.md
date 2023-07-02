@@ -1,3 +1,8 @@
+In Development
+--------------
+
+* Python 3.8 is now required.
+
 2.0.0 (April 15, 2023)
 ----------------------
 
