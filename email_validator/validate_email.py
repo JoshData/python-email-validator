@@ -58,8 +58,7 @@ def validate_email(
     # part if the local part is quoted. If the address is quoted,
     # split it at a non-escaped @-sign and unescape the escaping.
     quoted_local_part = False
-    m = QUOTED_LOCAL_PART_ADDR.match(email)
-    if m:
+    if m := QUOTED_LOCAL_PART_ADDR.match(email):
         quoted_local_part = True
         local_part, domain_part = m.groups()
 
