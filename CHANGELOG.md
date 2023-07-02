@@ -2,6 +2,7 @@ In Development
 --------------
 
 * Python 3.8 is now required.
+* The email address argument to validate_email is now marked as positional-only to better reflect the documented usage using the new Python 3.8 feature.
 
 2.0.0 (April 15, 2023)
 ----------------------
