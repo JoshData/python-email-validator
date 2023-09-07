@@ -2,8 +2,11 @@ from typing import Optional, Any, Dict
 
 from .exceptions_types import EmailUndeliverableError
 
-import dns.resolver
-import dns.exception
+try:
+    import dns.resolver
+    import dns.exception
+except ImportError as e:
+    raise ImportError('deliverability option requires dnspython, run `pip install email-validator[dns]`') from e
 
 
 def caching_resolver(*, timeout: Optional[int] = None, cache=None):
