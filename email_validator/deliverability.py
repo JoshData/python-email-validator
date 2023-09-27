@@ -2,21 +2,21 @@ from typing import Optional, Any, Dict
 
 from .exceptions_types import EmailUndeliverableError
 
-import dns.resolver
+import dns.asyncresolver
 import dns.exception
 
 
-def caching_resolver(*, timeout: Optional[int] = None, cache=None):
+async def caching_resolver(*, timeout: Optional[int] = None, cache=None):
     if timeout is None:
         from . import DEFAULT_TIMEOUT
         timeout = DEFAULT_TIMEOUT
-    resolver = dns.resolver.Resolver()
+    resolver = await dns.asyncresolver.Resolver()
     resolver.cache = cache or dns.resolver.LRUCache()  # type: ignore
     resolver.lifetime = timeout  # type: ignore # timeout, in seconds
     return resolver
 
 
-def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver=None):
+async def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver=None):
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
     # Raises an EmailUndeliverableError on failure. On success, returns a dict
@@ -29,8 +29,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
         from . import DEFAULT_TIMEOUT
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
-        dns_resolver = dns.resolver.get_default_resolver()
-        dns_resolver.lifetime = timeout
+        dns_resolver = await caching_resolver(timeout=timeout)
     elif timeout is not None:
         raise ValueError("It's not valid to pass both timeout and dns_resolver.")
 
@@ -39,7 +38,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
     try:
         try:
             # Try resolving for MX records (RFC 5321 Section 5).
-            response = dns_resolver.resolve(domain, "MX")
+            response = await dns_resolver.query(domain, dns.rdatatype.MX)
 
             # For reporting, put them in priority order and remove the trailing dot in the qnames.
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
@@ -59,7 +58,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
         except dns.resolver.NoAnswer:
             # If there was no MX record, fall back to an A record. (RFC 5321 Section 5)
             try:
-                response = dns_resolver.resolve(domain, "A")
+                response = await dns_resolver.query(domain, dns.rdatatype.A)
                 deliverability_info["mx"] = [(0, str(r)) for r in response]
                 deliverability_info["mx_fallback_type"] = "A"
 
@@ -68,7 +67,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 # If there was no A record, fall back to an AAAA record.
                 # (It's unclear if SMTP servers actually do this.)
                 try:
-                    response = dns_resolver.resolve(domain, "AAAA")
+                    rresponse = await dns_resolver.query(domain, dns.rdatatype.AAAA)
                     deliverability_info["mx"] = [(0, str(r)) for r in response]
                     deliverability_info["mx_fallback_type"] = "AAAA"
 
@@ -85,7 +84,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             # absence of an MX record, this is probably a good sign that the
             # domain is not used for email.
             try:
-                response = dns_resolver.resolve(domain, "TXT")
+                response = await dns_resolver.query(domain, dns.rdatatype.TXT)
                 for rec in response:
                     value = b"".join(rec.strings)
                     if value.startswith(b"v=spf1 "):
