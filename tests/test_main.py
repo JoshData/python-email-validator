@@ -63,5 +63,5 @@ def test_bytes_input():
 def test_deprecation():
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
-    with pytest.raises(DeprecationWarning):
+    with pytest.deprecated_call():
         assert valid_email.email is not None
