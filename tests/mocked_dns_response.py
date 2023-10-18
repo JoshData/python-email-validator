@@ -3,7 +3,7 @@ import json
 import os.path
 import pytest
 
-from email_validator.deliverability import caching_resolver
+from email_validator.deliverability import caching_resolver, caching_async_resolver
 
 # To run deliverability checks without actually making
 # DNS queries, we use a caching resolver where the cache
@@ -21,7 +21,7 @@ class MockedDnsResponseData:
     DATA_PATH = os.path.dirname(__file__) + "/mocked-dns-answers.json"
 
     @staticmethod
-    def create_resolver():
+    def create_resolver(_async=False):
         if not hasattr(MockedDnsResponseData, 'INSTANCE'):
             # Create a singleton instance of this class and load the saved DNS responses.
             # Except when BUILD_MOCKED_DNS_RESPONSE_DATA is true, don't load the data.
@@ -32,8 +32,12 @@ class MockedDnsResponseData:
 
         # Return a new dns.resolver.Resolver configured for caching
         # using the singleton instance.
-        dns_resolver = dns.resolver.Resolver(configure=BUILD_MOCKED_DNS_RESPONSE_DATA)
-        return caching_resolver(cache=MockedDnsResponseData.INSTANCE, dns_resolver=dns_resolver)
+        if not _async:
+            dns_resolver = dns.resolver.Resolver(configure=BUILD_MOCKED_DNS_RESPONSE_DATA)
+            return caching_resolver(cache=MockedDnsResponseData.INSTANCE, dns_resolver=dns_resolver)
+        else:
+            dns_resolver = dns.asyncresolver.Resolver(configure=BUILD_MOCKED_DNS_RESPONSE_DATA)
+            return caching_async_resolver(cache=MockedDnsResponseData.INSTANCE, dns_resolver=dns_resolver)
 
     def __init__(self):
         self.data = {}

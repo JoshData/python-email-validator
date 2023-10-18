@@ -2,3 +2,4 @@
 markers = [
     "network: marks tests as requiring Internet access",
 ]
+asyncio_mode='auto'

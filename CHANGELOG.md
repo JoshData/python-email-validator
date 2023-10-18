@@ -1,3 +1,8 @@
+In Development
+--------------
+
+* The library now includes an asynchronous version of the main method named validate_email_async, which can be called with await, that runs DNS-based deliverability checks asychronously.
+
 2.1.1 (February 26, 2024)
 -------------------------
 
