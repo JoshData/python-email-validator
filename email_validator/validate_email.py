@@ -1,3 +1,4 @@
+from asyncio import Future
 from typing import Optional, Union, TYPE_CHECKING
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
@@ -11,7 +12,14 @@ else:
     _Resolver = object
 
 
-def validate_email(
+# This is the main function of the package. Through some magic,
+# it can be called both non-asynchronously and, if async_loop
+# is not None, also asynchronously with 'await'. If called
+# asynchronously, dns_resolver may be an instance of
+# dns.asyncresolver.Resolver.
+def validate_email_sync_or_async(
+    # NOTE: Arguments other than async_loop must match
+    # validate_email_sync/async defined below.
     email: Union[str, bytes],
     /,  # prior arguments are positional-only
     *,  # subsequent arguments are keyword-only
@@ -24,8 +32,9 @@ def validate_email(
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
     timeout: Optional[int] = None,
-    dns_resolver: Optional[_Resolver] = None
-) -> ValidatedEmail:
+    dns_resolver: Optional[_Resolver] = None,
+    async_loop: Optional[object] = None
+) -> Union[ValidatedEmail, Future]:  # Future[ValidatedEmail] works in Python 3.10+
     """
     Given an email address, and some options, returns a ValidatedEmail instance
     with information about the address if it is valid or, if the address is not
@@ -139,22 +148,155 @@ def validate_email(
     # Check the length of the address.
     validate_email_length(ret)
 
-    if check_deliverability and not test_environment:
-        # Validate the email address's deliverability using DNS
-        # and update the returned ValidatedEmail object with metadata.
-
-        if is_domain_literal:
-            # There is nothing to check --- skip deliverability checks.
+    # If no deliverability checks will be performed, return the validation
+    # information immediately.
+    if not check_deliverability or is_domain_literal or test_environment:
+        # When called non-asynchronously, just return --- that's easy.
+        if not async_loop:
             return ret
 
-        # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
-        from .deliverability import validate_email_deliverability
-        deliverability_info = validate_email_deliverability(
-            ret.ascii_domain, ret.domain, timeout, dns_resolver
-        )
-        mx = deliverability_info.get("mx")
-        if mx is not None:
-            ret.mx = mx
-        ret.mx_fallback_type = deliverability_info.get("mx_fallback_type")
+        # When this method is called asynchronously, we must return an awaitable,
+        # not the regular return value. Normally 'async def' handles that for you,
+        # but to not duplicate this entire function in an asynchronous version, we
+        # have a single function that works both both ways, depending on if
+        # async_loop is set.
+        #
+        # Wrap the ValidatedEmail object in a Future that is immediately
+        # done. If async_loop holds a loop object, use it to create the Future.
+        # Otherwise create a default Future instance.
+        fut: Future
+        if async_loop is True:
+            fut = Future()
+        elif not hasattr(async_loop, 'create_future'):  # suppress typing warning
+            raise RuntimeError("async_loop parameter must have a create_future method.")
+        else:
+            fut = async_loop.create_future()
+        fut.set_result(ret)
+        return fut
 
+    # Validate the email address's deliverability using DNS
+    # and update the returned ValidatedEmail object with metadata.
+    #
+    # Domain literals are not DNS names so deliverability checks are
+    # skipped (above) if is_domain_literal is set.
+
+    # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
+    from .deliverability import validate_email_deliverability
+
+    # Wrap validate_email_deliverability, which is an async function, in another
+    # async function that merges the resulting information with the ValidatedEmail
+    # instance. Since this method may be used in a non-asynchronous call, it
+    # must not await on anything that might yield execution.
+    async def run_deliverability_checks():
+        # Run the DNS-based deliverabiltiy checks.
+        #
+        # Although validate_email_deliverability (and this local function)
+        # are async functions, when async_loop is None it must not yield
+        # execution. See below.
+        info = await validate_email_deliverability(
+            ret.ascii_domain, ret.domain, timeout, dns_resolver,
+            async_loop
+        )
+
+        # Merge deliverability info with the syntax info (if there was no exception).
+        for key, value in info.items():
+            setattr(ret, key, value)
+
+        return ret
+
+    if not async_loop:
+        # When this function is called non-asynchronously, we will manually
+        # drive the coroutine returned by the async run_deliverability_checks
+        # function. Since we know that it does not yield execution, it will
+        # finish by raising StopIteration after the first 'send()' call. (If
+        # it doesn't, something serious went wrong.)
+        try:
+            # This call will either raise StopIteration on success or it will
+            # raise an EmailUndeliverableError on failure.
+            run_deliverability_checks().send(None)
+
+            # If we come here, the coroutine yielded execution. We can't recover
+            # from this.
+            raise RuntimeError("Asynchronous resolver used in non-asychronous call or validate_email_deliverability mistakenly yielded.")
+
+        except StopIteration as e:
+            # This is how a successful return occurs when driving a coroutine.
+            # The 'value' attribute on the exception holds the return value.
+            # Since we're in a non-asynchronous call, we can return it directly.
+            return e.value
+
+    else:
+        # When this method is called asynchronously, return
+        # a coroutine.
+        return run_deliverability_checks()
+
+
+# Validates an email address with DNS queries issued synchronously.
+# This is exposed as the package's main validate_email method.
+def validate_email_sync(
+    email: Union[str, bytes],
+    /,  # prior arguments are positional-only
+    *,  # subsequent arguments are keyword-only
+    allow_smtputf8: Optional[bool] = None,
+    allow_empty_local: bool = False,
+    allow_quoted_local: Optional[bool] = None,
+    allow_domain_literal: Optional[bool] = None,
+    allow_display_name: Optional[bool] = None,
+    check_deliverability: Optional[bool] = None,
+    test_environment: Optional[bool] = None,
+    globally_deliverable: Optional[bool] = None,
+    timeout: Optional[int] = None,
+    dns_resolver: Optional[object] = None
+) -> ValidatedEmail:
+    ret = validate_email_sync_or_async(
+        email,
+        allow_smtputf8=allow_smtputf8,
+        allow_empty_local=allow_empty_local,
+        allow_quoted_local=allow_quoted_local,
+        allow_domain_literal=allow_domain_literal,
+        allow_display_name=allow_display_name,
+        check_deliverability=check_deliverability,
+        test_environment=test_environment,
+        globally_deliverable=globally_deliverable,
+        timeout=timeout,
+        dns_resolver=dns_resolver,
+        async_loop=None)
+    if not isinstance(ret, ValidatedEmail):  # suppress typing warning
+        raise RuntimeError(type(ret))
     return ret
+
+
+# Validates an email address with DNS queries issued asynchronously.
+async def validate_email_async(
+    email: Union[str, bytes],
+    /,  # prior arguments are positional-only
+    *,  # subsequent arguments are keyword-only
+    allow_smtputf8: Optional[bool] = None,
+    allow_empty_local: bool = False,
+    allow_quoted_local: Optional[bool] = None,
+    allow_domain_literal: Optional[bool] = None,
+    allow_display_name: Optional[bool] = None,
+    check_deliverability: Optional[bool] = None,
+    test_environment: Optional[bool] = None,
+    globally_deliverable: Optional[bool] = None,
+    timeout: Optional[int] = None,
+    dns_resolver: Optional[object] = None,
+    loop: Optional[object] = None
+) -> ValidatedEmail:
+    coro = validate_email_sync_or_async(
+        email,
+        allow_smtputf8=allow_smtputf8,
+        allow_empty_local=allow_empty_local,
+        allow_quoted_local=allow_quoted_local,
+        allow_domain_literal=allow_domain_literal,
+        allow_display_name=allow_display_name,
+        check_deliverability=check_deliverability,
+        test_environment=test_environment,
+        globally_deliverable=globally_deliverable,
+        timeout=timeout,
+        dns_resolver=dns_resolver,
+        async_loop=loop or True)
+    import inspect
+    if not inspect.isawaitable(coro):  # suppress typing warning
+        raise RuntimeError(type(coro))
+    return await coro

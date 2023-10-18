@@ -5,11 +5,40 @@ import re
 
 from email_validator import EmailUndeliverableError, \
                             validate_email, caching_resolver
-from email_validator.deliverability import validate_email_deliverability
+from email_validator.deliverability import validate_email_deliverability as validate_email_deliverability_async
 
 from mocked_dns_response import MockedDnsResponseData, MockedDnsResponseDataCleanup  # noqa: F401
 
 RESOLVER = MockedDnsResponseData.create_resolver()
+
+
+async def validate_email_deliverability(*args, **kwargs):
+    # The internal validate_email_deliverability method is
+    # asynchronous but has no awaits if not passed an
+    # async loop. To call it synchronously in tests,
+    # we can drive a manual loop.
+    try:
+        validate_email_deliverability_async(*args, **kwargs).send(None)
+        raise RuntimeError("validate_email_deliverability did not run synchronously.")
+    except StopIteration as e:
+        sync_result = e.value
+    except Exception as e:
+        sync_result = e
+
+    # Do the same thing again asynchronously.
+    try:
+        async_result = await validate_email_deliverability_async(*args, **kwargs)
+    except Exception as e:
+        async_result = e
+
+    # Check that the results match.
+    # Not sure if repr() is really sufficient here.
+    assert repr(sync_result) == repr(async_result)
+
+    # Return the synchronous result for the caller's asserts.
+    if isinstance(sync_result, Exception):
+        raise sync_result
+    return sync_result
 
 
 @pytest.mark.parametrize(
@@ -19,8 +48,8 @@ RESOLVER = MockedDnsResponseData.create_resolver()
         ('pages.github.com', {'mx': [(0, 'pages.github.com')], 'mx_fallback_type': 'A'}),
     ],
 )
-def test_deliverability_found(domain: str, expected_response: str) -> None:
-    response = validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
+async def test_deliverability_found(domain: str, expected_response: str) -> None:
+    response = await validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
     assert response == expected_response
 
 
@@ -59,14 +88,14 @@ def test_email_example_reserved_domain(email_input: str) -> None:
     assert re.match(r"The domain name [a-z\.]+ does not (accept email|exist)\.", str(exc_info.value)) is not None
 
 
-def test_deliverability_dns_timeout() -> None:
-    response = validate_email_deliverability('timeout.com', 'timeout.com', dns_resolver=RESOLVER)
+async def test_deliverability_dns_timeout() -> None:
+    response = await validate_email_deliverability('timeout.com', 'timeout.com', dns_resolver=RESOLVER)
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
 
 
 @pytest.mark.network
-def test_caching_dns_resolver() -> None:
+async def test_caching_dns_resolver() -> None:
     class TestCache:
         def __init__(self) -> None:
             self.cache: Dict[Any, Any] = {}

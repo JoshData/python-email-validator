@@ -17,6 +17,7 @@ Key features:
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
   (You can override the default DNS resolver to add query caching.)
+* Can be called asynchronously with `await`.
 * Supports internationalized domain names (like `@ツ.life`),
   internationalized local parts (like `ツ@example.com`),
   and optionally parses display names (e.g. `"My Name" <me@example.com>`).
@@ -82,6 +83,9 @@ This validates the address and gives you its normalized form. You should
 **put the normalized form in your database** and always normalize before
 checking if an address is in your database. When using this in a login form,
 set `check_deliverability` to `False` to avoid unnecessary DNS queries.
+
+See below for examples for caching DNS queries and calling the library
+asynchronously with `await`.
 
 Usage
 -----
@@ -162,6 +166,30 @@ resolver = caching_resolver(timeout=10)
 while True:
   validate_email(email, dns_resolver=resolver)
 ```
+
+### Asynchronous call
+
+The library has an alternative, asynchronous method named `validate_email_async` which must be called with `await`. This method uses an [asynchronous DNS resolver](https://dnspython.readthedocs.io/en/latest/async.html) so that multiple DNS-based deliverability checks can be performed in parallel.
+
+Here how to use it. In this example, `import ... as` is used to alias the async method to the usual method name `validate_email`.
+
+```python
+from email_validator import validate_email_async as validate_email, \
+  EmailNotValidError, caching_async_resolver
+
+resolver = caching_async_resolver(timeout=10)
+
+email = "my+address@example.org"
+try:
+  emailinfo = await validate_email(email)
+  email = emailinfo.normalized
+except EmailNotValidError as e:
+  print(str(e))
+```
+
+Note that to create a caching asynchronous resolver, use `caching_async_resolver`. As with the synchronous version, creating a resolver is optional.
+
+When processing batches of email addresses, I found that chunking around 25 email addresses at a time (using e.g. `asyncio.gather()`) resulted in the highest performance. I tested on a residential Internet connection with valid addresses.
 
 ### Test addresses
 

@@ -5,6 +5,7 @@ import ipaddress
 from .exceptions_types import EmailUndeliverableError
 
 import dns.resolver
+import dns.asyncresolver
 import dns.exception
 
 
@@ -25,30 +26,73 @@ DeliverabilityInfo = TypedDict("DeliverabilityInfo", {
 }, total=False)
 
 
-def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> DeliverabilityInfo:
+def caching_async_resolver(*, timeout: Optional[int] = None, cache=None, dns_resolver=None):
+    if timeout is None:
+        from . import DEFAULT_TIMEOUT
+        timeout = DEFAULT_TIMEOUT
+    resolver = dns_resolver or dns.asyncresolver.Resolver()
+    resolver.cache = cache or dns.resolver.LRUCache()  # type: ignore
+    resolver.lifetime = timeout  # type: ignore # timeout, in seconds
+    return resolver
+
+
+async def validate_email_deliverability(
+      domain: str,
+      domain_i18n: str,
+      timeout: Optional[int] = None,
+      dns_resolver: Optional[dns.resolver.Resolver] = None,
+      async_loop: Optional[bool] = None
+) -> DeliverabilityInfo:
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
     # Raises an EmailUndeliverableError on failure. On success, returns a dict
     # with deliverability information.
 
+    # When async_loop is None, the caller drives the coroutine manually to get
+    # the result synchronously, and consequently this call must not yield execution.
+    # It can use 'await' so long as the callee does not yield execution either.
+    # Otherwise, if async_loop is not None, there is no restriction on 'await' calls'.
+
     # If no dns.resolver.Resolver was given, get dnspython's default resolver.
-    # Override the default resolver's timeout. This may affect other uses of
-    # dnspython in this process.
+    # Use the asyncresolver if async_loop is not None.
     if dns_resolver is None:
+        if not async_loop:
+            dns_resolver = dns.resolver.get_default_resolver()
+        else:
+            dns_resolver = dns.asyncresolver.get_default_resolver()
+
+        # Override the default resolver's timeout. This may affect other uses of
+        # dnspython in this process.
         from . import DEFAULT_TIMEOUT
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
-        dns_resolver = dns.resolver.get_default_resolver()
         dns_resolver.lifetime = timeout
+
     elif timeout is not None:
         raise ValueError("It's not valid to pass both timeout and dns_resolver.")
 
-    deliverability_info: DeliverabilityInfo = {}
+    # Define a resolve function that works with a regular or
+    # asynchronous dns.resolver.Resolver instance.
+    async def resolve(qname, rtype):
+        # When called non-asynchronously, expect a regular
+        # resolver that returns synchronously. Or if async_loop
+        # is not None but the caller didn't pass an
+        # dns.asyncresolver.Resolver, call it synchronously.
+        if not async_loop or not isinstance(dns_resolver, dns.asyncresolver.Resolver):
+            return dns_resolver.resolve(qname, rtype)
+
+        # When async_loop is not None and if given a
+        # dns.asyncresolver.Resolver, call it asynchronously.
+        else:
+            return await dns_resolver.resolve(qname, rtype)
+
+    # Collect successful deliverability information here.
+    deliverability_info = DeliverabilityInfo()
 
     try:
         try:
             # Try resolving for MX records (RFC 5321 Section 5).
-            response = dns_resolver.resolve(domain, "MX")
+            response = await resolve(domain, "MX")
 
             # For reporting, put them in priority order and remove the trailing dot in the qnames.
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
@@ -84,11 +128,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 return ipaddr.is_global
 
             try:
-                response = dns_resolver.resolve(domain, "A")
-
-                if not any(is_global_addr(r.address) for r in response):
-                    raise dns.resolver.NoAnswer  # fall back to AAAA
-
+                response = await resolve(domain, "A")
                 deliverability_info["mx"] = [(0, domain)]
                 deliverability_info["mx_fallback_type"] = "A"
 
@@ -97,11 +137,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 # If there was no A record, fall back to an AAAA record.
                 # (It's unclear if SMTP servers actually do this.)
                 try:
-                    response = dns_resolver.resolve(domain, "AAAA")
-
-                    if not any(is_global_addr(r.address) for r in response):
-                        raise dns.resolver.NoAnswer
-
+                    response = await resolve(domain, "AAAA")
                     deliverability_info["mx"] = [(0, domain)]
                     deliverability_info["mx_fallback_type"] = "AAAA"
 
@@ -118,7 +154,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             # absence of an MX record, this is probably a good sign that the
             # domain is not used for email.
             try:
-                response = dns_resolver.resolve(domain, "TXT")
+                response = await resolve(domain, "TXT")
                 for rec in response:
                     value = b"".join(rec.strings)
                     if value.startswith(b"v=spf1 "):

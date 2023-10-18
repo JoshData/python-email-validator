@@ -3,13 +3,14 @@ from typing import TYPE_CHECKING
 # Export the main method, helper methods, and the public data types.
 from .exceptions_types import ValidatedEmail, EmailNotValidError, \
                               EmailSyntaxError, EmailUndeliverableError
-from .validate_email import validate_email
+from .validate_email import validate_email_sync as validate_email, validate_email_async
 from .version import __version__
 
-__all__ = ["validate_email",
+__all__ = ["validate_email", "validate_email_async",
            "ValidatedEmail", "EmailNotValidError",
            "EmailSyntaxError", "EmailUndeliverableError",
-           "caching_resolver", "__version__"]
+           "caching_resolver", "caching_async_resolver",
+           "__version__"]
 
 if TYPE_CHECKING:
     from .deliverability import caching_resolver
@@ -19,6 +20,13 @@ else:
         from .deliverability import caching_resolver
 
         return caching_resolver(*args, **kwargs)
+
+
+def caching_async_resolver(*args, **kwargs):
+    # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
+    from .deliverability import caching_async_resolver
+
+    return caching_async_resolver(*args, **kwargs)
 
 
 # These global attributes are a part of the library's API and can be

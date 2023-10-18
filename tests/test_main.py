@@ -41,7 +41,8 @@ def test_main_multi_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
     test_input = io.StringIO("\n".join(test_cases))
     monkeypatch.setattr('sys.stdin', test_input)
     monkeypatch.setattr('sys.argv', ['email_validator'])
-    validator_command_line_tool(dns_resolver=RESOLVER)
+    ASYNC_RESOLVER = MockedDnsResponseData.create_resolver(_async=True)
+    validator_command_line_tool(dns_resolver=ASYNC_RESOLVER)
     stdout, _ = capsys.readouterr()
     assert test_cases[0] not in stdout
     assert test_cases[1] not in stdout

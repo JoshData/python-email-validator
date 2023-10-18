@@ -5,26 +5,88 @@
 # python -m email_validator test@example.org
 # python -m email_validator < LIST_OF_ADDRESSES.TXT
 #
-# Provide email addresses to validate either as a command-line argument
-# or in STDIN separated by newlines. Validation errors will be printed for
-# invalid email addresses. When passing an email address on the command
-# line, if the email address is valid, information about it will be printed.
-# When using STDIN, no output will be given for valid email addresses.
+# Provide email addresses to validate either as a single command-line argument
+# or on STDIN separated by newlines.
+#
+# When passing an email address on the command line, if the email address
+# is valid, information about it will be printed to STDOUT. If the email
+# address is invalid, an error message will be printed to STDOUT and
+# the exit code will be set to 1.
+#
+# When passsing email addresses on STDIN, validation errors will be printed
+# for invalid email addresses. No output is given for valid email addresses.
+# Validation errors are preceded by the email address that failed and a tab
+# character. It is the user's responsibility to ensure email addresses
+# do not contain tab or newline characters.
 #
 # Keyword arguments to validate_email can be set in environment variables
 # of the same name but upprcase (see below).
 
+import itertools
 import json
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from .validate_email import validate_email, _Resolver
-from .deliverability import caching_resolver
+from .deliverability import caching_async_resolver
 from .exceptions_types import EmailNotValidError
 
 
-def main(dns_resolver: Optional[_Resolver] = None) -> None:
+def main_command_line(email_address, options, dns_resolver):
+    # Validate the email address passed on the command line.
+
+    from . import validate_email
+
+    try:
+        result = validate_email(email_address, dns_resolver=dns_resolver, **options)
+        print(json.dumps(result.as_dict(), indent=2, sort_keys=True, ensure_ascii=False))
+        return True
+    except EmailNotValidError as e:
+        print(e)
+        return False
+
+
+async def main_stdin(options, dns_resolver):
+    # Validate the email addresses pased line-by-line on STDIN.
+    # Chunk the addresses and call the async version of validate_email
+    # for all the addresses in the chunk, and wait for the chunk
+    # to complete.
+
+    import asyncio
+
+    from . import validate_email_async as validate_email
+
+    dns_resolver = dns_resolver or caching_async_resolver()
+
+    # https://stackoverflow.com/a/312467
+    def split_seq(iterable, size):
+        it = iter(iterable)
+        item = list(itertools.islice(it, size))
+        while item:
+            yield item
+            item = list(itertools.islice(it, size))
+
+    CHUNK_SIZE = 25
+
+    async def process_line(line):
+        email = line.strip()
+        try:
+            await validate_email(email, dns_resolver=dns_resolver, **options)
+            # If the email was valid, do nothing.
+            return None
+        except EmailNotValidError as e:
+            return (email, e)
+
+    chunks = split_seq(sys.stdin, CHUNK_SIZE)
+    for chunk in chunks:
+        awaitables = [process_line(line) for line in chunk]
+        errors = await asyncio.gather(*awaitables)
+        for error in errors:
+            if error is not None:
+                print(*error, sep='\t')
+
+
+def main(dns_resolver=None):
     # The dns_resolver argument is for tests.
 
     # Set options from environment variables.
@@ -37,24 +99,14 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
         if varname in os.environ:
             options[varname.lower()] = float(os.environ[varname])
 
-    if len(sys.argv) == 1:
-        # Validate the email addresses pased line-by-line on STDIN.
-        dns_resolver = dns_resolver or caching_resolver()
-        for line in sys.stdin:
-            email = line.strip()
-            try:
-                validate_email(email, dns_resolver=dns_resolver, **options)
-            except EmailNotValidError as e:
-                print(f"{email} {e}")
+    if len(sys.argv) == 2:
+        return main_command_line(sys.argv[1], options, dns_resolver)
     else:
-        # Validate the email address passed on the command line.
-        email = sys.argv[1]
-        try:
-            result = validate_email(email, dns_resolver=dns_resolver, **options)
-            print(json.dumps(result.as_dict(), indent=2, sort_keys=True, ensure_ascii=False))
-        except EmailNotValidError as e:
-            print(e)
+        import asyncio
+        asyncio.run(main_stdin(options, dns_resolver))
+        return True
 
 
 if __name__ == "__main__":
-    main()
+    if not main():
+        sys.exit(1)
