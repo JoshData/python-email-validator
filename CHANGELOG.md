@@ -1,6 +1,7 @@
 In Development
 --------------
 
+* Python 3.8+ is now required (support for Python 3.7 was dropped).
 * The old `email` field on the returned `ValidatedEmail` object, which in the previous version was superseded by `normalized`, will now raise a deprecation warning if used. See https://stackoverflow.com/q/879173 for strategies to suppress the DeprecationWarning.
 * A `__version__` module attribute is added.
 
