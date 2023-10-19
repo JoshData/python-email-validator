@@ -1,13 +1,43 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
     DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
-    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS
+    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS, \
+    QUOTED_LOCAL_PART_ADDR
 
 import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 import ipaddress
 from typing import Optional
+
+
+def split_email(email):
+    # Return the local part and domain part of the address and
+    # whether the local part was quoted as a three-tuple.
+
+    # Typical email addresses have a single @-sign, but the
+    # awkward "quoted string" local part form (RFC 5321 4.1.2)
+    # allows @-signs (and escaped quotes) to appear in the local
+    # part if the local part is quoted. If the address is quoted,
+    # split it at a non-escaped @-sign and unescape the escaping.
+    if m := QUOTED_LOCAL_PART_ADDR.match(email):
+        local_part, domain_part = m.groups()
+
+        # Since backslash-escaping is no longer needed because
+        # the quotes are removed, remove backslash-escaping
+        # to return in the normalized form.
+        import re
+        local_part = re.sub(r"\\(.)", "\\1", local_part)
+
+        return local_part, domain_part, True
+
+    else:
+        # Split at the one and only at-sign.
+        parts = email.split('@')
+        if len(parts) != 2:
+            raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
+        local_part, domain_part = parts
+        return local_part, domain_part, False
 
 
 def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
@@ -367,7 +397,7 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
             raise EmailSyntaxError(f"After the @-sign, periods cannot be separated by so many characters {reason}.")
 
     if globally_deliverable:
-        # All publicly deliverable addresses have domain named with at least
+        # All publicly deliverable addresses have domain names with at least
         # one period, at least for gTLDs created since 2013 (per the ICANN Board
         # New gTLD Program Committee, https://www.icann.org/en/announcements/details/new-gtld-dotless-domain-names-prohibited-30-8-2013-en).
         # We'll consider the lack of a period a syntax error
@@ -428,7 +458,48 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
     }
 
 
-def validate_email_domain_literal(domain_literal, allow_domain_literal=False):
+def validate_email_length(addrinfo):
+    # If the email address has an ASCII representation, then we assume it may be
+    # transmitted in ASCII (we can't assume SMTPUTF8 will be used on all hops to
+    # the destination) and the length limit applies to ASCII characters (which is
+    # the same as octets). The number of characters in the internationalized form
+    # may be many fewer (because IDNA ASCII is verbose) and could be less than 254
+    # Unicode characters, and of course the number of octets over the limit may
+    # not be the number of characters over the limit, so if the email address is
+    # internationalized, we can't give any simple information about why the address
+    # is too long.
+    if addrinfo.ascii_email and len(addrinfo.ascii_email) > EMAIL_MAX_LENGTH:
+        if addrinfo.ascii_email == addrinfo.normalized:
+            reason = get_length_reason(addrinfo.ascii_email)
+        elif len(addrinfo.normalized) > EMAIL_MAX_LENGTH:
+            # If there are more than 254 characters, then the ASCII
+            # form is definitely going to be too long.
+            reason = get_length_reason(addrinfo.normalized, utf8=True)
+        else:
+            reason = "(when converted to IDNA ASCII)"
+        raise EmailSyntaxError(f"The email address is too long {reason}.")
+
+    # In addition, check that the UTF-8 encoding (i.e. not IDNA ASCII and not
+    # Unicode characters) is at most 254 octets. If the addres is transmitted using
+    # SMTPUTF8, then the length limit probably applies to the UTF-8 encoded octets.
+    # If the email address has an ASCII form that differs from its internationalized
+    # form, I don't think the internationalized form can be longer, and so the ASCII
+    # form length check would be sufficient. If there is no ASCII form, then we have
+    # to check the UTF-8 encoding. The UTF-8 encoding could be up to about four times
+    # longer than the number of characters.
+    #
+    # See the length checks on the local part and the domain.
+    if len(addrinfo.normalized.encode("utf8")) > EMAIL_MAX_LENGTH:
+        if len(addrinfo.normalized) > EMAIL_MAX_LENGTH:
+            # If there are more than 254 characters, then the UTF-8
+            # encoding is definitely going to be too long.
+            reason = get_length_reason(addrinfo.normalized, utf8=True)
+        else:
+            reason = "(when encoded in bytes)"
+        raise EmailSyntaxError(f"The email address is too long {reason}.")
+
+
+def validate_email_domain_literal(domain_literal):
     # This is obscure domain-literal syntax. Parse it and return
     # a compressed/normalized address.
     # RFC 5321 4.1.3 and RFC 5322 3.4.1.
@@ -441,8 +512,6 @@ def validate_email_domain_literal(domain_literal, allow_domain_literal=False):
             addr = ipaddress.IPv4Address(domain_literal)
         except ValueError as e:
             raise EmailSyntaxError(f"The address in brackets after the @-sign is not valid: It is not an IPv4 address ({e}) or is missing an address literal tag.")
-        if not allow_domain_literal:
-            raise EmailSyntaxError("A bracketed IPv4 address after the @-sign is not allowed here.")
 
         # Return the IPv4Address object and the domain back unchanged.
         return {
@@ -456,8 +525,6 @@ def validate_email_domain_literal(domain_literal, allow_domain_literal=False):
             addr = ipaddress.IPv6Address(domain_literal[5:])
         except ValueError as e:
             raise EmailSyntaxError(f"The IPv6 address in brackets after the @-sign is not valid ({e}).")
-        if not allow_domain_literal:
-            raise EmailSyntaxError("A bracketed IPv6 address after the @-sign is not allowed here.")
 
         # Return the IPv6Address object and construct a normalized
         # domain literal.
@@ -465,6 +532,8 @@ def validate_email_domain_literal(domain_literal, allow_domain_literal=False):
             "domain_address": addr,
             "domain": f"[IPv6:{addr.compressed}]",
         }
+
+    # Nothing else is valid.
 
     if ":" not in domain_literal:
         raise EmailSyntaxError("The part after the @-sign in brackets is not an IPv4 address and has no address literal tag.")
