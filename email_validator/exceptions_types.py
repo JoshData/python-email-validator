@@ -76,7 +76,7 @@ class ValidatedEmail(object):
             return self.original
         if key == "email":
             return self.normalized
-        raise AttributeError()
+        raise AttributeError(key)
 
     @property
     def email(self):
@@ -129,9 +129,10 @@ class ValidatedEmail(object):
             + ",".join("\n  {}={}".format(
                        key,
                        repr(getattr(self, key)))
-                       for key in ('email', 'local_part', 'domain',
+                       for key in ('normalized', 'local_part', 'domain',
                                    'ascii_email', 'ascii_local_part', 'ascii_domain',
                                    'smtputf8', 'mx', 'mx_fallback_type')
+                       if hasattr(self, key)
                        ) \
             + ")"
 
