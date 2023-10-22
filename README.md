@@ -423,7 +423,6 @@ or likely to cause trouble:
   No one uses these forms anymore, and I can't think of any reason why anyone
   using this library would need to accept them.
 
-
 Testing
 -------
 
@@ -455,3 +454,8 @@ git tag v$(cat email_validator/version.py  | sed "s/.* = //" | sed 's/"//g')
 git push --tags
 ./release_to_pypi.sh
 ```
+
+License
+-------
+
+This project is free of any copyright restrictions per the [Unlicense](https://unlicense.org/). (Prior to Feb. 4, 2024, the project was made available under the terms of the [CC0 1.0 Universal public domain dedication](http://creativecommons.org/publicdomain/zero/1.0/).) See [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
