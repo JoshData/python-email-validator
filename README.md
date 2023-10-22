@@ -451,7 +451,7 @@ To release:
 * Publish a source and wheel distribution to pypi (see command below).
 
 ```sh
-git tag v$(grep version setup.cfg | sed "s/.*= //")
+git tag v$(cat email_validator/version.py  | sed "s/.* = //" | sed 's/"//g')
 git push --tags
 ./release_to_pypi.sh
 ```
