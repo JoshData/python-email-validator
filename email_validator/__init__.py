@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # Export the main method, helper methods, and the public data types.
-from .exceptions_types import ValidatedEmail, EmailNotValidError, \
-                              EmailSyntaxError, EmailUndeliverableError
+from .exceptions_types import (ValidatedEmail, EmailNotValidError,
+                              EmailSyntaxError, EmailUndeliverableError)
 from .validate_email import validate_email
 from .version import __version__
 
