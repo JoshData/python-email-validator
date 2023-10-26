@@ -17,7 +17,7 @@ class EmailUndeliverableError(EmailNotValidError):
     pass
 
 
-class ValidatedEmail(object):
+class ValidatedEmail:
     """The validate_email function returns objects of this type holding the normalized form of the email address
     and other information."""
 

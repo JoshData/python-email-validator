@@ -124,11 +124,11 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
             # Check for invalid characters against the non-internationalized
             # permitted character set.
             # (RFC 5322 3.2.3)
-            bad_chars = set(
+            bad_chars = {
                 safe_character_display(c)
                 for c in local
                 if not ATEXT_RE.match(c)
-            )
+            }
             if bad_chars:
                 raise EmailSyntaxError("Internationalized characters before the @-sign are not supported: " + ", ".join(sorted(bad_chars)) + ".")
 
@@ -148,20 +148,20 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         # (RFC 5321 4.1.2. RFC 5322 lists additional permitted *obsolete*
         # characters which are *not* allowed here. RFC 6531 section 3.3
         # extends the range to UTF8 strings.)
-        bad_chars = set(
+        bad_chars = {
             safe_character_display(c)
             for c in local
             if not QTEXT_INTL.match(c)
-        )
+        }
         if bad_chars:
             raise EmailSyntaxError("The email address contains invalid characters in quotes before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")
 
         # See if any characters are outside of the ASCII range.
-        bad_chars = set(
+        bad_chars = {
             safe_character_display(c)
             for c in local
             if not (32 <= ord(c) <= 126)
-        )
+        }
         if bad_chars:
             requires_smtputf8 = True
 
@@ -213,11 +213,11 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
 
     # Check for invalid characters.
     # (RFC 5322 3.2.3, plus RFC 6531 3.3)
-    bad_chars = set(
+    bad_chars = {
         safe_character_display(c)
         for c in local
         if not ATEXT_INTL_RE.match(c)
-    )
+    }
     if bad_chars:
         raise EmailSyntaxError("The email address contains invalid characters before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")
 
@@ -306,11 +306,11 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
 
     # Check for invalid characters before normalization.
     # (RFC 952 plus RFC 6531 section 3.3 for internationalized addresses)
-    bad_chars = set(
+    bad_chars = {
         safe_character_display(c)
         for c in domain
         if not ATEXT_HOSTNAME_INTL.match(c)
-    )
+    }
     if bad_chars:
         raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
 
@@ -437,11 +437,11 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
 
     # Check for invalid characters after normalization. These
     # should never arise. See the similar checks above.
-    bad_chars = set(
+    bad_chars = {
         safe_character_display(c)
         for c in domain
         if not ATEXT_HOSTNAME_INTL.match(c)
-    )
+    }
     if bad_chars:
         raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
     check_unsafe_chars(domain)
@@ -544,11 +544,11 @@ def validate_email_domain_literal(domain_literal):
 
     # Check for permitted ASCII characters. This actually doesn't matter
     # since there will be an exception after anyway.
-    bad_chars = set(
+    bad_chars = {
         safe_character_display(c)
         for c in domain_literal
         if not DOMAIN_LITERAL_CHARS.match(c)
-    )
+    }
     if bad_chars:
         raise EmailSyntaxError("The part after the @-sign contains invalid characters in brackets: " + ", ".join(sorted(bad_chars)) + ".")
 
