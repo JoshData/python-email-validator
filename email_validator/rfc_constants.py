@@ -46,7 +46,7 @@ DOMAIN_MAX_LENGTH = 255  # in "octets", RFC 1035 2.3.4 and RFC 5321 4.5.3.1.2
 
 # RFC 2142
 CASE_INSENSITIVE_MAILBOX_NAMES = [
-    'info', 'marking', 'sales', 'support',  # section 3
+    'info', 'marketing', 'sales', 'support',  # section 3
     'abuse', 'noc', 'security',  # section 4
     'postmaster', 'hostmaster', 'usenet', 'news', 'webmaster', 'www', 'uucp', 'ftp',  # section 5
 ]
