@@ -264,7 +264,7 @@ def check_unsafe_chars(s, allow_space=False):
             # as far as I can tell, but they violate the spirit of the non-internationalized
             # specification that email addresses do not contain line breaks when not quoted.
             bad_chars.add(c)
-        elif category[0] in ("C", "Z"):
+        elif category[0] == "C":
             # Control, format, surrogate, private use, and unassigned code points (C)
             # are all unsafe in various ways. Control and format characters can affect
             # text rendering if the email address is concatenated with other text.
