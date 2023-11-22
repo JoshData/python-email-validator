@@ -322,15 +322,17 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
 
     # Perform UTS-46 normalization, which includes casefolding, NFC normalization,
     # and converting all label separators (the period/full stop, fullwidth full stop,
-    # ideographic full stop, and halfwidth ideographic full stop) to basic periods.
+    # ideographic full stop, and halfwidth ideographic full stop) to regular dots.
     # It will also raise an exception if there is an invalid character in the input,
-    # such as "⒈" which is invalid because it would expand to include a period.
+    # such as "⒈" which is invalid because it would expand to include a dot.
+    # Since several characters are normalized to a dot, this has to come before
+    # checks related to dots, like check_dot_atom which comes next.
     try:
         domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
     except idna.IDNAError as e:
         raise EmailSyntaxError(f"The part after the @-sign contains invalid characters ({e}).")
 
-    # The domain part is made up period-separated "labels." Each label must
+    # The domain part is made up dot-separated "labels." Each label must
     # have at least one character and cannot start or end with dashes, which
     # means there are some surprising restrictions on periods and dashes.
     # Check that before we do IDNA encoding because the IDNA library gives
@@ -362,6 +364,8 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
         # For ASCII-only domains, the transformation does nothing and is safe to
         # apply. However, to ensure we don't rely on the idna library for basic
         # syntax checks, we don't use it if it's not needed.
+        #
+        # uts46 is off here because it is handled above.
         try:
             ascii_domain = idna.encode(domain, uts46=False).decode("ascii")
         except idna.IDNAError as e:
@@ -371,6 +375,9 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
                 # one the user supplied. Also I'm not sure if the length check applies
                 # to the internationalized form, the IDNA ASCII form, or even both!
                 raise EmailSyntaxError("The email address is too long after the @-sign.")
+
+            # Other errors seem to not be possible because the call to idna.uts46_remap
+            # would have already raised them.
             raise EmailSyntaxError(f"The part after the @-sign contains invalid characters ({e}).")
 
         # Check the syntax of the string returned by idna.encode.
