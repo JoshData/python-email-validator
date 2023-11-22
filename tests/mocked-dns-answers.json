@@ -7,19 +7,11 @@
   },
   "answer": [
    "10 alt1.gmail-smtp-in.l.google.com.",
-   "30 alt3.gmail-smtp-in.l.google.com.",
-   "5 gmail-smtp-in.l.google.com.",
    "20 alt2.gmail-smtp-in.l.google.com.",
-   "40 alt4.gmail-smtp-in.l.google.com."
+   "30 alt3.gmail-smtp-in.l.google.com.",
+   "40 alt4.gmail-smtp-in.l.google.com.",
+   "5 gmail-smtp-in.l.google.com."
   ]
- },
- {
-  "query": {
-   "name": "xkxufoekjvjfjeodlfmdfjcu.com",
-   "type": "MX",
-   "class": "IN"
-  },
-  "answer": []
  },
  {
   "query": {
@@ -64,30 +56,14 @@
    "class": "IN"
   },
   "answer": [
-   "\"v=spf1 -all\"",
-   "\"MS=ms47108184\""
+   "\"MS=ms47108184\"",
+   "\"v=spf1 -all\""
   ]
  },
  {
   "query": {
    "name": "mail.example",
-   "type": "MX",
-   "class": "IN"
-  },
-  "answer": []
- },
- {
-  "query": {
-   "name": "mail.example",
    "type": "ANY",
-   "class": "IN"
-  },
-  "answer": []
- },
- {
-  "query": {
-   "name": "mail.example.com",
-   "type": "MX",
    "class": "IN"
   },
   "answer": []

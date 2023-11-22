@@ -72,10 +72,10 @@ class MockedDnsResponseData:
                     "type": dns.rdatatype.to_text(key[1]),
                     "class": dns.rdataclass.to_text(key[2]),
                 },
-                "answer": [
+                "answer": sorted([
                     rr.to_text()
                     for rr in value
-                ]
+                ])
             }
             for key, value in self.data.items()
         ]
