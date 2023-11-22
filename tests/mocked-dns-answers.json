@@ -62,6 +62,30 @@
  },
  {
   "query": {
+   "name": "justtxt.joshdata.me",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "justtxt.joshdata.me",
+   "type": "A",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "justtxt.joshdata.me",
+   "type": "AAAA",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
    "name": "mail.example",
    "type": "ANY",
    "class": "IN"
