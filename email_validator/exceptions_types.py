@@ -126,9 +126,7 @@ class ValidatedEmail:
     """This helps producing the README."""
     def as_constructor(self):
         return "ValidatedEmail(" \
-            + ",".join("\n  {}={}".format(
-                       key,
-                       repr(getattr(self, key)))
+            + ",".join(f"\n  {key}={repr(getattr(self, key))}"
                        for key in ('normalized', 'local_part', 'domain',
                                    'ascii_email', 'ascii_local_part', 'ascii_domain',
                                    'smtputf8', 'mx', 'mx_fallback_type')
