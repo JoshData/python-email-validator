@@ -208,7 +208,7 @@ local parts, a wider range of Unicode characters are allowed.
 
 A surprisingly large number of Unicode characters are not safe to display,
 especially when the email address is concatenated with other text, so this
-library tries to protect you by not permitting resvered, non-, private use,
+library tries to protect you by not permitting reserved, non-, private use,
 formatting (which can be used to alter the display order of characters),
 whitespace, and control characters, and combining characters
 as the first character of the local part and the domain name (so that they
