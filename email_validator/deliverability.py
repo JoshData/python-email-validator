@@ -72,12 +72,12 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                     deliverability_info["mx"] = [(0, str(r)) for r in response]
                     deliverability_info["mx_fallback_type"] = "AAAA"
 
-                except dns.resolver.NoAnswer:
+                except dns.resolver.NoAnswer as e:
                     # If there was no MX, A, or AAAA record, then mail to
                     # this domain is not deliverable, although the domain
                     # name has other records (otherwise NXDOMAIN would
                     # have been raised).
-                    raise EmailUndeliverableError(f"The domain name {domain_i18n} does not accept email.")
+                    raise EmailUndeliverableError(f"The domain name {domain_i18n} does not accept email.") from e
 
             # Check for a SPF (RFC 7208) reject-all record ("v=spf1 -all") which indicates
             # no emails are sent from this domain (similar to a Null MX record
@@ -96,10 +96,10 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 # No TXT records means there is no SPF policy, so we cannot take any action.
                 pass
 
-    except dns.resolver.NXDOMAIN:
+    except dns.resolver.NXDOMAIN as e:
         # The domain name does not exist --- there are no records of any sort
         # for the domain name.
-        raise EmailUndeliverableError(f"The domain name {domain_i18n} does not exist.")
+        raise EmailUndeliverableError(f"The domain name {domain_i18n} does not exist.") from e
 
     except dns.resolver.NoNameservers:
         # All nameservers failed to answer the query. This might be a problem
@@ -122,6 +122,6 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
         # Unhandled conditions should not propagate.
         raise EmailUndeliverableError(
             "There was an error while checking if the domain name in the email address is deliverable: " + str(e)
-        )
+        ) from e
 
     return deliverability_info
