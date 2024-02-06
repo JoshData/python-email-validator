@@ -2,6 +2,7 @@ In Development
 --------------
 
 * The library now includes an asynchronous version of the main method named validate_email_async, which can be called with await, that runs DNS-based deliverability checks asychronously.
+* A new option to parse `My Name <address@domain>` strings, i.e. a display name plus an email address in angle brackets, is now included. It is off by default.
 
 2.1.1 (February 26, 2024)
 -------------------------

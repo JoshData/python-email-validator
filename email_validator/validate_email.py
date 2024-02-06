@@ -21,6 +21,7 @@ def validate_email_sync_or_async(
     allow_empty_local: bool = False,
     allow_quoted_local: Optional[bool] = None,
     allow_domain_literal: Optional[bool] = None,
+    allow_display_name: Optional[bool] = None,
     check_deliverability: Optional[bool] = None,
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
@@ -35,7 +36,7 @@ def validate_email_sync_or_async(
     """
 
     # Fill in default values of arguments.
-    from . import ALLOW_SMTPUTF8, ALLOW_QUOTED_LOCAL, ALLOW_DOMAIN_LITERAL, \
+    from . import ALLOW_SMTPUTF8, ALLOW_QUOTED_LOCAL, ALLOW_DOMAIN_LITERAL, ALLOW_DISPLAY_NAME, \
         GLOBALLY_DELIVERABLE, CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
     if allow_smtputf8 is None:
         allow_smtputf8 = ALLOW_SMTPUTF8
@@ -43,6 +44,8 @@ def validate_email_sync_or_async(
         allow_quoted_local = ALLOW_QUOTED_LOCAL
     if allow_domain_literal is None:
         allow_domain_literal = ALLOW_DOMAIN_LITERAL
+    if allow_display_name is None:
+        allow_display_name = ALLOW_DISPLAY_NAME
     if check_deliverability is None:
         check_deliverability = CHECK_DELIVERABILITY
     if test_environment is None:
@@ -61,17 +64,20 @@ def validate_email_sync_or_async(
         except ValueError as e:
             raise EmailSyntaxError("The email address is not valid ASCII.") from e
 
-    # Split the address into the local part (before the @-sign)
-    # and the domain part (after the @-sign). Normally, there
-    # is only one @-sign. But the awkward "quoted string" local
-    # part form (RFC 5321 4.1.2) allows @-signs in the local
+    # Split the address into the display name (or None), the local part
+    # (before the @-sign), and the domain part (after the @-sign).
+    # Normally, there is only one @-sign. But the awkward "quoted string"
+    # local part form (RFC 5321 4.1.2) allows @-signs in the local
     # part if the local part is quoted.
-    local_part, domain_part, is_quoted_local_part \
+    display_name, local_part, domain_part, is_quoted_local_part \
         = split_email(email)
+    if display_name is not None and not allow_display_name:
+        raise EmailSyntaxError("A display name and angle brackets around the email address are not permitted here.")
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
     ret.original = email
+    ret.display_name = display_name
 
     # Validate the email address's local part syntax and get a normalized form.
     # If the original address was quoted and the decoded local part is a valid
@@ -229,6 +235,7 @@ def validate_email_sync(
     allow_empty_local: bool = False,
     allow_quoted_local: Optional[bool] = None,
     allow_domain_literal: Optional[bool] = None,
+    allow_display_name: Optional[bool] = None,
     check_deliverability: Optional[bool] = None,
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
@@ -241,6 +248,7 @@ def validate_email_sync(
         allow_empty_local=allow_empty_local,
         allow_quoted_local=allow_quoted_local,
         allow_domain_literal=allow_domain_literal,
+        allow_display_name=allow_display_name,
         check_deliverability=check_deliverability,
         test_environment=test_environment,
         globally_deliverable=globally_deliverable,
@@ -261,6 +269,7 @@ async def validate_email_async(
     allow_empty_local: bool = False,
     allow_quoted_local: Optional[bool] = None,
     allow_domain_literal: Optional[bool] = None,
+    allow_display_name: Optional[bool] = None,
     check_deliverability: Optional[bool] = None,
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
@@ -274,6 +283,7 @@ async def validate_email_async(
         allow_empty_local=allow_empty_local,
         allow_quoted_local=allow_quoted_local,
         allow_domain_literal=allow_domain_literal,
+        allow_display_name=allow_display_name,
         check_deliverability=check_deliverability,
         test_environment=test_environment,
         globally_deliverable=globally_deliverable,
