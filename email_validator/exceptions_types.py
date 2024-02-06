@@ -62,6 +62,9 @@ class ValidatedEmail:
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
     mx_fallback_type: str
 
+    """The display name in the original input text, unquoted and unescaped, or None."""
+    display_name: str
+
     """Tests use this constructor."""
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -120,6 +123,7 @@ class ValidatedEmail:
             and repr(sorted(self.mx) if getattr(self, 'mx', None) else None)
             == repr(sorted(other.mx) if getattr(other, 'mx', None) else None)
             and getattr(self, 'mx_fallback_type', None) == getattr(other, 'mx_fallback_type', None)
+            and getattr(self, 'display_name', None) == getattr(other, 'display_name', None)
         )
 
     """This helps producing the README."""
@@ -128,7 +132,8 @@ class ValidatedEmail:
             + ",".join(f"\n  {key}={repr(getattr(self, key))}"
                        for key in ('normalized', 'local_part', 'domain',
                                    'ascii_email', 'ascii_local_part', 'ascii_domain',
-                                   'smtputf8', 'mx', 'mx_fallback_type')
+                                   'smtputf8', 'mx', 'mx_fallback_type',
+                                   'display_name')
                        if hasattr(self, key)
                        ) \
             + ")"

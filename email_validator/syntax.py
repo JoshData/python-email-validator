@@ -1,8 +1,7 @@
 from .exceptions_types import EmailSyntaxError
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
-    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
-    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS, \
-    QUOTED_LOCAL_PART_ADDR
+    DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_DOT_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
+    DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS
 
 import re
 import unicodedata
@@ -12,31 +11,148 @@ from typing import Optional
 
 
 def split_email(email):
-    # Return the local part and domain part of the address and
-    # whether the local part was quoted as a three-tuple.
+    # Return the display name, unescaped local part, and domain part
+    # of the address, and whether the local part was quoted. If no
+    # display name was present and angle brackets do not surround
+    # the address, display name will be None; otherwise, it will be
+    # set to the display name or the empty string if there were
+    # angle brackets but no display name.
 
-    # Typical email addresses have a single @-sign, but the
-    # awkward "quoted string" local part form (RFC 5321 4.1.2)
-    # allows @-signs (and escaped quotes) to appear in the local
-    # part if the local part is quoted. If the address is quoted,
-    # split it at a non-escaped @-sign and unescape the escaping.
-    if m := QUOTED_LOCAL_PART_ADDR.match(email):
-        local_part, domain_part = m.groups()
+    # Typical email addresses have a single @-sign and no quote
+    # characters, but the awkward "quoted string" local part form
+    # (RFC 5321 4.1.2) allows @-signs and escaped quotes to appear
+    # in the local part if the local part is quoted.
 
-        # Since backslash-escaping is no longer needed because
-        # the quotes are removed, remove backslash-escaping
-        # to return in the normalized form.
-        local_part = re.sub(r"\\(.)", "\\1", local_part)
+    # A `display name <addr>` format is also present in MIME messages
+    # (RFC 5322 3.4) and this format is also often recognized in
+    # mail UIs. It's not allowed in SMTP commands or in typical web
+    # login forms, but parsing it has been requested, so it's done
+    # here as a convenience. It's implemented in the spirit but not
+    # the letter of RFC 5322 3.4 because MIME messages allow newlines
+    # and comments as a part of the CFWS rule, but this is typically
+    # not allowed in mail UIs (although comment syntax was requested
+    # once too).
+    #
+    # Display names are either basic characters (the same basic characters
+    # permitted in email addresses, but periods are not allowed and spaces
+    # are allowed; see RFC 5322 Appendix A.1.2), or or a quoted string with
+    # the same rules as a quoted local part. (Multiple quoted strings might
+    # be allowed? Unclear.) Optional space (RFC 5322 3.4 CFWS) and then the
+    # email address follows in angle brackets.
+    #
+    # An initial quote is ambiguous between starting a display name or
+    # a quoted local part --- fun.
+    #
+    # We assume the input string is already stripped of leading and
+    # trailing CFWS.
 
-        return local_part, domain_part, True
+    def split_string_at_unquoted_special(text, specials):
+        # Split the string at the first character in specials (an @-sign
+        # or left angle bracket) that does not occur within quotes.
+        inside_quote = False
+        escaped = False
+        left_part = ""
+        for c in text:
+            if inside_quote:
+                left_part += c
+                if c == '\\' and not escaped:
+                    escaped = True
+                elif c == '"' and not escaped:
+                    # The only way to exit the quote is an unescaped quote.
+                    inside_quote = False
+                    escaped = False
+                else:
+                    escaped = False
+            elif c == '"':
+                left_part += c
+                inside_quote = True
+            elif c in specials:
+                # When unquoted, stop before a special character.
+                break
+            else:
+                left_part += c
 
+        # The right part is whatever is left.
+        right_part = text[len(left_part):]
+
+        return left_part, right_part
+
+    def unquote_quoted_string(text):
+        # Remove surrounding quotes and unescape escaped backslashes
+        # and quotes. Escapes are parsed liberally. I think only
+        # backslashes and quotes can be escaped but we'll allow anything
+        # to be.
+        quoted = False
+        escaped = False
+        value = ""
+        for i, c in enumerate(text):
+            if quoted:
+                if escaped:
+                    value += c
+                    escaped = False
+                elif c == '\\':
+                    escaped = True
+                elif c == '"':
+                    if i != len(text) - 1:
+                        raise EmailSyntaxError("Extra character(s) found after close quote: "
+                                               + ", ".join(safe_character_display(c) for c in text[i + 1:]))
+                    break
+                else:
+                    value += c
+            elif i == 0 and c == '"':
+                quoted = True
+            else:
+                value += c
+
+        return value, quoted
+
+    # Split the string at the first unquoted @-sign or left angle bracket.
+    left_part, right_part = split_string_at_unquoted_special(email, ("@", "<"))
+
+    # If the right part starts with an angle bracket,
+    # then the left part is a display name and the rest
+    # of the right part up to the final right angle bracket
+    # is the email address, .
+    if right_part.startswith("<"):
+        # Remove space between the display name and angle bracket.
+        left_part = left_part.rstrip()
+
+        # Unquote and unescape the display name.
+        display_name, display_name_quoted = unquote_quoted_string(left_part)
+
+        # Check that only basic characters are present in a
+        # non-quoted display name.
+        if not display_name_quoted:
+            bad_chars = {
+                safe_character_display(c)
+                for c in display_name
+                if (not ATEXT_RE.match(c) and c != ' ') or c == '.'
+            }
+            if bad_chars:
+                raise EmailSyntaxError("The display name contains invalid characters when not quoted: " + ", ".join(sorted(bad_chars)) + ".")
+
+        # Check for other unsafe characters.
+        check_unsafe_chars(display_name, allow_space=True)
+
+        # Remove the initial and trailing angle brackets.
+        addr_spec = right_part[1:].rstrip(">")
+
+        # Split the email address at the first unquoted @-sign.
+        local_part, domain_part = split_string_at_unquoted_special(addr_spec, ("@",))
+
+    # Otherwise there is no display name. The left part is the local
+    # part and the right part is the domain.
     else:
-        # Split at the one and only at-sign.
-        parts = email.split('@')
-        if len(parts) != 2:
-            raise EmailSyntaxError("The email address is not valid. It must have exactly one @-sign.")
-        local_part, domain_part = parts
-        return local_part, domain_part, False
+        display_name = None
+        local_part, domain_part = left_part, right_part
+
+    if domain_part.startswith("@"):
+        domain_part = domain_part[1:]
+
+    # Unquote the local part if it is quoted.
+    local_part, is_quoted_local_part = unquote_quoted_string(local_part)
+
+    return display_name, local_part, domain_part, is_quoted_local_part
 
 
 def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
@@ -215,7 +331,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     bad_chars = {
         safe_character_display(c)
         for c in local
-        if not ATEXT_INTL_RE.match(c)
+        if not ATEXT_INTL_DOT_RE.match(c)
     }
     if bad_chars:
         raise EmailSyntaxError("The email address contains invalid characters before the @-sign: " + ", ".join(sorted(bad_chars)) + ".")

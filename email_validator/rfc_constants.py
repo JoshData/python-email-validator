@@ -13,7 +13,7 @@ DOT_ATOM_TEXT = re.compile('[' + ATEXT + ']+(?:\\.[' + ATEXT + r']+)*\Z')
 # RFC 3629 section 4, which appear to be the Unicode code points from
 # U+0080 to U+10FFFF.
 ATEXT_INTL = ATEXT + "\u0080-\U0010FFFF"
-ATEXT_INTL_RE = re.compile('[.' + ATEXT_INTL + ']')  # ATEXT_INTL plus dots
+ATEXT_INTL_DOT_RE = re.compile('[.' + ATEXT_INTL + ']')  # ATEXT_INTL plus dots
 DOT_ATOM_TEXT_INTL = re.compile('[' + ATEXT_INTL + ']+(?:\\.[' + ATEXT_INTL + r']+)*\Z')
 
 # The domain part of the email address, after IDNA (ASCII) encoding,
@@ -30,10 +30,9 @@ DOMAIN_LITERAL_CHARS = re.compile(r"[\u0021-\u00FA\u005E-\u007E]")
 # Quoted-string local part (RFC 5321 4.1.2, internationalized by RFC 6531 3.3)
 # The permitted characters in a quoted string are the characters in the range
 # 32-126, except that quotes and (literal) backslashes can only appear when escaped
-# by a backslash. When internationalized, UTF8 strings are also permitted except
+# by a backslash. When internationalized, UTF-8 strings are also permitted except
 # the ASCII characters that are not previously permitted (see above).
 # QUOTED_LOCAL_PART_ADDR = re.compile(r"^\"((?:[\u0020-\u0021\u0023-\u005B\u005D-\u007E]|\\[\u0020-\u007E])*)\"@(.*)")
-QUOTED_LOCAL_PART_ADDR = re.compile(r"^\"((?:[^\"\\]|\\.)*)\"@(.*)")
 QTEXT_INTL = re.compile(r"[\u0020-\u007E\u0080-\U0010FFFF]")
 
 # Length constants

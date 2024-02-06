@@ -92,6 +92,45 @@ from email_validator import EmailSyntaxError, \
                 ascii_email='de-quoted.local.part@example.org'
             ),
         ),
+        (
+            'MyName <me@example.org>',
+            ValidatedEmail(
+                local_part='me',
+                ascii_local_part='me',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized='me@example.org',
+                ascii_email='me@example.org',
+                display_name="MyName"
+            ),
+        ),
+        (
+            'My Name <me@example.org>',
+            ValidatedEmail(
+                local_part='me',
+                ascii_local_part='me',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized='me@example.org',
+                ascii_email='me@example.org',
+                display_name="My Name"
+            ),
+        ),
+        (
+            r'"My.\"Na\\me\".Is" <"me \" \\ me"@example.org>',
+            ValidatedEmail(
+                local_part=r'"me \" \\ me"',
+                ascii_local_part=r'"me \" \\ me"',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized=r'"me \" \\ me"@example.org',
+                ascii_email=r'"me \" \\ me"@example.org',
+                display_name='My."Na\\me".Is'
+            ),
+        ),
     ],
 )
 def test_email_valid(email_input, output):
@@ -99,10 +138,11 @@ def test_email_valid(email_input, output):
     # for addresses that are valid but require SMTPUTF8. Check that it passes with
     # allow_smtput8 both on and off.
     emailinfo = validate_email(email_input, check_deliverability=False, allow_smtputf8=False,
-                               allow_quoted_local=True)
+                               allow_quoted_local=True, allow_display_name=True)
+
     assert emailinfo == output
     assert validate_email(email_input, check_deliverability=False, allow_smtputf8=True,
-                          allow_quoted_local=True) == output
+                          allow_quoted_local=True, allow_display_name=True) == output
 
     # Check that the old `email` attribute to access the normalized form still works
     # if the DeprecationWarning is suppressed.
@@ -363,6 +403,12 @@ def test_domain_literal():
         ('me@[tag:text]', 'The part after the @-sign contains an invalid address literal tag in brackets.'),
         ('me@[untaggedtext]', 'The part after the @-sign in brackets is not an IPv4 address and has no address literal tag.'),
         ('me@[tag:invalid space]', 'The part after the @-sign contains invalid characters in brackets: SPACE.'),
+        ('<me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
+        ('DisplayName <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
+        ('Display Name <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
+        ('\"Display Name\" <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
+        ('Display.Name <me@example.com>', 'The display name contains invalid characters when not quoted: \'.\'.'),
+        ('\"Display.Name\" <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
     ],
 )
 def test_email_invalid_syntax(email_input, error_msg):

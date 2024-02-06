@@ -7,8 +7,7 @@ Python 3.8+ by [Joshua Tauberer](https://joshdata.me).
 This library validates that a string is of the form `name@example.com`
 and optionally checks that the domain name is set up to receive email.
 This is the sort of validation you would want when you are identifying
-users by their email address like on a registration/login form (but not
-necessarily for composing an email message, see below).
+users by their email address like on a registration form.
 
 Key features:
 
@@ -18,7 +17,9 @@ Key features:
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
   (You can override the default DNS resolver to add query caching.)
-* Supports internationalized domain names and internationalized local parts.
+* Supports internationalized domain names (like `@ツ.life`),
+  internationalized local parts (like `ツ@example.com`),
+  and optionally parses display names (e.g. `"My Name" <me@example.com>`).
 * Rejects addresses with unsafe Unicode characters, obsolete email address
   syntax that you'd find unexpected, special use domain names like
   `@localhost`, and domains without a dot by default. This is an
@@ -28,9 +29,8 @@ Key features:
 * Python type annotations are used.
 
 This is an opinionated library. You should definitely also consider using
-the less-opinionated [pyIsEmail](https://github.com/michaelherold/pyIsEmail) and
-[flanker](https://github.com/mailgun/flanker) if they are better for your
-use case.
+the less-opinionated [pyIsEmail](https://github.com/michaelherold/pyIsEmail)
+if it works better for you.
 
 [![Build Status](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml/badge.svg)](https://github.com/JoshData/python-email-validator/actions/workflows/test_and_build.yaml)
 
@@ -143,6 +143,8 @@ The `validate_email` function also accepts the following keyword arguments
 `allow_quoted_local=False`: Set to `True` to allow obscure and potentially problematic email addresses in which the part of the address before the @-sign contains spaces, @-signs, or other surprising characters when the local part is surrounded in quotes (so-called quoted-string local parts). In the object returned by `validate_email`, the normalized local part removes any unnecessary backslash-escaping and even removes the surrounding quotes if the address would be valid without them. You can also set `email_validator.ALLOW_QUOTED_LOCAL` to `True` to turn this on for all calls by default.
 
 `allow_domain_literal=False`: Set to `True` to allow bracketed IPv4 and "IPv6:"-prefixd IPv6 addresses in the domain part of the email address. No deliverability checks are performed for these addresses. In the object returned by `validate_email`, the normalized domain will use the condensed IPv6 format, if applicable. The object's `domain_address` attribute will hold the parsed `ipaddress.IPv4Address` or `ipaddress.IPv6Address` object if applicable. You can also set `email_validator.ALLOW_DOMAIN_LITERAL` to `True` to turn this on for all calls by default.
+
+`allow_display_name=False`: Set to `True` to allow a display name and bracketed address in the input string, like `My Name <me@example.org>`. It's implemented in the spirit but not the letter of RFC 5322 3.4, so it may be stricter or more relaxed than what you want. The display name, if present, is provided in the returned object's `display_name` field after being unquoted and unescaped. You can also set `email_validator.ALLOW_DISPLAY_NAME` to `True` to turn this on for all calls by default.
 
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
@@ -395,6 +397,7 @@ are:
 | `domain` | The canonical internationalized Unicode form of the domain part of the email address. If the returned string contains non-ASCII characters, either the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit the message or else the email address's domain part must be converted to IDNA ASCII first: Use `ascii_domain` field instead. |
 | `ascii_domain` | The [IDNA](https://tools.ietf.org/html/rfc5891) [Punycode](https://www.rfc-editor.org/rfc/rfc3492.txt)-encoded form of the domain part of the given email address, as it would be transmitted on the wire. |
 | `domain_address` | If domain literals are allowed and if the email address contains one, an `ipaddress.IPv4Address` or `ipaddress.IPv6Address` object. |
+| `display_name` | If no display name was present and angle brackets do not surround the address, this will be `None`; otherwise, it will be set to the display name, or the empty string if there were angle brackets but no display name. If the display name was quoted, it will be unquoted and unescaped. |
 | `smtputf8` | A boolean indicating that the [SMTPUTF8](https://tools.ietf.org/html/rfc6531) feature of your mail relay will be required to transmit messages to this address because the local part of the address has non-ASCII characters (the local part cannot be IDNA-encoded). If `allow_smtputf8=False` is passed as an argument, this flag will always be false because an exception is raised if it would have been true. |
 | `mx` | A list of (priority, domain) tuples of MX records specified in the DNS for the domain (see [RFC 5321 section 5](https://tools.ietf.org/html/rfc5321#section-5)). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
 | `mx_fallback_type` | `None` if an `MX` record is found. If no MX records are actually specified in DNS and instead are inferred, through an obsolete mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`). May be `None` if the deliverability check could not be completed because of a temporary issue like a timeout. |
