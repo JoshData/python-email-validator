@@ -80,7 +80,6 @@ class ValidatedEmail:
 
     @property
     def email(self):
-        import warnings
         warnings.warn("ValidatedEmail.email is deprecated and will be removed, use ValidatedEmail.normalized instead", DeprecationWarning)
         return self.normalized
 
