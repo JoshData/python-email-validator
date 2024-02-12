@@ -6,11 +6,11 @@ import dns.resolver
 import dns.exception
 
 
-def caching_resolver(*, timeout: Optional[int] = None, cache=None):
+def caching_resolver(*, timeout: Optional[int] = None, cache=None, dns_resolver=None):
     if timeout is None:
         from . import DEFAULT_TIMEOUT
         timeout = DEFAULT_TIMEOUT
-    resolver = dns.resolver.Resolver()
+    resolver = dns_resolver or dns.resolver.Resolver()
     resolver.cache = cache or dns.resolver.LRUCache()  # type: ignore
     resolver.lifetime = timeout  # type: ignore # timeout, in seconds
     return resolver

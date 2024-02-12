@@ -32,7 +32,8 @@ class MockedDnsResponseData:
 
         # Return a new dns.resolver.Resolver configured for caching
         # using the singleton instance.
-        return caching_resolver(cache=MockedDnsResponseData.INSTANCE)
+        dns_resolver = dns.resolver.Resolver(configure=BUILD_MOCKED_DNS_RESPONSE_DATA)
+        return caching_resolver(cache=MockedDnsResponseData.INSTANCE, dns_resolver=dns_resolver)
 
     def __init__(self):
         self.data = {}
