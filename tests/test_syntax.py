@@ -68,15 +68,41 @@ from email_validator import EmailSyntaxError, \
                 ascii_email='jeff@xn--fiqq24b10vi0d.tw',
             ),
         ),
+        (
+            '"quoted local part"@example.org',
+            ValidatedEmail(
+                local_part='"quoted local part"',
+                ascii_local_part='"quoted local part"',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized='"quoted local part"@example.org',
+                ascii_email='"quoted local part"@example.org'
+            ),
+        ),
+        (
+            '"de-quoted.local.part"@example.org',
+            ValidatedEmail(
+                local_part='de-quoted.local.part',
+                ascii_local_part='de-quoted.local.part',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized='de-quoted.local.part@example.org',
+                ascii_email='de-quoted.local.part@example.org'
+            ),
+        ),
     ],
 )
 def test_email_valid(email_input, output):
     # These addresses do not require SMTPUTF8. See test_email_valid_intl_local_part
     # for addresses that are valid but require SMTPUTF8. Check that it passes with
     # allow_smtput8 both on and off.
-    emailinfo = validate_email(email_input, check_deliverability=False, allow_smtputf8=False)
+    emailinfo = validate_email(email_input, check_deliverability=False, allow_smtputf8=False,
+                               allow_quoted_local=True)
     assert emailinfo == output
-    assert validate_email(email_input, check_deliverability=False, allow_smtputf8=True) == output
+    assert validate_email(email_input, check_deliverability=False, allow_smtputf8=True,
+                          allow_quoted_local=True) == output
 
     # Check that the old `email` attribute to access the normalized form still works
     # if the DeprecationWarning is suppressed.

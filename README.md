@@ -12,8 +12,8 @@ necessarily for composing an email message, see below).
 
 Key features:
 
-* Checks that an email address has the correct syntax --- good for
-  registration/login forms or other uses related to identifying users.
+* Checks that an email address has the correct syntax --- great for
+  email-based registration/login forms or validing data.
 * Gives friendly English error messages when validation fails that you
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
