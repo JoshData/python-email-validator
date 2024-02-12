@@ -1,3 +1,13 @@
+2.1.1 (February 26, 2024)
+-------------------------
+
+* Fixed typo 'marking' instead of 'marketing' in case-insensitive mailbox name list.
+* When DNS-based deliverability checks fail, in some cases exceptions are now thrown with `raise ... from` for better nested exception tracking.
+* Fixed tests to work when no local resolver can be configured.
+* This project is now licensed under the Unlicense (instead of CC0).
+* Minor improvements to tests.
+* Minor improvements to code style.
+
 2.1.0 (October 22, 2023)
 ------------------------
 
