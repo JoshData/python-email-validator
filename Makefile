@@ -17,7 +17,7 @@ typing:
 
 .PHONY: test
 test:
-	PYTHONPATH=.:$PYTHONPATH pytest --cov=email_validator
+	PYTHONPATH=.:$PYTHONPATH pytest --cov=email_validator -k "not network"
 
 .PHONY: testcov
 testcov: test
