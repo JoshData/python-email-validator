@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+markers = [
+    "network: marks tests as requiring Internet access",
+]
