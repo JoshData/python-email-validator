@@ -14,7 +14,7 @@ RESOLVER = MockedDnsResponseData.create_resolver()
     'domain,expected_response',
     [
         ('gmail.com', {'mx': [(5, 'gmail-smtp-in.l.google.com'), (10, 'alt1.gmail-smtp-in.l.google.com'), (20, 'alt2.gmail-smtp-in.l.google.com'), (30, 'alt3.gmail-smtp-in.l.google.com'), (40, 'alt4.gmail-smtp-in.l.google.com')], 'mx_fallback_type': None}),
-        ('pages.github.com', {'mx': [(0, '185.199.108.153'), (0, '185.199.109.153'), (0, '185.199.111.153'), (0, '185.199.110.153')], 'mx_fallback_type': 'A'}),
+        ('pages.github.com', {'mx': [(0, 'pages.github.com')], 'mx_fallback_type': 'A'}),
     ],
 )
 def test_deliverability_found(domain, expected_response):

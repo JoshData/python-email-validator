@@ -1,6 +1,7 @@
 In Development
 --------------
 
+* When a domain name has no MX record but does have an A or AAAA record, the mx field in the object returned by validate_email incorrectly held the IP addresses rather than the domain itself.
 * Fixes in tests.
 
 2.1.1 (February 26, 2024)

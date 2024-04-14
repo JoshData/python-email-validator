@@ -60,7 +60,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             # If there was no MX record, fall back to an A record. (RFC 5321 Section 5)
             try:
                 response = dns_resolver.resolve(domain, "A")
-                deliverability_info["mx"] = [(0, str(r)) for r in response]
+                deliverability_info["mx"] = [(0, domain)]
                 deliverability_info["mx_fallback_type"] = "A"
 
             except dns.resolver.NoAnswer:
@@ -69,7 +69,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 # (It's unclear if SMTP servers actually do this.)
                 try:
                     response = dns_resolver.resolve(domain, "AAAA")
-                    deliverability_info["mx"] = [(0, str(r)) for r in response]
+                    deliverability_info["mx"] = [(0, domain)]
                     deliverability_info["mx_fallback_type"] = "AAAA"
 
                 except dns.resolver.NoAnswer as e:
