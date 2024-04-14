@@ -62,6 +62,32 @@
  },
  {
   "query": {
+   "name": "g.mail.com",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "g.mail.com",
+   "type": "A",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "g.mail.com",
+   "type": "AAAA",
+   "class": "IN"
+  },
+  "answer": [
+   "::1"
+  ]
+ },
+ {
+  "query": {
    "name": "nellis.af.mil",
    "type": "MX",
    "class": "IN"

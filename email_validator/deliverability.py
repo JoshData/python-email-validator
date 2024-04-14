@@ -1,5 +1,7 @@
 from typing import Optional, Any, Dict
 
+import ipaddress
+
 from .exceptions_types import EmailUndeliverableError
 
 import dns.resolver
@@ -57,9 +59,29 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             deliverability_info["mx_fallback_type"] = None
 
         except dns.resolver.NoAnswer:
-            # If there was no MX record, fall back to an A record. (RFC 5321 Section 5)
+            # If there was no MX record, fall back to an A or AAA record
+            # (RFC 5321 Section 5). Check A first since it's more common.
+
+            # If the A/AAAA response has no Globally Reachable IP address,
+            # treat the response as if it were NoAnswer, i.e., the following
+            # address types are not allowed fallbacks: Private-Use, Loopback,
+            # Link-Local, and some other obscure ranges. See
+            # https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+            # https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+            # (Issue #134.)
+            def is_global_addr(ipaddr):
+                try:
+                    ipaddr = ipaddress.ip_address(ipaddr)
+                except ValueError:
+                    return False
+                return ipaddr.is_global
+
             try:
                 response = dns_resolver.resolve(domain, "A")
+
+                if not any(is_global_addr(r.address) for r in response):
+                    raise dns.resolver.NoAnswer  # fall back to AAAA
+
                 deliverability_info["mx"] = [(0, domain)]
                 deliverability_info["mx_fallback_type"] = "A"
 
@@ -69,6 +91,10 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 # (It's unclear if SMTP servers actually do this.)
                 try:
                     response = dns_resolver.resolve(domain, "AAAA")
+
+                    if not any(is_global_addr(r.address) for r in response):
+                        raise dns.resolver.NoAnswer
+
                     deliverability_info["mx"] = [(0, domain)]
                     deliverability_info["mx_fallback_type"] = "AAAA"
 

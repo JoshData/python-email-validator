@@ -1,6 +1,7 @@
 In Development
 --------------
 
+* When a domain name has no MX record but does have an A or AAAA record, if none of the IP addresses in the response are globally reachable (i.e. not Private-Use, Loopback, etc.), the response is treated as if there was no A/AAAA response and the email address will fail the deliverability check.
 * When a domain name has no MX record but does have an A or AAAA record, the mx field in the object returned by validate_email incorrectly held the IP addresses rather than the domain itself.
 * Fixes in tests.
 

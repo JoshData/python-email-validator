@@ -27,6 +27,7 @@ def test_deliverability_found(domain, expected_response):
     [
         ('xkxufoekjvjfjeodlfmdfjcu.com', 'The domain name {domain} does not exist'),
         ('example.com', 'The domain name {domain} does not accept email'),  # Null MX record
+        ('g.mail.com', 'The domain name {domain} does not accept email'),  # No MX record but invalid AAAA record fallback (issue #134)
         ('nellis.af.mil', 'The domain name {domain} does not send email'),  # No MX record, A record fallback, reject-all SPF record.
 
         # No MX or A/AAAA records, but some other DNS records must
