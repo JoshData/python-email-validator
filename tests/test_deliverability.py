@@ -10,14 +10,16 @@ from mocked_dns_response import MockedDnsResponseData, MockedDnsResponseDataClea
 RESOLVER = MockedDnsResponseData.create_resolver()
 
 
-def test_deliverability_found():
-    response = validate_email_deliverability('gmail.com', 'gmail.com', dns_resolver=RESOLVER)
-    assert response.keys() == {'mx', 'mx_fallback_type'}
-    assert response['mx_fallback_type'] is None
-    assert len(response['mx']) > 1
-    assert len(response['mx'][0]) == 2
-    assert isinstance(response['mx'][0][0], int)
-    assert response['mx'][0][1].endswith('.com')
+@pytest.mark.parametrize(
+    'domain,expected_response',
+    [
+        ('gmail.com', {'mx': [(5, 'gmail-smtp-in.l.google.com'), (10, 'alt1.gmail-smtp-in.l.google.com'), (20, 'alt2.gmail-smtp-in.l.google.com'), (30, 'alt3.gmail-smtp-in.l.google.com'), (40, 'alt4.gmail-smtp-in.l.google.com')], 'mx_fallback_type': None}),
+        ('pages.github.com', {'mx': [(0, '185.199.108.153'), (0, '185.199.109.153'), (0, '185.199.111.153'), (0, '185.199.110.153')], 'mx_fallback_type': 'A'}),
+    ],
+)
+def test_deliverability_found(domain, expected_response):
+    response = validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
+    assert response == expected_response
 
 
 def test_deliverability_fails():

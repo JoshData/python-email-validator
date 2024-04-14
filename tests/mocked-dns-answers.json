@@ -15,6 +15,35 @@
  },
  {
   "query": {
+   "name": "pages.github.com",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "pages.github.com",
+   "type": "A",
+   "class": "IN"
+  },
+  "answer": [
+   "185.199.108.153",
+   "185.199.109.153",
+   "185.199.110.153",
+   "185.199.111.153"
+  ]
+ },
+ {
+  "query": {
+   "name": "pages.github.com",
+   "type": "TXT",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
    "name": "xkxufoekjvjfjeodlfmdfjcu.com",
    "type": "ANY",
    "class": "IN"
