@@ -9,14 +9,14 @@ from mocked_dns_response import MockedDnsResponseData, MockedDnsResponseDataClea
 RESOLVER = MockedDnsResponseData.create_resolver()
 
 
-def test_dict_accessor():
+def test_dict_accessor() -> None:
     input_email = "testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
     assert isinstance(valid_email.as_dict(), dict)
     assert valid_email.as_dict()["original"] == input_email
 
 
-def test_main_single_good_input(monkeypatch, capsys):
+def test_main_single_good_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     import json
     test_email = "google@google.com"
     monkeypatch.setattr('sys.argv', ['email_validator', test_email])
@@ -27,7 +27,7 @@ def test_main_single_good_input(monkeypatch, capsys):
     assert validate_email(test_email, dns_resolver=RESOLVER).original == output["original"]
 
 
-def test_main_single_bad_input(monkeypatch, capsys):
+def test_main_single_bad_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     bad_email = 'test@..com'
     monkeypatch.setattr('sys.argv', ['email_validator', bad_email])
     validator_command_line_tool(dns_resolver=RESOLVER)
@@ -35,7 +35,7 @@ def test_main_single_bad_input(monkeypatch, capsys):
     assert stdout == 'An email address cannot have a period immediately after the @-sign.\n'
 
 
-def test_main_multi_input(monkeypatch, capsys):
+def test_main_multi_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     import io
     test_cases = ["google1@google.com", "google2@google.com", "test@.com", "test3@.com"]
     test_input = io.StringIO("\n".join(test_cases))
@@ -49,7 +49,7 @@ def test_main_multi_input(monkeypatch, capsys):
     assert test_cases[3] in stdout
 
 
-def test_bytes_input():
+def test_bytes_input() -> None:
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
     assert isinstance(valid_email.as_dict(), dict)
@@ -60,7 +60,7 @@ def test_bytes_input():
         validate_email(input_email, check_deliverability=False)
 
 
-def test_deprecation():
+def test_deprecation() -> None:
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
     with pytest.deprecated_call():

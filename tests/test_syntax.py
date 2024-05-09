@@ -133,7 +133,7 @@ from email_validator import EmailSyntaxError, \
         ),
     ],
 )
-def test_email_valid(email_input, output):
+def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
     # These addresses do not require SMTPUTF8. See test_email_valid_intl_local_part
     # for addresses that are valid but require SMTPUTF8. Check that it passes with
     # allow_smtput8 both on and off.
@@ -287,7 +287,7 @@ def test_email_valid(email_input, output):
         ),
     ],
 )
-def test_email_valid_intl_local_part(email_input, output):
+def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
     # Check that it passes when allow_smtputf8 is True.
     assert validate_email(email_input, check_deliverability=False) == output
 
@@ -309,7 +309,7 @@ def test_email_valid_intl_local_part(email_input, output):
         ('"quoted.with..unicode.λ"@example.com', '"quoted.with..unicode.λ"'),
         ('"quoted.with.extraneous.\\escape"@example.com', 'quoted.with.extraneous.escape'),
     ])
-def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_part):
+def test_email_valid_only_if_quoted_local_part(email_input: str, normalized_local_part: str) -> None:
     # These addresses are invalid with the default allow_quoted_local=False option.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
@@ -323,7 +323,7 @@ def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_par
     assert validated.local_part == normalized_local_part
 
 
-def test_domain_literal():
+def test_domain_literal() -> None:
     # Check parsing IPv4 addresses.
     validated = validate_email("me@[127.0.0.1]", allow_domain_literal=True)
     assert validated.domain == "[127.0.0.1]"
@@ -411,7 +411,7 @@ def test_domain_literal():
         ('\"Display.Name\" <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
     ],
 )
-def test_email_invalid_syntax(email_input, error_msg):
+def test_email_invalid_syntax(email_input: str, error_msg: str) -> None:
     # Since these all have syntax errors, deliverability
     # checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
@@ -430,7 +430,7 @@ def test_email_invalid_syntax(email_input, error_msg):
         ('me@test.test.test'),
     ],
 )
-def test_email_invalid_reserved_domain(email_input):
+def test_email_invalid_reserved_domain(email_input: str) -> None:
     # Since these all fail deliverabiltiy from a static list,
     # DNS deliverability checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
@@ -454,7 +454,7 @@ def test_email_invalid_reserved_domain(email_input):
         ('\uFDEF', 'U+FDEF'),  # unassigned (Cn)
     ],
 )
-def test_email_unsafe_character(s, expected_error):
+def test_email_unsafe_character(s: str, expected_error: str) -> None:
     # Check for various unsafe characters that are permitted by the email
     # specs but should be disallowed for being unsafe or not sensible Unicode.
 
@@ -474,26 +474,26 @@ def test_email_unsafe_character(s, expected_error):
         ('"quoted.with..unicode.λ"@example.com', 'Internationalized characters before the @-sign are not supported: \'λ\'.'),
     ],
 )
-def test_email_invalid_character_smtputf8_off(email_input, expected_error):
+def test_email_invalid_character_smtputf8_off(email_input: str, expected_error: str) -> None:
     # Check that internationalized characters are rejected if allow_smtputf8=False.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, allow_smtputf8=False, test_environment=True)
     assert str(exc_info.value) == expected_error
 
 
-def test_email_empty_local():
+def test_email_empty_local() -> None:
     validate_email("@test", allow_empty_local=True, test_environment=True)
 
     # This next one might not be desirable.
     validate_email("\"\"@test", allow_empty_local=True, allow_quoted_local=True, test_environment=True)
 
 
-def test_email_test_domain_name_in_test_environment():
+def test_email_test_domain_name_in_test_environment() -> None:
     validate_email("anything@test", test_environment=True)
     validate_email("anything@mycompany.test", test_environment=True)
 
 
-def test_case_insensitive_mailbox_name():
+def test_case_insensitive_mailbox_name() -> None:
     validate_email("POSTMASTER@test", test_environment=True).normalized = "postmaster@test"
     validate_email("NOT-POSTMASTER@test", test_environment=True).normalized = "NOT-POSTMASTER@test"
 
@@ -673,7 +673,7 @@ def test_case_insensitive_mailbox_name():
         ['test.(comment)test@iana.org', 'ISEMAIL_DEPREC_COMMENT']
     ]
 )
-def test_pyisemail_tests(email_input, status):
+def test_pyisemail_tests(email_input: str, status: str) -> None:
     if status == "ISEMAIL_VALID":
         # All standard email address forms should not raise an exception
         # with any set of parsing options.

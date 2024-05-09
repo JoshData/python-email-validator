@@ -110,20 +110,20 @@ def validate_email(
 
     elif domain_part.startswith("[") and domain_part.endswith("]"):
         # Parse the address in the domain literal and get back a normalized domain.
-        domain_part_info = validate_email_domain_literal(domain_part[1:-1])
+        domain_literal_info = validate_email_domain_literal(domain_part[1:-1])
         if not allow_domain_literal:
             raise EmailSyntaxError("A bracketed IP address after the @-sign is not allowed here.")
-        ret.domain = domain_part_info["domain"]
-        ret.ascii_domain = domain_part_info["domain"]  # Domain literals are always ASCII.
-        ret.domain_address = domain_part_info["domain_address"]
+        ret.domain = domain_literal_info["domain"]
+        ret.ascii_domain = domain_literal_info["domain"]  # Domain literals are always ASCII.
+        ret.domain_address = domain_literal_info["domain_address"]
         is_domain_literal = True  # Prevent deliverability checks.
 
     else:
         # Check the syntax of the domain and get back a normalized
         # internationalized and ASCII form.
-        domain_part_info = validate_email_domain_name(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
-        ret.domain = domain_part_info["domain"]
-        ret.ascii_domain = domain_part_info["ascii_domain"]
+        domain_name_info = validate_email_domain_name(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
+        ret.domain = domain_name_info["domain"]
+        ret.ascii_domain = domain_name_info["ascii_domain"]
 
     # Construct the complete normalized form.
     ret.normalized = ret.local_part + "@" + ret.domain

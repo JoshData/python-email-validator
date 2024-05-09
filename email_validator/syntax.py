@@ -1,4 +1,4 @@
-from .exceptions_types import EmailSyntaxError
+from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
     DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_DOT_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
     DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS
@@ -7,10 +7,10 @@ import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 import ipaddress
-from typing import Optional, TypedDict, Union
+from typing import Optional, Tuple, TypedDict, Union
 
 
-def split_email(email):
+def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
     # Return the display name, unescaped local part, and domain part
     # of the address, and whether the local part was quoted. If no
     # display name was present and angle brackets do not surround
@@ -46,7 +46,7 @@ def split_email(email):
     # We assume the input string is already stripped of leading and
     # trailing CFWS.
 
-    def split_string_at_unquoted_special(text, specials):
+    def split_string_at_unquoted_special(text: str, specials: Tuple[str, ...]) -> Tuple[str, str]:
         # Split the string at the first character in specials (an @-sign
         # or left angle bracket) that does not occur within quotes.
         inside_quote = False
@@ -77,7 +77,7 @@ def split_email(email):
 
         return left_part, right_part
 
-    def unquote_quoted_string(text):
+    def unquote_quoted_string(text: str) -> Tuple[str, bool]:
         # Remove surrounding quotes and unescape escaped backslashes
         # and quotes. Escapes are parsed liberally. I think only
         # backslashes and quotes can be escaped but we'll allow anything
@@ -155,7 +155,7 @@ def split_email(email):
     return display_name, local_part, domain_part, is_quoted_local_part
 
 
-def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
+def get_length_reason(addr: str, utf8: bool = False, limit: int = EMAIL_MAX_LENGTH) -> str:
     """Helper function to return an error message related to invalid length."""
     diff = len(addr) - limit
     prefix = "at least " if utf8 else ""
@@ -163,7 +163,7 @@ def get_length_reason(addr, utf8=False, limit=EMAIL_MAX_LENGTH):
     return f"({prefix}{diff} character{suffix} too many)"
 
 
-def safe_character_display(c):
+def safe_character_display(c: str) -> str:
     # Return safely displayable characters in quotes.
     if c == '\\':
         return f"\"{c}\""  # can't use repr because it escapes it
@@ -351,7 +351,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     raise EmailSyntaxError("The email address contains invalid characters before the @-sign.")
 
 
-def check_unsafe_chars(s, allow_space=False):
+def check_unsafe_chars(s: str, allow_space: bool = False) -> None:
     # Check for unsafe characters or characters that would make the string
     # invalid or non-sensible Unicode.
     bad_chars = set()
@@ -403,7 +403,7 @@ def check_unsafe_chars(s, allow_space=False):
                                + ", ".join(safe_character_display(c) for c in sorted(bad_chars)) + ".")
 
 
-def check_dot_atom(label, start_descr, end_descr, is_hostname):
+def check_dot_atom(label: str, start_descr: str, end_descr: str, is_hostname: bool) -> None:
     # RFC 5322 3.2.3
     if label.endswith("."):
         raise EmailSyntaxError(end_descr.format("period"))
@@ -422,7 +422,12 @@ def check_dot_atom(label, start_descr, end_descr, is_hostname):
             raise EmailSyntaxError("An email address cannot have a period and a hyphen next to each other.")
 
 
-def validate_email_domain_name(domain, test_environment=False, globally_deliverable=True):
+class DomainNameValidationResult(TypedDict):
+    ascii_domain: str
+    domain: str
+
+
+def validate_email_domain_name(domain: str, test_environment: bool = False, globally_deliverable: bool = True) -> DomainNameValidationResult:
     """Validates the syntax of the domain part of an email address."""
 
     # Check for invalid characters before normalization.
@@ -586,7 +591,7 @@ def validate_email_domain_name(domain, test_environment=False, globally_delivera
     }
 
 
-def validate_email_length(addrinfo):
+def validate_email_length(addrinfo: ValidatedEmail) -> None:
     # If the email address has an ASCII representation, then we assume it may be
     # transmitted in ASCII (we can't assume SMTPUTF8 will be used on all hops to
     # the destination) and the length limit applies to ASCII characters (which is
@@ -627,7 +632,12 @@ def validate_email_length(addrinfo):
         raise EmailSyntaxError(f"The email address is too long {reason}.")
 
 
-def validate_email_domain_literal(domain_literal):
+class DomainLiteralValidationResult(TypedDict):
+    domain_address: Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+    domain: str
+
+
+def validate_email_domain_literal(domain_literal: str) -> DomainLiteralValidationResult:
     # This is obscure domain-literal syntax. Parse it and return
     # a compressed/normalized address.
     # RFC 5321 4.1.3 and RFC 5322 3.4.1.

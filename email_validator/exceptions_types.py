@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 class EmailNotValidError(ValueError):
@@ -63,18 +63,18 @@ class ValidatedEmail:
     mx_fallback_type: str
 
     """The display name in the original input text, unquoted and unescaped, or None."""
-    display_name: str
+    display_name: Optional[str]
 
     """Tests use this constructor."""
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ValidatedEmail {self.normalized}>"
 
     """For backwards compatibility, support old field names."""
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> str:
         if key == "original_email":
             return self.original
         if key == "email":
@@ -82,13 +82,13 @@ class ValidatedEmail:
         raise AttributeError(key)
 
     @property
-    def email(self):
+    def email(self) -> str:
         warnings.warn("ValidatedEmail.email is deprecated and will be removed, use ValidatedEmail.normalized instead", DeprecationWarning)
         return self.normalized
 
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Union[Optional[str], bool, List[Tuple[int, str]]]:
         warnings.warn("dict-like access to the return value of validate_email is deprecated and may not be supported in the future.", DeprecationWarning, stacklevel=2)
         if key == "email":
             return self.normalized
@@ -109,7 +109,7 @@ class ValidatedEmail:
         raise KeyError()
 
     """Tests use this."""
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ValidatedEmail):
             return False
         return (
@@ -127,7 +127,7 @@ class ValidatedEmail:
         )
 
     """This helps producing the README."""
-    def as_constructor(self):
+    def as_constructor(self) -> str:
         return "ValidatedEmail(" \
             + ",".join(f"\n  {key}={repr(getattr(self, key))}"
                        for key in ('normalized', 'local_part', 'domain',
@@ -139,7 +139,7 @@ class ValidatedEmail:
             + ")"
 
     """Convenience method for accessing ValidatedEmail as a dict"""
-    def as_dict(self):
+    def as_dict(self) -> Dict[str, Any]:
         d = self.__dict__
         if d.get('domain_address'):
             d['domain_address'] = repr(d['domain_address'])

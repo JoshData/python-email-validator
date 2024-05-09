@@ -69,9 +69,9 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             # https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
             # https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
             # (Issue #134.)
-            def is_global_addr(ipaddr):
+            def is_global_addr(address: Any) -> bool:
                 try:
-                    ipaddr = ipaddress.ip_address(ipaddr)
+                    ipaddr = ipaddress.ip_address(address)
                 except ValueError:
                     return False
                 return ipaddr.is_global
