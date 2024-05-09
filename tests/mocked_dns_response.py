@@ -1,5 +1,6 @@
 from typing import Any, Dict, Iterator, Optional
 
+import dns.exception
 import dns.rdataset
 import dns.resolver
 import json
@@ -91,7 +92,7 @@ class MockedDnsResponseData:
     def get(self, key: dns.resolver.CacheKey) -> Optional[Ans]:
         # Special-case a domain to create a timeout.
         if key[0].to_text() == "timeout.com.":
-            raise dns.exception.Timeout()
+            raise dns.exception.Timeout()  # type: ignore [no-untyped-call]
 
         # When building the DNS response database, return
         # a cache miss.
@@ -101,13 +102,13 @@ class MockedDnsResponseData:
         # Query the data for a matching record.
         if key in self.data:
             if not self.data[key]:
-                raise dns.resolver.NoAnswer()
+                raise dns.resolver.NoAnswer()  # type: ignore [no-untyped-call]
             return self.data[key]
 
         # Query the data for a response to an ANY query.
         ANY = dns.rdatatype.from_text("ANY")
         if (key[0], ANY, key[2]) in self.data and self.data[(key[0], ANY, key[2])] is None:
-            raise dns.resolver.NXDOMAIN()
+            raise dns.resolver.NXDOMAIN()  # type: ignore [no-untyped-call]
 
         raise ValueError(f"Saved DNS data did not contain query: {key}")
 
