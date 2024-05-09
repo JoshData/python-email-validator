@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, List, Optional, Tuple, TypedDict
 
 import ipaddress
 
@@ -18,7 +18,14 @@ def caching_resolver(*, timeout: Optional[int] = None, cache: Any = None, dns_re
     return resolver
 
 
-def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> Dict[str, str]:
+DeliverabilityInfo = TypedDict("DeliverabilityInfo", {
+    "mx": List[Tuple[int, str]],
+    "mx_fallback_type": Optional[str],
+    "unknown-deliverability": str,
+}, total=False)
+
+
+def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> DeliverabilityInfo:
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
     # Raises an EmailUndeliverableError on failure. On success, returns a dict
@@ -36,7 +43,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
     elif timeout is not None:
         raise ValueError("It's not valid to pass both timeout and dns_resolver.")
 
-    deliverability_info: Dict[str, Any] = {}
+    deliverability_info: DeliverabilityInfo = {}
 
     try:
         try:
@@ -115,7 +122,6 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 for rec in response:
                     value = b"".join(rec.strings)
                     if value.startswith(b"v=spf1 "):
-                        deliverability_info["spf"] = value.decode("ascii", errors='replace')
                         if value == b"v=spf1 -all":
                             raise EmailUndeliverableError(f"The domain name {domain_i18n} does not send email.")
             except dns.resolver.NoAnswer:

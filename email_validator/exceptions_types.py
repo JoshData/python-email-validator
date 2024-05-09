@@ -60,15 +60,10 @@ class ValidatedEmail:
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
-    mx_fallback_type: str
+    mx_fallback_type: Optional[str]
 
     """The display name in the original input text, unquoted and unescaped, or None."""
     display_name: Optional[str]
-
-    """Tests use this constructor."""
-    def __init__(self, **kwargs: Any) -> None:
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
     def __repr__(self) -> str:
         return f"<ValidatedEmail {self.normalized}>"

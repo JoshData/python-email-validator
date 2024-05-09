@@ -152,7 +152,9 @@ def validate_email(
         deliverability_info = validate_email_deliverability(
             ret.ascii_domain, ret.domain, timeout, dns_resolver
         )
-        for key, value in deliverability_info.items():
-            setattr(ret, key, value)
+        mx = deliverability_info.get("mx")
+        if mx is not None:
+            ret.mx = mx
+        ret.mx_fallback_type = deliverability_info.get("mx_fallback_type")
 
     return ret
