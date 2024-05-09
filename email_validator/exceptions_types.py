@@ -24,7 +24,7 @@ class ValidatedEmail:
     """The email address that was passed to validate_email. (If passed as bytes, this will be a string.)"""
     original: str
 
-    """The normalized email address, which should always be used in preferance to the original address.
+    """The normalized email address, which should always be used in preference to the original address.
     The normalized address converts an IDNA ASCII domain name to Unicode, if possible, and performs
     Unicode normalization on the local part and on the domain (if originally Unicode). It is the
     concatenation of the local_part and domain attributes, separated by an @-sign."""
