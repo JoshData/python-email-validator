@@ -1,8 +1,14 @@
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import split_email, validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, validate_email_length
 from .rfc_constants import CASE_INSENSITIVE_MAILBOX_NAMES
+
+if TYPE_CHECKING:
+    import dns.resolver
+    _Resolver = dns.resolver.Resolver
+else:
+    _Resolver = object
 
 
 def validate_email(
@@ -18,7 +24,7 @@ def validate_email(
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
     timeout: Optional[int] = None,
-    dns_resolver: Optional[object] = None
+    dns_resolver: Optional[_Resolver] = None
 ) -> ValidatedEmail:
     """
     Given an email address, and some options, returns a ValidatedEmail instance

@@ -7,7 +7,7 @@ import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 import ipaddress
-from typing import Optional
+from typing import Optional, TypedDict, Union
 
 
 def split_email(email):
@@ -180,8 +180,14 @@ def safe_character_display(c):
     return unicodedata.name(c, h)
 
 
+class LocalPartValidationResult(TypedDict):
+    local_part: str
+    ascii_local_part: Optional[str]
+    smtputf8: bool
+
+
 def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_empty_local: bool = False,
-                              quoted_local_part: bool = False):
+                              quoted_local_part: bool = False) -> LocalPartValidationResult:
     """Validates the syntax of the local part of an email address."""
 
     if len(local) == 0:
@@ -625,6 +631,8 @@ def validate_email_domain_literal(domain_literal):
     # This is obscure domain-literal syntax. Parse it and return
     # a compressed/normalized address.
     # RFC 5321 4.1.3 and RFC 5322 3.4.1.
+
+    addr: Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 
     # Try to parse the domain literal as an IPv4 address.
     # There is no tag for IPv4 addresses, so we can never

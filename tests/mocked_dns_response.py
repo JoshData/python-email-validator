@@ -20,9 +20,11 @@ BUILD_MOCKED_DNS_RESPONSE_DATA = False
 class MockedDnsResponseData:
     DATA_PATH = os.path.dirname(__file__) + "/mocked-dns-answers.json"
 
+    INSTANCE = None
+
     @staticmethod
     def create_resolver():
-        if not hasattr(MockedDnsResponseData, 'INSTANCE'):
+        if MockedDnsResponseData.INSTANCE is None:
             # Create a singleton instance of this class and load the saved DNS responses.
             # Except when BUILD_MOCKED_DNS_RESPONSE_DATA is true, don't load the data.
             singleton = MockedDnsResponseData()
@@ -116,6 +118,6 @@ class MockedDnsResponseData:
 @pytest.fixture(scope="session", autouse=True)
 def MockedDnsResponseDataCleanup(request):
     def cleanup_func():
-        if BUILD_MOCKED_DNS_RESPONSE_DATA:
+        if BUILD_MOCKED_DNS_RESPONSE_DATA and MockedDnsResponseData.INSTANCE is not None:
             MockedDnsResponseData.INSTANCE.save()
     request.addfinalizer(cleanup_func)

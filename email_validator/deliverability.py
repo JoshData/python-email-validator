@@ -1,4 +1,4 @@
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
 
 import ipaddress
 
@@ -8,17 +8,17 @@ import dns.resolver
 import dns.exception
 
 
-def caching_resolver(*, timeout: Optional[int] = None, cache=None, dns_resolver=None):
+def caching_resolver(*, timeout: Optional[int] = None, cache: Any = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> dns.resolver.Resolver:
     if timeout is None:
         from . import DEFAULT_TIMEOUT
         timeout = DEFAULT_TIMEOUT
     resolver = dns_resolver or dns.resolver.Resolver()
-    resolver.cache = cache or dns.resolver.LRUCache()  # type: ignore
-    resolver.lifetime = timeout  # type: ignore # timeout, in seconds
+    resolver.cache = cache or dns.resolver.LRUCache()
+    resolver.lifetime = timeout  # timeout, in seconds
     return resolver
 
 
-def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver=None):
+def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Optional[int] = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> Dict[str, str]:
     # Check that the domain resolves to an MX record. If there is no MX record,
     # try an A or AAAA record which is a deprecated fallback for deliverability.
     # Raises an EmailUndeliverableError on failure. On success, returns a dict

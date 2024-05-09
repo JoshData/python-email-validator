@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional
+from typing import List, Optional, Tuple
 
 
 class EmailNotValidError(ValueError):
@@ -56,7 +56,7 @@ class ValidatedEmail:
 
     """If a deliverability check is performed and if it succeeds, a list of (priority, domain)
     tuples of MX records specified in the DNS for the domain."""
-    mx: list
+    mx: List[Tuple[int, str]]
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
