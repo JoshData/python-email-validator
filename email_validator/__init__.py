@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 # Export the main method, helper methods, and the public data types.
 from .exceptions_types import ValidatedEmail, EmailNotValidError, \
                               EmailSyntaxError, EmailUndeliverableError
@@ -9,12 +11,14 @@ __all__ = ["validate_email",
            "EmailSyntaxError", "EmailUndeliverableError",
            "caching_resolver", "__version__"]
 
-
-def caching_resolver(*args, **kwargs):
-    # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
+if TYPE_CHECKING:
     from .deliverability import caching_resolver
+else:
+    def caching_resolver(*args, **kwargs):
+        # Lazy load `deliverability` as it is slow to import (due to dns.resolver)
+        from .deliverability import caching_resolver
 
-    return caching_resolver(*args, **kwargs)
+        return caching_resolver(*args, **kwargs)
 
 
 # These global attributes are a part of the library's API and can be

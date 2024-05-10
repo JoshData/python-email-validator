@@ -17,17 +17,18 @@
 import json
 import os
 import sys
+from typing import Any, Dict, Optional
 
-from .validate_email import validate_email
+from .validate_email import validate_email, _Resolver
 from .deliverability import caching_resolver
 from .exceptions_types import EmailNotValidError
 
 
-def main(dns_resolver=None):
+def main(dns_resolver: Optional[_Resolver] = None) -> None:
     # The dns_resolver argument is for tests.
 
     # Set options from environment variables.
-    options = {}
+    options: Dict[str, Any] = {}
     for varname in ('ALLOW_SMTPUTF8', 'ALLOW_QUOTED_LOCAL', 'ALLOW_DOMAIN_LITERAL',
                     'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
         if varname in os.environ:

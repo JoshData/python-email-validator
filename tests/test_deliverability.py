@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pytest
 import re
 
@@ -17,7 +19,7 @@ RESOLVER = MockedDnsResponseData.create_resolver()
         ('pages.github.com', {'mx': [(0, 'pages.github.com')], 'mx_fallback_type': 'A'}),
     ],
 )
-def test_deliverability_found(domain, expected_response):
+def test_deliverability_found(domain: str, expected_response: str) -> None:
     response = validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
     assert response == expected_response
 
@@ -35,7 +37,7 @@ def test_deliverability_found(domain, expected_response):
         ('justtxt.joshdata.me', 'The domain name {domain} does not accept email'),
     ],
 )
-def test_deliverability_fails(domain, error):
+def test_deliverability_fails(domain: str, error: str) -> None:
     with pytest.raises(EmailUndeliverableError, match=error.format(domain=domain)):
         validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
 
@@ -48,7 +50,7 @@ def test_deliverability_fails(domain, error):
         ('me@mail.example.com'),
     ],
 )
-def test_email_example_reserved_domain(email_input):
+def test_email_example_reserved_domain(email_input: str) -> None:
     # Since these all fail deliverabiltiy from a static list,
     # DNS deliverability checks do not arise.
     with pytest.raises(EmailUndeliverableError) as exc_info:
@@ -57,22 +59,22 @@ def test_email_example_reserved_domain(email_input):
     assert re.match(r"The domain name [a-z\.]+ does not (accept email|exist)\.", str(exc_info.value)) is not None
 
 
-def test_deliverability_dns_timeout():
+def test_deliverability_dns_timeout() -> None:
     response = validate_email_deliverability('timeout.com', 'timeout.com', dns_resolver=RESOLVER)
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
 
 
 @pytest.mark.network
-def test_caching_dns_resolver():
+def test_caching_dns_resolver() -> None:
     class TestCache:
-        def __init__(self):
-            self.cache = {}
+        def __init__(self) -> None:
+            self.cache: Dict[Any, Any] = {}
 
-        def get(self, key):
+        def get(self, key: Any) -> Any:
             return self.cache.get(key)
 
-        def put(self, key, value):
+        def put(self, key: Any, value: Any) -> Any:
             self.cache[key] = value
 
     cache = TestCache()

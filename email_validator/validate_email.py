@@ -1,8 +1,14 @@
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import split_email, validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, validate_email_length
 from .rfc_constants import CASE_INSENSITIVE_MAILBOX_NAMES
+
+if TYPE_CHECKING:
+    import dns.resolver
+    _Resolver = dns.resolver.Resolver
+else:
+    _Resolver = object
 
 
 def validate_email(
@@ -18,7 +24,7 @@ def validate_email(
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
     timeout: Optional[int] = None,
-    dns_resolver: Optional[object] = None
+    dns_resolver: Optional[_Resolver] = None
 ) -> ValidatedEmail:
     """
     Given an email address, and some options, returns a ValidatedEmail instance
@@ -104,20 +110,20 @@ def validate_email(
 
     elif domain_part.startswith("[") and domain_part.endswith("]"):
         # Parse the address in the domain literal and get back a normalized domain.
-        domain_part_info = validate_email_domain_literal(domain_part[1:-1])
+        domain_literal_info = validate_email_domain_literal(domain_part[1:-1])
         if not allow_domain_literal:
             raise EmailSyntaxError("A bracketed IP address after the @-sign is not allowed here.")
-        ret.domain = domain_part_info["domain"]
-        ret.ascii_domain = domain_part_info["domain"]  # Domain literals are always ASCII.
-        ret.domain_address = domain_part_info["domain_address"]
+        ret.domain = domain_literal_info["domain"]
+        ret.ascii_domain = domain_literal_info["domain"]  # Domain literals are always ASCII.
+        ret.domain_address = domain_literal_info["domain_address"]
         is_domain_literal = True  # Prevent deliverability checks.
 
     else:
         # Check the syntax of the domain and get back a normalized
         # internationalized and ASCII form.
-        domain_part_info = validate_email_domain_name(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
-        ret.domain = domain_part_info["domain"]
-        ret.ascii_domain = domain_part_info["ascii_domain"]
+        domain_name_info = validate_email_domain_name(domain_part, test_environment=test_environment, globally_deliverable=globally_deliverable)
+        ret.domain = domain_name_info["domain"]
+        ret.ascii_domain = domain_name_info["ascii_domain"]
 
     # Construct the complete normalized form.
     ret.normalized = ret.local_part + "@" + ret.domain
@@ -146,7 +152,9 @@ def validate_email(
         deliverability_info = validate_email_deliverability(
             ret.ascii_domain, ret.domain, timeout, dns_resolver
         )
-        for key, value in deliverability_info.items():
-            setattr(ret, key, value)
+        mx = deliverability_info.get("mx")
+        if mx is not None:
+            ret.mx = mx
+        ret.mx_fallback_type = deliverability_info.get("mx_fallback_type")
 
     return ret

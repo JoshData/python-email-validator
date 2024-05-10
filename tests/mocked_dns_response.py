@@ -1,3 +1,7 @@
+from typing import Any, Dict, Iterator, Optional
+
+import dns.exception
+import dns.rdataset
 import dns.resolver
 import json
 import os.path
@@ -20,9 +24,11 @@ BUILD_MOCKED_DNS_RESPONSE_DATA = False
 class MockedDnsResponseData:
     DATA_PATH = os.path.dirname(__file__) + "/mocked-dns-answers.json"
 
+    INSTANCE = None
+
     @staticmethod
-    def create_resolver():
-        if not hasattr(MockedDnsResponseData, 'INSTANCE'):
+    def create_resolver() -> dns.resolver.Resolver:
+        if MockedDnsResponseData.INSTANCE is None:
             # Create a singleton instance of this class and load the saved DNS responses.
             # Except when BUILD_MOCKED_DNS_RESPONSE_DATA is true, don't load the data.
             singleton = MockedDnsResponseData()
@@ -35,20 +41,19 @@ class MockedDnsResponseData:
         dns_resolver = dns.resolver.Resolver(configure=BUILD_MOCKED_DNS_RESPONSE_DATA)
         return caching_resolver(cache=MockedDnsResponseData.INSTANCE, dns_resolver=dns_resolver)
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self) -> None:
+        self.data: Dict[dns.resolver.CacheKey, Optional[MockedDnsResponseData.Ans]] = {}
 
-    def load(self):
-        # Loads the saved DNS response data from the JSON file and
-        # re-structures it into dnspython classes.
-        class Ans:  # mocks the dns.resolver.Answer class
+    # Loads the saved DNS response data from the JSON file and
+    # re-structures it into dnspython classes.
+    class Ans:  # mocks the dns.resolver.Answer class
+        def __init__(self, rrset: dns.rdataset.Rdataset) -> None:
+            self.rrset = rrset
 
-            def __init__(self, rrset):
-                self.rrset = rrset
+        def __iter__(self) -> Iterator[Any]:
+            return iter(self.rrset)
 
-            def __iter__(self):
-                return iter(self.rrset)
-
+    def load(self) -> None:
         with open(self.DATA_PATH) as f:
             data = json.load(f)
             for item in data:
@@ -60,11 +65,11 @@ class MockedDnsResponseData:
                     for rr in item["answer"]
                 ]
                 if item["answer"]:
-                    self.data[key] = Ans(dns.rdataset.from_rdata_list(0, rdatas=rdatas))
+                    self.data[key] = MockedDnsResponseData.Ans(dns.rdataset.from_rdata_list(0, rdatas=rdatas))
                 else:
                     self.data[key] = None
 
-    def save(self):
+    def save(self) -> None:
         # Re-structure as a list with basic data types.
         data = [
             {
@@ -79,14 +84,15 @@ class MockedDnsResponseData:
                 ])
             }
             for key, value in self.data.items()
+            if value is not None
         ]
         with open(self.DATA_PATH, "w") as f:
             json.dump(data, f, indent=True)
 
-    def get(self, key):
+    def get(self, key: dns.resolver.CacheKey) -> Optional[Ans]:
         # Special-case a domain to create a timeout.
         if key[0].to_text() == "timeout.com.":
-            raise dns.exception.Timeout()
+            raise dns.exception.Timeout()  # type: ignore [no-untyped-call]
 
         # When building the DNS response database, return
         # a cache miss.
@@ -96,17 +102,17 @@ class MockedDnsResponseData:
         # Query the data for a matching record.
         if key in self.data:
             if not self.data[key]:
-                raise dns.resolver.NoAnswer()
+                raise dns.resolver.NoAnswer()  # type: ignore [no-untyped-call]
             return self.data[key]
 
         # Query the data for a response to an ANY query.
         ANY = dns.rdatatype.from_text("ANY")
         if (key[0], ANY, key[2]) in self.data and self.data[(key[0], ANY, key[2])] is None:
-            raise dns.resolver.NXDOMAIN()
+            raise dns.resolver.NXDOMAIN()  # type: ignore [no-untyped-call]
 
         raise ValueError(f"Saved DNS data did not contain query: {key}")
 
-    def put(self, key, value):
+    def put(self, key: dns.resolver.CacheKey, value: Ans) -> None:
         # Build the DNS data by saving the live query response.
         if not BUILD_MOCKED_DNS_RESPONSE_DATA:
             raise ValueError("Should not get here.")
@@ -114,8 +120,8 @@ class MockedDnsResponseData:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def MockedDnsResponseDataCleanup(request):
-    def cleanup_func():
-        if BUILD_MOCKED_DNS_RESPONSE_DATA:
+def MockedDnsResponseDataCleanup(request: pytest.FixtureRequest) -> None:
+    def cleanup_func() -> None:
+        if BUILD_MOCKED_DNS_RESPONSE_DATA and MockedDnsResponseData.INSTANCE is not None:
             MockedDnsResponseData.INSTANCE.save()
     request.addfinalizer(cleanup_func)
