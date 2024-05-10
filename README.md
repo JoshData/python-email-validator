@@ -184,8 +184,12 @@ Internationalized email addresses
 The email protocol SMTP and the domain name system DNS have historically
 only allowed English (ASCII) characters in email addresses and domain names,
 respectively. Each has adapted to internationalization in a separate
-way, creating two separate aspects to email address
-internationalization.
+way, creating two separate aspects to email address internationalization.
+
+(If your mail submission library doesn't support Unicode at all, then
+immediately prior to mail submission you must replace the email address with
+its ASCII-ized form. This library gives you back the ASCII-ized form in the
+`ascii_email` field in the returned object.)
 
 ### Internationalized domain names (IDN)
 
@@ -208,6 +212,19 @@ email addresses, only English letters, numbers, and some punctuation
 (`._!#$%&'^``*+-=~/?{|}`) are allowed. In internationalized email address
 local parts, a wider range of Unicode characters are allowed.
 
+Email addresses with these non-ASCII characters require that your mail
+submission library and all the mail servers along the route to the destination,
+including your own outbound mail server, all support the
+[SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531) extension.
+Support for SMTPUTF8 varies. If you know ahead of time that SMTPUTF8 is not
+supported by your mail submission stack, then you must filter out addresses that
+require SMTPUTF8 using the `allow_smtputf8=False` keyword argument (see above).
+This will cause the validation function to raise a `EmailSyntaxError` if
+delivery would require SMTPUTF8. If you do not set `allow_smtputf8=False`,
+you can also check the value of the `smtputf8` field in the returned object.
+
+### Unsafe Unicode characters are rejected
+
 A surprisingly large number of Unicode characters are not safe to display,
 especially when the email address is concatenated with other text, so this
 library tries to protect you by not permitting reserved, non-, private use,
@@ -226,40 +243,6 @@ with the normalized email address string returned by this library. This does not
 guard against the well known problem that many Unicode characters look alike
 (or are identical), which can be used to fool humans reading displayed text.
 
-Email addresses with these non-ASCII characters require that your mail
-submission library and the mail servers along the route to the destination,
-including your own outbound mail server, all support the
-[SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531) extension.
-Support for SMTPUTF8 varies. See the `allow_smtputf8` parameter.
-
-### If you know ahead of time that SMTPUTF8 is not supported by your mail submission stack
-
-By default all internationalized forms are accepted by the validator.
-But if you know ahead of time that SMTPUTF8 is not supported by your
-mail submission stack, then you must filter out addresses that require
-SMTPUTF8 using the `allow_smtputf8=False` keyword argument (see above).
-This will cause the validation function to raise a `EmailSyntaxError` if
-delivery would require SMTPUTF8. That's just in those cases where
-non-ASCII characters appear before the @-sign. If you do not set
-`allow_smtputf8=False`, you can also check the value of the `smtputf8`
-field in the returned object.
-
-If your mail submission library doesn't support Unicode at all --- even
-in the domain part of the address --- then immediately prior to mail
-submission you must replace the email address with its ASCII-ized form.
-This library gives you back the ASCII-ized form in the `ascii_email`
-field in the returned object, which you can get like this:
-
-```python
-emailinfo = validate_email(email, allow_smtputf8=False)
-email = emailinfo.ascii_email
-```
-
-The local part is left alone (if it has internationalized characters
-`allow_smtputf8=False` will force validation to fail) and the domain
-part is converted to [IDNA ASCII](https://tools.ietf.org/html/rfc5891).
-(You probably should not do this at account creation time so you don't
-change the user's login information without telling them.)
 
 Normalization
 -------------
