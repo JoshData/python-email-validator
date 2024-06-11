@@ -1,6 +1,7 @@
 In Development
 --------------
 
+* Email addresses with internationalized local parts could, with rare Unicode characters, be returned as valid but actually be invalid in their normalized form (returned in the `normalized` field). Local parts now re-validated after Unicode NFC normalization to ensure that invalid characters cannot be injected into the normalized address and that characters with length-increasing NFC normalizations cannot cause a local part to exceed the maximum length after normalization.
 * A new option to parse `My Name <address@domain>` strings, i.e. a display name plus an email address in angle brackets, is now available. It is off by default.
 
 2.1.2 (June 16, 2024)

@@ -1,4 +1,5 @@
 from typing import Optional, Union, TYPE_CHECKING
+import unicodedata
 
 from .exceptions_types import EmailSyntaxError, ValidatedEmail
 from .syntax import split_email, validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, validate_email_length
@@ -85,6 +86,20 @@ def validate_email(
     ret.local_part = local_part_info["local_part"]
     ret.ascii_local_part = local_part_info["ascii_local_part"]
     ret.smtputf8 = local_part_info["smtputf8"]
+
+    # RFC 6532 section 3.1 says that Unicode NFC normalization should be applied,
+    # so we'll return the NFC-normalized local part. Since the caller may use that
+    # string in place of the original string, ensure it is also valid.
+    normalized_local_part = unicodedata.normalize("NFC", ret.local_part)
+    if normalized_local_part != ret.local_part:
+        try:
+            validate_email_local_part(normalized_local_part,
+                                      allow_smtputf8=allow_smtputf8,
+                                      allow_empty_local=allow_empty_local,
+                                      quoted_local_part=is_quoted_local_part)
+        except EmailSyntaxError as e:
+            raise EmailSyntaxError("After Unicode normalization: " + str(e)) from e
+        ret.local_part = normalized_local_part
 
     # If a quoted local part isn't allowed but is present, now raise an exception.
     # This is done after any exceptions raised by validate_email_local_part so

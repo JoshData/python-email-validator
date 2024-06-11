@@ -315,12 +315,8 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         valid = "quoted"
 
     # If the local part matches the internationalized dot-atom form or was quoted,
-    # perform normalization and additional checks for Unicode strings.
+    # perform additional checks for Unicode strings.
     if valid:
-        # RFC 6532 section 3.1 says that Unicode NFC normalization should be applied,
-        # so we'll return the normalized local part in the return value.
-        local = unicodedata.normalize("NFC", local)
-
         # Check that the local part is a valid, safe, and sensible Unicode string.
         # Some of this may be redundant with the range U+0080 to U+10FFFF that is checked
         # by DOT_ATOM_TEXT_INTL and QTEXT_INTL. Other characters may be permitted by the
@@ -385,7 +381,7 @@ def check_unsafe_chars(s: str, allow_space: bool = False) -> None:
             # Combining character in first position would combine with something
             # outside of the email address if concatenated, so they are not safe.
             # We also check if this occurs after the @-sign, which would not be
-            # sensible.
+            # sensible because it would modify the @-sign.
             if i == 0:
                 bad_chars.add(c)
         elif category == "Zs":

@@ -20,10 +20,11 @@ Key features:
 * Supports internationalized domain names (like `@ツ.life`),
   internationalized local parts (like `ツ@example.com`),
   and optionally parses display names (e.g. `"My Name" <me@example.com>`).
-* Rejects addresses with unsafe Unicode characters, obsolete email address
-  syntax that you'd find unexpected, special use domain names like
-  `@localhost`, and domains without a dot by default. This is an
-  opinionated library!
+* Rejects addresses with invalid or unsafe Unicode characters,
+  obsolete email address syntax that you'd find unexpected,
+  special use domain names like `@localhost`,
+  and domains without a dot by default.
+  This is an opinionated library!
 * Normalizes email addresses (important for internationalized
   and quoted-string addresses! see below).
 * Python type annotations are used.
@@ -235,13 +236,9 @@ cannot combine with something outside of the email address string or with
 the @-sign). See https://qntm.org/safe and https://trojansource.codes/
 for relevant prior work. (Other than whitespace, these are checks that
 you should be applying to nearly all user inputs in a security-sensitive
-context.)
-
-These character checks are performed after Unicode normalization (see below),
-so you are only fully protected if you replace all user-provided email addresses
-with the normalized email address string returned by this library. This does not
-guard against the well known problem that many Unicode characters look alike
-(or are identical), which can be used to fool humans reading displayed text.
+context.) This does not guard against the well known problem that many
+Unicode characters look alike, which can be used to fool humans reading
+displayed text.
 
 
 Normalization
@@ -257,7 +254,7 @@ address.
 
 For example, the CJK fullwidth Latin letters are considered semantically
 equivalent in domain names to their ASCII counterparts. This library
-normalizes them to their ASCII counterparts:
+normalizes them to their ASCII counterparts (as required by IDNA):
 
 ```python
 emailinfo = validate_email("me@Ｄｏｍａｉｎ.com")
@@ -270,9 +267,7 @@ Because an end-user might type their email address in different (but
 equivalent) un-normalized forms at different times, you ought to
 replace what they enter with the normalized form immediately prior to
 going into your database (during account creation), querying your database
-(during login), or sending outbound mail. Normalization may also change
-the length of an email address, and this may affect whether it is valid
-and acceptable by your SMTP provider.
+(during login), or sending outbound mail.
 
 The normalizations include lowercasing the domain part of the email
 address (domain names are case-insensitive), [Unicode "NFC"
@@ -285,6 +280,11 @@ characters](https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms)
 in the domain part, possibly other
 [UTS46](http://unicode.org/reports/tr46) mappings on the domain part,
 and conversion from Punycode to Unicode characters.
+
+Normalization may change the characters in the email address and the
+length of the email address, such that a string might be a valid address
+before normalization but invalid after, or vice versa. This library only
+permits addresses that are valid both before and after normalization.
 
 (See [RFC 6532 (internationalized email) section
 3.1](https://tools.ietf.org/html/rfc6532#section-3.1) and [RFC 5895
