@@ -294,6 +294,16 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
                 normalized='ιωάννης@εεττ.gr',
             ),
         ),
+        (
+            's\u0323\u0307@nfc.tld',
+            MakeValidatedEmail(
+                local_part='\u1E69',
+                smtputf8=True,
+                ascii_domain='nfc.tld',
+                domain='nfc.tld',
+                normalized='\u1E69@nfc.tld',
+            ),
+        ),
     ],
 )
 def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
