@@ -72,7 +72,9 @@ def validate_email(
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
-    ret.original = email
+    ret.original = ((local_part if not is_quoted_local_part
+                    else ('"' + local_part + '"'))
+                    + "@" + domain_part)  # drop the display name, if any, for email length tests at the end
     ret.display_name = display_name
 
     # Validate the email address's local part syntax and get a normalized form.

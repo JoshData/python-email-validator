@@ -176,12 +176,11 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
     return display_name, local_part, domain_part, is_quoted_local_part
 
 
-def get_length_reason(addr: str, utf8: bool = False, limit: int = EMAIL_MAX_LENGTH) -> str:
+def get_length_reason(addr: str, limit: int) -> str:
     """Helper function to return an error message related to invalid length."""
     diff = len(addr) - limit
-    prefix = "at least " if utf8 else ""
     suffix = "s" if diff > 1 else ""
-    return f"({prefix}{diff} character{suffix} too many)"
+    return f"({diff} character{suffix} too many)"
 
 
 def safe_character_display(c: str) -> str:
@@ -609,44 +608,66 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
 
 
 def validate_email_length(addrinfo: ValidatedEmail) -> None:
-    # If the email address has an ASCII representation, then we assume it may be
-    # transmitted in ASCII (we can't assume SMTPUTF8 will be used on all hops to
-    # the destination) and the length limit applies to ASCII characters (which is
-    # the same as octets). The number of characters in the internationalized form
-    # may be many fewer (because IDNA ASCII is verbose) and could be less than 254
-    # Unicode characters, and of course the number of octets over the limit may
-    # not be the number of characters over the limit, so if the email address is
-    # internationalized, we can't give any simple information about why the address
-    # is too long.
-    if addrinfo.ascii_email and len(addrinfo.ascii_email) > EMAIL_MAX_LENGTH:
-        if addrinfo.ascii_email == addrinfo.normalized:
-            reason = get_length_reason(addrinfo.ascii_email)
-        elif len(addrinfo.normalized) > EMAIL_MAX_LENGTH:
-            # If there are more than 254 characters, then the ASCII
-            # form is definitely going to be too long.
-            reason = get_length_reason(addrinfo.normalized, utf8=True)
-        else:
-            reason = "(when converted to IDNA ASCII)"
-        raise EmailSyntaxError(f"The email address is too long {reason}.")
-
-    # In addition, check that the UTF-8 encoding (i.e. not IDNA ASCII and not
-    # Unicode characters) is at most 254 octets. If the addres is transmitted using
-    # SMTPUTF8, then the length limit probably applies to the UTF-8 encoded octets.
-    # If the email address has an ASCII form that differs from its internationalized
-    # form, I don't think the internationalized form can be longer, and so the ASCII
-    # form length check would be sufficient. If there is no ASCII form, then we have
-    # to check the UTF-8 encoding. The UTF-8 encoding could be up to about four times
-    # longer than the number of characters.
+    # There are three forms of the email address whose length must be checked:
     #
-    # See the length checks on the local part and the domain.
-    if len(addrinfo.normalized.encode("utf8")) > EMAIL_MAX_LENGTH:
-        if len(addrinfo.normalized) > EMAIL_MAX_LENGTH:
-            # If there are more than 254 characters, then the UTF-8
-            # encoding is definitely going to be too long.
-            reason = get_length_reason(addrinfo.normalized, utf8=True)
-        else:
-            reason = "(when encoded in bytes)"
-        raise EmailSyntaxError(f"The email address is too long {reason}.")
+    # 1) The original email address string. Since callers may continue to use
+    #    this string, even though we recommend using the normalized form, we
+    #    should not pass validation when the original input is not valid. This
+    #    form is checked first because it is the original input.
+    # 2) The normalized email address. We perform Unicode NFC normalization of
+    #    the local part, we normalize the domain to internationalized characters
+    #    (if originaly IDNA ASCII) which also includes Unicode normalization,
+    #    and we may remove quotes in quoted local parts. We recommend that
+    #    callers use this string, so it must be valid.
+    # 3) The email address with the IDNA ASCII representation of the domain
+    #    name, since this string may be used with email stacks that don't
+    #    support UTF-8. Since this is the least likely to be used by callers,
+    #    it is checked last. Note that ascii_email will only be set if the
+    #    local part is ASCII, but conceivably the caller may combine a
+    #    internationalized local part with an ASCII domain, so we check this
+    #    on that combination also. Since we only return the normalized local
+    #    part, we use that (and not the unnormalized local part).
+    #
+    # In all cases, the length is checked in UTF-8 because the SMTPUTF8
+    # extension to SMTP validates the length in bytes.
+
+    addresses_to_check = [
+        (addrinfo.original, None),
+        (addrinfo.normalized, "after normalization"),
+        ((addrinfo.ascii_local_part or addrinfo.local_part or "") + "@" + addrinfo.ascii_domain, "when the part after the @-sign is converted to IDNA ASCII"),
+    ]
+
+    for addr, reason in addresses_to_check:
+        addr_len = len(addr)
+        addr_utf8_len = len(addr.encode("utf8"))
+        diff = addr_utf8_len - EMAIL_MAX_LENGTH
+        if diff > 0:
+            if reason is None and addr_len == addr_utf8_len:
+                # If there is no normalization or transcoding,
+                # we can give a simple count of the number of
+                # characters over the limit.
+                reason = get_length_reason(addr, limit=EMAIL_MAX_LENGTH)
+            elif reason is None:
+                # If there is no normalization but there is
+                # some transcoding to UTF-8, we can compute
+                # the minimum number of characters over the
+                # limit by dividing the number of bytes over
+                # the limit by the maximum number of bytes
+                # per character.
+                mbpc = max(len(c.encode("utf8")) for c in addr)
+                mchars = max(1, diff // mbpc)
+                suffix = "s" if diff > 1 else ""
+                if mchars == diff:
+                    reason = f"({diff} character{suffix} too many)"
+                else:
+                    reason = f"({mchars}-{diff} character{suffix} too many)"
+            else:
+                # Since there is normalization, the number of
+                # characters in the input that need to change is
+                # impossible to know.
+                suffix = "s" if diff > 1 else ""
+                reason += f" ({diff} byte{suffix} too many)"
+            raise EmailSyntaxError(f"The email address is too long {reason}.")
 
 
 class DomainLiteralValidationResult(TypedDict):

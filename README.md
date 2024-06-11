@@ -300,13 +300,6 @@ they are unnecessary. For IPv6 domain literals, the IPv6 address is
 normalized to condensed form. [RFC 2142](https://datatracker.ietf.org/doc/html/rfc2142)
 also requires lowercase normalization for some specific mailbox names like `postmaster@`.
 
-### Length checks
-
-This library checks that the length of the email address is not longer than
-the maximum length. The check is performed on the normalized form of the
-address, which might be different from a string provided by a user. If you
-send email to the original string and not the normalized address, the email
-might be rejected because the original address could be too long.
 
 Examples
 --------
