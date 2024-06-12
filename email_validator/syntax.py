@@ -446,7 +446,7 @@ class DomainNameValidationResult(TypedDict):
 def validate_email_domain_name(domain: str, test_environment: bool = False, globally_deliverable: bool = True) -> DomainNameValidationResult:
     """Validates the syntax of the domain part of an email address."""
 
-    # Check for invalid characters before normalization.
+    # Check for invalid characters.
     # (RFC 952 plus RFC 6531 section 3.3 for internationalized addresses)
     bad_chars = {
         safe_character_display(c)
@@ -466,8 +466,9 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # and converting all label separators (the period/full stop, fullwidth full stop,
     # ideographic full stop, and halfwidth ideographic full stop) to regular dots.
     # It will also raise an exception if there is an invalid character in the input,
-    # such as "⒈" which is invalid because it would expand to include a dot.
-    # Since several characters are normalized to a dot, this has to come before
+    # such as "⒈" which is invalid because it would expand to include a dot and
+    # U+1FEF which normalizes to a backtick, which is not an allowed hostname character.
+    # Since several characters *are* normalized to a dot, this has to come before
     # checks related to dots, like check_dot_atom which comes next.
     original_domain = domain
     try:
@@ -577,14 +578,23 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # but not be actual IDNA. For ASCII-only domains, the conversion out
     # of IDNA just gives the same thing back.
     #
-    # This gives us the canonical internationalized form of the domain.
+    # This gives us the canonical internationalized form of the domain,
+    # which we return to the caller as a part of the normalized email
+    # address.
     try:
         domain_i18n = idna.decode(ascii_domain.encode('ascii'))
     except idna.IDNAError as e:
         raise EmailSyntaxError(f"The part after the @-sign is not valid IDNA ({e}).") from e
 
-    # Check for invalid characters after normalization. These
-    # should never arise. See the similar checks above.
+    # Check that this normalized domain name has not somehow become
+    # an invalid domain name. All of the checks before this point
+    # using the idna package probably guarantee that we now have
+    # a valid international domain name in most respects. But it
+    # doesn't hurt to re-apply some tests to be sure. See the similar
+    # tests above.
+
+    # Check for invalid and unsafe characters. We have no test
+    # case for this.
     bad_chars = {
         safe_character_display(c)
         for c in domain
@@ -593,6 +603,13 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     if bad_chars:
         raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
     check_unsafe_chars(domain)
+
+    # Check that it can be encoded back to IDNA ASCII. We have no test
+    # case for this.
+    try:
+        idna.encode(domain_i18n)
+    except idna.IDNAError as e:
+        raise EmailSyntaxError(f"The part after the @-sign became invalid after normalizing to international characters ({e}).") from e
 
     # Return the IDNA ASCII-encoded form of the domain, which is how it
     # would be transmitted on the wire (except when used with SMTPUTF8
