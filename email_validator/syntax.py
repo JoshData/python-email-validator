@@ -48,12 +48,22 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
 
     def split_string_at_unquoted_special(text: str, specials: Tuple[str, ...]) -> Tuple[str, str]:
         # Split the string at the first character in specials (an @-sign
-        # or left angle bracket) that does not occur within quotes.
+        # or left angle bracket) that does not occur within quotes and
+        # is not followed by a Unicode combining character.
+        # If no special character is found, raise an error.
         inside_quote = False
         escaped = False
         left_part = ""
-        for c in text:
-            if inside_quote:
+        for i, c in enumerate(text):
+            # < plus U+0338 (Combining Long Solidus Overlay) normalizes to
+            # ≮ U+226E (Not Less-Than), and  it would be confusing to treat
+            # the < as the start of "<email>" syntax in that case. Liekwise,
+            # if anything combines with an @ or ", we should probably not
+            # treat it as a special character.
+            if unicodedata.normalize("NFC", text[i:])[0] != c:
+                left_part += c
+
+            elif inside_quote:
                 left_part += c
                 if c == '\\' and not escaped:
                     escaped = True
@@ -71,6 +81,9 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
                 break
             else:
                 left_part += c
+
+        if len(left_part) == len(text):
+            raise EmailSyntaxError("An email address must have an @-sign.")
 
         # The right part is whatever is left.
         right_part = text[len(left_part):]
@@ -133,6 +146,14 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
 
         # Check for other unsafe characters.
         check_unsafe_chars(display_name, allow_space=True)
+
+        # Check that the right part ends with an angle bracket
+        # but allow spaces after it, I guess.
+        if ">" not in right_part:
+            raise EmailSyntaxError("An open angle bracket at the start of the email address has to be followed by a close angle bracket at the end.")
+        right_part = right_part.rstrip(" ")
+        if right_part[-1] != ">":
+            raise EmailSyntaxError("There can't be anything after the email address.")
 
         # Remove the initial and trailing angle brackets.
         addr_spec = right_part[1:].rstrip(">")

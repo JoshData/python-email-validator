@@ -352,6 +352,7 @@ def test_domain_literal() -> None:
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [
+        ('hello.world', 'An email address must have an @-sign.'),
         ('my@localhost', 'The part after the @-sign is not valid. It should have a period.'),
         ('my@.leadingdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@．leadingfwdot.com', 'An email address cannot have a period immediately after the @-sign.'),
@@ -413,6 +414,10 @@ def test_domain_literal() -> None:
         ('me@[untaggedtext]', 'The part after the @-sign in brackets is not an IPv4 address and has no address literal tag.'),
         ('me@[tag:invalid space]', 'The part after the @-sign contains invalid characters in brackets: SPACE.'),
         ('<me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
+        ('<me@example.com', 'An open angle bracket at the start of the email address has to be followed by a close angle bracket at the end.'),
+        ('<me@example.com> !', 'There can\'t be anything after the email address.'),
+        ('<\u0338me@example.com', 'The email address contains invalid characters before the @-sign: \'<\'.'),
+        ('DisplayName <me@-example.com>', 'An email address cannot have a hyphen immediately after the @-sign.'),
         ('DisplayName <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
         ('Display Name <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
         ('\"Display Name\" <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),

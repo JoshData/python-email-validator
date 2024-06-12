@@ -68,8 +68,6 @@ def validate_email(
     # part if the local part is quoted.
     display_name, local_part, domain_part, is_quoted_local_part \
         = split_email(email)
-    if display_name is not None and not allow_display_name:
-        raise EmailSyntaxError("A display name and angle brackets around the email address are not permitted here.")
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
@@ -138,6 +136,11 @@ def validate_email(
 
     # Check the length of the address.
     validate_email_length(ret)
+
+    # Check that a display name is permitted. It's the last syntax check
+    # because we always check against optional parsing features last.
+    if display_name is not None and not allow_display_name:
+        raise EmailSyntaxError("A display name and angle brackets around the email address are not permitted here.")
 
     if check_deliverability and not test_environment:
         # Validate the email address's deliverability using DNS
