@@ -42,7 +42,7 @@ QTEXT_INTL = re.compile(r"[\u0020-\u007E\u0080-\U0010FFFF]")
 EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
 DNS_LABEL_LENGTH_LIMIT = 63  # in "octets", RFC 1035 2.3.1
-DOMAIN_MAX_LENGTH = 255  # in "octets", RFC 1035 2.3.4 and RFC 5321 4.5.3.1.2
+DOMAIN_MAX_LENGTH = 253  # in "octets" as transmitted, RFC 1035 2.3.4 and RFC 5321 4.5.3.1.2, and see https://stackoverflow.com/questions/32290167/what-is-the-maximum-length-of-a-dns-name
 
 # RFC 2142
 CASE_INSENSITIVE_MAILBOX_NAMES = [
