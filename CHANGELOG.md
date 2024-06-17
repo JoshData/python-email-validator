@@ -1,10 +1,12 @@
-In Development
---------------
+2.2.0 (June 20, 2024)
+---------------------
 
 * Email addresses with internationalized local parts could, with rare Unicode characters, be returned as valid but actually be invalid in their normalized form (returned in the `normalized` field). Local parts now re-validated after Unicode NFC normalization to ensure that invalid characters cannot be injected into the normalized address and that characters with length-increasing NFC normalizations cannot cause a local part to exceed the maximum length after normalization.
 * The length check for email addresses with internationalized local parts is now also applied to the original address string prior to Unicode NFC normalization, which may be longer and could exceed the maximum email address length, to protect callers who do not use the returned normalized address.
 * Improved error message for IDNA domains that are too long or have invalid characters after Unicode normalization.
 * A new option to parse `My Name <address@domain>` strings, i.e. a display name plus an email address in angle brackets, is now available. It is off by default.
+* Improvements to Python typing.
+* Some additional tests added.
 
 2.1.2 (June 16, 2024)
 ---------------------
@@ -12,7 +14,7 @@ In Development
 * The domain name length limit is corrected from 255 to 253 IDNA ASCII characters. I misread the RFCs.
 * When a domain name has no MX record but does have an A or AAAA record, if none of the IP addresses in the response are globally reachable (i.e. not Private-Use, Loopback, etc.), the response is treated as if there was no A/AAAA response and the email address will fail the deliverability check.
 * When a domain name has no MX record but does have an A or AAAA record, the mx field in the object returned by validate_email incorrectly held the IP addresses rather than the domain itself.
-* Fixes in tests. Some additional tests added.
+* Fixes in tests.
 
 2.1.1 (February 26, 2024)
 -------------------------
