@@ -392,12 +392,8 @@ def test_domain_literal() -> None:
         ('me@⒈wouldbeinvalid.com',
          "The part after the @-sign contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
-        ('me@\u037e.com',
-         "The part after the @-sign is invalid (Codepoint U+003B at position 1 "
-         "of ';' not allowed)."),
-        ('me@\u1fef.com',
-         "The part after the @-sign is invalid (Codepoint U+0060 at position 1 "
-         "of '`' not allowed)."),
+        ('me@\u037e.com', "The part after the @-sign contains invalid characters after Unicode normalization: ';'."),
+        ('me@\u1fef.com', "The part after the @-sign contains invalid characters after Unicode normalization: '`'."),
         ('@example.com', 'There must be something before the @-sign.'),
         ('white space@test', 'The email address contains invalid characters before the @-sign: SPACE.'),
         ('test@white space', 'The part after the @-sign contains invalid characters: SPACE.'),

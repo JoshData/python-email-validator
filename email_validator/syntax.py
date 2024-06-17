@@ -476,6 +476,16 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     except idna.IDNAError as e:
         raise EmailSyntaxError(f"The part after the @-sign contains invalid characters ({e}).") from e
 
+    # Check for invalid characters after Unicode normalization which are not caught
+    # by uts46_remap (see tests for examples).
+    bad_chars = {
+        safe_character_display(c)
+        for c in domain
+        if not ATEXT_HOSTNAME_INTL.match(c)
+    }
+    if bad_chars:
+        raise EmailSyntaxError("The part after the @-sign contains invalid characters after Unicode normalization: " + ", ".join(sorted(bad_chars)) + ".")
+
     # The domain part is made up dot-separated "labels." Each label must
     # have at least one character and cannot start or end with dashes, which
     # means there are some surprising restrictions on periods and dashes.
