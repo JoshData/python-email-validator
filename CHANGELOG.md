@@ -1,5 +1,5 @@
-In Development
---------------
+2.1.2 (June 16, 2024)
+---------------------
 
 * The domain name length limit is corrected from 255 to 253 IDNA ASCII characters. I misread the RFCs.
 * When a domain name has no MX record but does have an A or AAAA record, if none of the IP addresses in the response are globally reachable (i.e. not Private-Use, Loopback, etc.), the response is treated as if there was no A/AAAA response and the email address will fail the deliverability check.
