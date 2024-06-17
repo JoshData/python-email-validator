@@ -7,20 +7,20 @@
 # the earliest Python version we support, and some exception
 # messages may depend on package versions, so we pin versions
 # for reproducible testing.)
-coverage==7.4.4
+coverage==7.5.3
 dnspython==2.6.1
-exceptiongroup==1.2.0
-flake8==7.0.0
+exceptiongroup==1.2.1
+flake8==7.1.0
 idna==3.7
 iniconfig==2.0.0
 mccabe==0.7.0
-mypy==1.9.0
+mypy==1.10.0
 mypy-extensions==1.0.0
-packaging==24.0
-pluggy==1.4.0
-pycodestyle==2.11.1
+packaging==24.1
+pluggy==1.5.0
+pycodestyle==2.12.0
 pyflakes==3.2.0
-pytest==8.1.1
+pytest==8.2.2
 pytest-cov==5.0.0
 tomli==2.0.1
-typing_extensions==4.11.0
+typing_extensions==4.12.2
