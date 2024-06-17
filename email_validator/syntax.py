@@ -469,6 +469,7 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # such as "⒈" which is invalid because it would expand to include a dot.
     # Since several characters are normalized to a dot, this has to come before
     # checks related to dots, like check_dot_atom which comes next.
+    original_domain = domain
     try:
         domain = idna.uts46_remap(domain, std3_rules=False, transitional=False)
     except idna.IDNAError as e:
@@ -498,29 +499,22 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
         # the MTA must either support SMTPUTF8 or the mail client must convert the
         # domain name to IDNA before submission.
         #
-        # Unfortunately this step incorrectly 'fixes' domain names with leading
-        # periods by removing them, so we have to check for this above. It also gives
-        # a funky error message ("No input") when there are two periods in a
-        # row, also checked separately above.
-        #
         # For ASCII-only domains, the transformation does nothing and is safe to
         # apply. However, to ensure we don't rely on the idna library for basic
         # syntax checks, we don't use it if it's not needed.
         #
-        # uts46 is off here because it is handled above.
+        # idna.encode also checks the domain name length after encoding but it
+        # doesn't give a nice error, so we call the underlying idna.alabel method
+        # directly. idna.alabel checks label length and doesn't give great messages,
+        # but we can't easily go to lower level methods.
         try:
-            ascii_domain = idna.encode(domain, uts46=False).decode("ascii")
+            ascii_domain = ".".join(
+                idna.alabel(label).decode("ascii")
+                for label in domain.split(".")
+            )
         except idna.IDNAError as e:
-            if "Domain too long" in str(e):
-                # We can't really be more specific because UTS-46 normalization means
-                # the length check is applied to a string that is different from the
-                # one the user supplied. Also I'm not sure if the length check applies
-                # to the internationalized form, the IDNA ASCII form, or even both!
-                raise EmailSyntaxError("The email address is too long after the @-sign.") from e
-
-            # Other errors seem to not be possible because the call to idna.uts46_remap
-            # would have already raised them.
-            raise EmailSyntaxError(f"The part after the @-sign contains invalid characters ({e}).") from e
+            # Some errors would have already been raised by idna.uts46_remap.
+            raise EmailSyntaxError(f"The part after the @-sign is invalid ({e}).") from e
 
         # Check the syntax of the string returned by idna.encode.
         # It should never fail.
@@ -535,8 +529,13 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # as IDNA ASCII. (This is also checked by idna.encode, so this exception
     # is never reached for internationalized domains.)
     if len(ascii_domain) > DOMAIN_MAX_LENGTH:
-        reason = get_length_reason(ascii_domain, limit=DOMAIN_MAX_LENGTH)
-        raise EmailSyntaxError(f"The email address is too long after the @-sign {reason}.")
+        if ascii_domain == original_domain:
+            reason = get_length_reason(ascii_domain, limit=DOMAIN_MAX_LENGTH)
+            raise EmailSyntaxError(f"The email address is too long after the @-sign {reason}.")
+        else:
+            diff = len(ascii_domain) - DOMAIN_MAX_LENGTH
+            s = "" if diff == 1 else "s"
+            raise EmailSyntaxError(f"The email address is too long after the @-sign ({diff} byte{s} too many after IDNA encoding).")
 
     # Also check the label length limit.
     # (RFC 1035 2.3.1)
