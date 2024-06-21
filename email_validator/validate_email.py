@@ -17,7 +17,7 @@ def validate_email(
     /,  # prior arguments are positional-only
     *,  # subsequent arguments are keyword-only
     allow_smtputf8: Optional[bool] = None,
-    allow_empty_local: bool = False,
+    allow_empty_local: Optional[bool] = None,
     allow_quoted_local: Optional[bool] = None,
     allow_domain_literal: Optional[bool] = None,
     allow_display_name: Optional[bool] = None,
@@ -34,10 +34,12 @@ def validate_email(
     """
 
     # Fill in default values of arguments.
-    from . import ALLOW_SMTPUTF8, ALLOW_QUOTED_LOCAL, ALLOW_DOMAIN_LITERAL, ALLOW_DISPLAY_NAME, \
+    from . import ALLOW_SMTPUTF8, ALLOW_EMPTY_LOCAL, ALLOW_QUOTED_LOCAL, ALLOW_DOMAIN_LITERAL, ALLOW_DISPLAY_NAME, \
         GLOBALLY_DELIVERABLE, CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
     if allow_smtputf8 is None:
         allow_smtputf8 = ALLOW_SMTPUTF8
+    if allow_empty_local is None:
+        allow_empty_local = ALLOW_EMPTY_LOCAL
     if allow_quoted_local is None:
         allow_quoted_local = ALLOW_QUOTED_LOCAL
     if allow_domain_literal is None:

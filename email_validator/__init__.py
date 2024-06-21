@@ -27,6 +27,7 @@ else:
 # Default values for keyword arguments.
 
 ALLOW_SMTPUTF8 = True
+ALLOW_EMPTY_LOCAL = False
 ALLOW_QUOTED_LOCAL = False
 ALLOW_DOMAIN_LITERAL = False
 ALLOW_DISPLAY_NAME = False
