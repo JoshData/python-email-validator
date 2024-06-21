@@ -57,7 +57,7 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
         for i, c in enumerate(text):
             # < plus U+0338 (Combining Long Solidus Overlay) normalizes to
             # ≮ U+226E (Not Less-Than), and  it would be confusing to treat
-            # the < as the start of "<email>" syntax in that case. Liekwise,
+            # the < as the start of "<email>" syntax in that case. Likewise,
             # if anything combines with an @ or ", we should probably not
             # treat it as a special character.
             if unicodedata.normalize("NFC", text[i:])[0] != c:
@@ -642,7 +642,7 @@ def validate_email_length(addrinfo: ValidatedEmail) -> None:
     #    form is checked first because it is the original input.
     # 2) The normalized email address. We perform Unicode NFC normalization of
     #    the local part, we normalize the domain to internationalized characters
-    #    (if originaly IDNA ASCII) which also includes Unicode normalization,
+    #    (if originally IDNA ASCII) which also includes Unicode normalization,
     #    and we may remove quotes in quoted local parts. We recommend that
     #    callers use this string, so it must be valid.
     # 3) The email address with the IDNA ASCII representation of the domain

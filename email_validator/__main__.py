@@ -38,7 +38,7 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
             options[varname.lower()] = float(os.environ[varname])
 
     if len(sys.argv) == 1:
-        # Validate the email addresses pased line-by-line on STDIN.
+        # Validate the email addresses passed line-by-line on STDIN.
         dns_resolver = dns_resolver or caching_resolver()
         for line in sys.stdin:
             email = line.strip()
