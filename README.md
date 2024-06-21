@@ -12,7 +12,7 @@ users by their email address like on a registration form.
 Key features:
 
 * Checks that an email address has the correct syntax --- great for
-  email-based registration/login forms or validing data.
+  email-based registration/login forms or validating data.
 * Gives friendly English error messages when validation fails that you
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?

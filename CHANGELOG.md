@@ -77,7 +77,7 @@ Version 1.2.1 (May 1, 2022)
 * example.com/net/org are removed from the special-use reserved domain names list so that they do not raise exceptions if check_deliverability is off.
 * Improved README.
 
-Verison 1.2.0 (April 24, 2022)
+Version 1.2.0 (April 24, 2022)
 ------------------------------
 
 * Reject domains with NULL MX records (when deliverability checks
