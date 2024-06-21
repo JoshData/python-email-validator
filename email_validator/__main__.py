@@ -29,7 +29,7 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
 
     # Set options from environment variables.
     options: Dict[str, Any] = {}
-    for varname in ('ALLOW_SMTPUTF8', 'ALLOW_QUOTED_LOCAL', 'ALLOW_DOMAIN_LITERAL',
+    for varname in ('ALLOW_SMTPUTF8', 'ALLOW_EMPTY_LOCAL', 'ALLOW_QUOTED_LOCAL', 'ALLOW_DOMAIN_LITERAL',
                     'ALLOW_DISPLAY_NAME',
                     'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
         if varname in os.environ:
