@@ -12,7 +12,7 @@
 # When using STDIN, no output will be given for valid email addresses.
 #
 # Keyword arguments to validate_email can be set in environment variables
-# of the same name but upprcase (see below).
+# of the same name but uppercase (see below).
 
 import json
 import os
