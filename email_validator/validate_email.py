@@ -1,7 +1,8 @@
 from typing import Optional, Union, TYPE_CHECKING
 import unicodedata
 
-from .exceptions_types import EmailSyntaxError, ValidatedEmail
+from .exceptions import EmailSyntaxError
+from .types import ValidatedEmail
 from .syntax import split_email, validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, validate_email_length
 from .rfc_constants import CASE_INSENSITIVE_MAILBOX_NAMES
 

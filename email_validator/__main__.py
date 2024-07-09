@@ -21,7 +21,7 @@ from typing import Any, Dict, Optional
 
 from .validate_email import validate_email, _Resolver
 from .deliverability import caching_resolver
-from .exceptions_types import EmailNotValidError
+from .exceptions import EmailNotValidError
 
 
 def main(dns_resolver: Optional[_Resolver] = None) -> None:

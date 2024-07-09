@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING
 
 # Export the main method, helper methods, and the public data types.
-from .exceptions_types import ValidatedEmail, EmailNotValidError, \
-                              EmailSyntaxError, EmailUndeliverableError
+from .exceptions import EmailNotValidError, EmailSyntaxError, EmailUndeliverableError
+from .types import ValidatedEmail
 from .validate_email import validate_email
 from .version import __version__
 

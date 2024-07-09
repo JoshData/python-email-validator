@@ -2,7 +2,7 @@ from typing import Any, List, Optional, Tuple, TypedDict
 
 import ipaddress
 
-from .exceptions_types import EmailUndeliverableError
+from .exceptions import EmailUndeliverableError
 
 import dns.resolver
 import dns.exception
