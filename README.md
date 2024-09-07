@@ -434,6 +434,29 @@ git push --tags
 ./release_to_pypi.sh
 ```
 
+Tests run with mocked DNS responses. When adding or changing tests, temporarily turn on the `BUILD_MOCKED_DNS_RESPONSE_DATA` flag in `tests/mocked_dns_responses.py` to re-build the database of mocked responses from live queries.
+
+For Project Maintainers
+-----------------------
+
+The package is distributed as a universal wheel and as a source package.
+
+To release:
+
+* Update CHANGELOG.md.
+* Update the version number in `email_validator/version.py`.
+* Make & push a commit with the new version number and make sure tests pass.
+* Make & push a tag (see command below).
+* Make a release at https://github.com/JoshData/python-email-validator/releases/new.
+* Publish a source and wheel distribution to pypi (see command below).
+
+```sh
+git tag v$(cat email_validator/version.py  | sed "s/.* = //" | sed 's/"//g')
+git push --tags
+./release_to_pypi.sh
+```
+
+
 License
 -------
 
