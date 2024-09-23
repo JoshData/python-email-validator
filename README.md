@@ -1,10 +1,3 @@
-
-
-Внесены измененния в ветке develop на сервере
-
-
-
-
 email-validator: Validate Email Addresses
 =========================================
 
