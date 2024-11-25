@@ -304,6 +304,16 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
                 normalized='\u1E69@nfc.tld',
             ),
         ),
+        (
+            '＠@fullwidth.at',
+            MakeValidatedEmail(
+                local_part='＠',
+                smtputf8=True,
+                ascii_domain='fullwidth.at',
+                domain='fullwidth.at',
+                normalized='＠@fullwidth.at',
+            ),
+        ),
     ],
 )
 def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
@@ -363,6 +373,8 @@ def test_domain_literal() -> None:
     'email_input,error_msg',
     [
         ('hello.world', 'An email address must have an @-sign.'),
+        ('hello＠world', 'The email address has the "full-width" at-sign (@) character instead of a regular at-sign.'),
+        ('hello﹫world', 'The email address has the "small commercial at" character instead of a regular at-sign.'),
         ('my@localhost', 'The part after the @-sign is not valid. It should have a period.'),
         ('my@.leadingdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@．leadingfwdot.com', 'An email address cannot have a period immediately after the @-sign.'),

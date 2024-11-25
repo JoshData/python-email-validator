@@ -83,7 +83,28 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
             else:
                 left_part += c
 
+        # No special symbol found. The special symbols always
+        # include an at-sign, so this always indicates a missing
+        # at-sign. The other symbol is optional.
         if len(left_part) == len(text):
+            # The full-width at-sign might occur in CJK contexts.
+            # We can't accept it because we only accept addresess
+            # that are actually valid. But if this is common we
+            # may want to consider accepting and normalizing full-
+            # width characters for the other special symbols (and
+            # full-width dot is already accepted in internationalized
+            # domains) with a new option.
+            # See https://news.ycombinator.com/item?id=42235268.
+            if "＠" in text:
+                raise EmailSyntaxError("The email address has the \"full-width\" at-sign (@) character instead of a regular at-sign.")
+
+            # Check another near-homoglyph for good measure because
+            # homoglyphs in place of required characters could be
+            # very confusing. We may want to consider checking for
+            # homoglyphs anywhere we look for a special symbol.
+            if "﹫" in text:
+                raise EmailSyntaxError('The email address has the "small commercial at" character instead of a regular at-sign.')
+
             raise EmailSyntaxError("An email address must have an @-sign.")
 
         # The right part is whatever is left.
