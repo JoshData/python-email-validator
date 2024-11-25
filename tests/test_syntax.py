@@ -295,13 +295,14 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
             ),
         ),
         (
-            's\u0323\u0307@nfc.tld',
+            '\"s\u0323\u0307\" <s\u0323\u0307@nfc.tld>',
             MakeValidatedEmail(
                 local_part='\u1E69',
                 smtputf8=True,
                 ascii_domain='nfc.tld',
                 domain='nfc.tld',
                 normalized='\u1E69@nfc.tld',
+                display_name='\u1E69'
             ),
         ),
         (
@@ -318,11 +319,11 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
 )
 def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
     # Check that it passes when allow_smtputf8 is True.
-    assert validate_email(email_input, check_deliverability=False) == output
+    assert validate_email(email_input, check_deliverability=False, allow_display_name=True) == output
 
     # Check that it fails when allow_smtputf8 is False.
     with pytest.raises(EmailSyntaxError) as exc_info:
-        validate_email(email_input, allow_smtputf8=False, check_deliverability=False)
+        validate_email(email_input, allow_smtputf8=False, check_deliverability=False, allow_display_name=True)
     assert "Internationalized characters before the @-sign are not supported: " in str(exc_info.value)
 
 

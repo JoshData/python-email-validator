@@ -302,8 +302,8 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         valid = "dot-atom"
         requires_smtputf8 = True
 
-    # There are no syntactic restrictions on quoted local parts, so if
-    # it was originally quoted, it is probably valid. More characters
+    # There are no dot-atom syntax restrictions on quoted local parts, so
+    # if it was originally quoted, it is probably valid. More characters
     # are allowed, like @-signs, spaces, and quotes, and there are no
     # restrictions on the placement of dots, as in dot-atom local parts.
     elif quoted_local_part:
