@@ -629,12 +629,12 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # case for this.
     bad_chars = {
         safe_character_display(c)
-        for c in domain
+        for c in domain_i18n
         if not ATEXT_HOSTNAME_INTL.match(c)
     }
     if bad_chars:
         raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
-    check_unsafe_chars(domain)
+    check_unsafe_chars(domain_i18n)
 
     # Check that it can be encoded back to IDNA ASCII. We have no test
     # case for this.
