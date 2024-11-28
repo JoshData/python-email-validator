@@ -402,9 +402,7 @@ def test_domain_literal() -> None:
         ('.leadingdot@domain.com', 'An email address cannot start with a period.'),
         ('twodots..here@domain.com', 'An email address cannot have two periods in a row.'),
         ('trailingdot.@domain.email', 'An email address cannot have a period immediately before the @-sign.'),
-        ('me@⒈wouldbeinvalid.com',
-         "The part after the @-sign contains invalid characters (Codepoint U+2488 not allowed "
-         "at position 1 in '⒈wouldbeinvalid.com')."),
+        ('me@⒈wouldbeinvalid.com', "The part after the @-sign contains invalid characters: '⒈'."),
         ('me@\u037e.com', "The part after the @-sign contains invalid characters after Unicode normalization: ';'."),
         ('me@\u1fef.com', "The part after the @-sign contains invalid characters after Unicode normalization: '`'."),
         ('@example.com', 'There must be something before the @-sign.'),
