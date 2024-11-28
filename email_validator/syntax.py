@@ -460,6 +460,36 @@ def check_dot_atom(label: str, start_descr: str, end_descr: str, is_hostname: bo
             raise EmailSyntaxError("An email address cannot have a period and a hyphen next to each other.")
 
 
+def uts46_valid_char(char: str) -> bool:
+    # By exhaustively searching for characters rejected by
+    # for c in (chr(i) for i in range(0x110000)):
+    #   idna.uts46_remap(c, std3_rules=False, transitional=False)
+    # I found the following rules are pretty close.
+    c = ord(char)
+    if 0x80 <= c <= 0x9f:
+        # 8-bit ASCII range.
+        return False
+    elif ((0x2010 <= c <= 0x2060 and not (0x2024 <= c <= 0x2026) and not (0x2028 <= c <= 0x202E))
+          or c in (0x00AD, 0x2064, 0xFF0E)
+          or 0x200B <= c <= 0x200D
+          or 0x1BCA0 <= c <= 0x1BCA3):
+        # Characters that are permitted but fall into one of the
+        # tests below.
+        return True
+    elif unicodedata.category(chr(c)) in ("Cf", "Cn", "Co", "Cs", "Zs", "Zl", "Zp"):
+        # There are a bunch of Zs characters including regular space
+        # that are allowed by UTS46 but are not allowed in domain
+        # names anyway.
+        #
+        # There are some Cn (unassigned) characters that the idna
+        # package doesn't reject but we can, I think.
+        return False
+    elif "002E" in unicodedata.decomposition(chr(c)).split(" "):
+        # Characters that decompose into a sequence with a dot.
+        return False
+    return True
+
+
 class DomainNameValidationResult(TypedDict):
     ascii_domain: str
     domain: str
@@ -483,6 +513,15 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # by DOT_ATOM_TEXT_INTL. Other characters may be permitted by the email specs, but
     # they may not be valid, safe, or sensible Unicode strings.
     check_unsafe_chars(domain)
+
+    # Reject characters that would be rejected by UTS-46 normalization next but
+    # with an error message under our control.
+    bad_chars = {
+        safe_character_display(c) for c in domain
+        if not uts46_valid_char(c)
+    }
+    if bad_chars:
+        raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
 
     # Perform UTS-46 normalization, which includes casefolding, NFC normalization,
     # and converting all label separators (the period/full stop, fullwidth full stop,
