@@ -65,3 +65,17 @@ def test_deprecation() -> None:
     valid_email = validate_email(input_email, check_deliverability=False)
     with pytest.deprecated_call():
         assert valid_email.email is not None
+
+
+@pytest.mark.parametrize('invalid_email', [
+    None,
+    12345,
+    [],
+    {},
+    lambda x: x,
+    # I believe this is a valid email address, but it's not valid ASCII
+    b'\xd0\xba\xd0\xb2\xd1\x96\xd1\x82\xd0\xbe\xd1\x87\xd0\xba\xd0\xb0@\xd0\xbf\xd0\xbe\xd1\x88\xd1\x82\xd0\xb0.test'
+])
+def test_invalid_type(invalid_email) -> None:
+    with pytest.raises(EmailSyntaxError, match="The email address is not valid ASCII"):
+        validate_email(invalid_email, check_deliverability=False)

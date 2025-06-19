@@ -62,7 +62,7 @@ def validate_email(
     if not isinstance(email, str):
         try:
             email = email.decode("ascii")
-        except ValueError as e:
+        except (AttributeError, ValueError) as e:
             raise EmailSyntaxError("The email address is not valid ASCII.") from e
 
     # Split the address into the display name (or None), the local part
