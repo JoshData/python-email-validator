@@ -59,14 +59,18 @@ def validate_email(
     if timeout is None and dns_resolver is None:
         timeout = DEFAULT_TIMEOUT
 
-    # Allow email to be a str or bytes instance. If bytes,
-    # it must be ASCII because that's how the bytes work
-    # on the wire with SMTP.
-    if not isinstance(email, str):
+    if isinstance(email, str):
+        pass
+    elif isinstance(email, bytes):
+        # Allow email to be a bytes instance as if it is what
+        # will be transmitted on the wire. But assume SMTPUTF8
+        # is unavailable, so it must be ASCII.
         try:
             email = email.decode("ascii")
         except ValueError as e:
             raise EmailSyntaxError("The email address is not valid ASCII.") from e
+    else:
+        raise TypeError("email must be str or bytes")
 
     # Split the address into the display name (or None), the local part
     # (before the @-sign), and the domain part (after the @-sign).
