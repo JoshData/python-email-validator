@@ -36,12 +36,24 @@ DOMAIN_LITERAL_CHARS = re.compile(r"[\u0021-\u00FA\u005E-\u007E]")
 QTEXT_INTL = re.compile(r"[\u0020-\u007E\u0080-\U0010FFFF]")
 
 # Length constants
+
 # RFC 3696 + errata 1003 + errata 1690 (https://www.rfc-editor.org/errata_search.php?rfc=3696&eid=1690)
-# explains the maximum length of an email address is 254 octets.
+# explains the maximum length of an email address is 254 octets based on RFC 5321 4.5.3.1.3. A
+# maximum local part length is also given at RFC 5321 4.5.3.1.1.
+#
+# But RFC 5321 4.5.3.1 says that these (and other) limits are in a sense suggestions, and longer
+# local parts have been seen in the wild. Consequntely, the local part length is only checked
+# in "strict" mode. Although the email address maximum length is also somewhat of a suggestion,
+# I don't like the idea of having no length checks performed, so I'm leaving that to always be
+# checked.
 EMAIL_MAX_LENGTH = 254
 LOCAL_PART_MAX_LENGTH = 64
+
+# Although RFC 5321 4.5.3.1.2 gives a (suggested, see above) limit of 255 octets, RFC 1035 2.3.4 also
+# imposes a length limit (255 octets). But per https://stackoverflow.com/questions/32290167/what-is-the-maximum-length-of-a-dns-name,
+# two of those octets are taken up by the optional final dot and null root label.
 DNS_LABEL_LENGTH_LIMIT = 63  # in "octets", RFC 1035 2.3.1
-DOMAIN_MAX_LENGTH = 253  # in "octets" as transmitted, RFC 1035 2.3.4 and RFC 5321 4.5.3.1.2, and see https://stackoverflow.com/questions/32290167/what-is-the-maximum-length-of-a-dns-name
+DOMAIN_MAX_LENGTH = 253  # in "octets" as transmitted
 
 # RFC 2142
 CASE_INSENSITIVE_MAILBOX_NAMES = [

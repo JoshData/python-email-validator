@@ -415,9 +415,6 @@ def test_domain_literal() -> None:
         ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
         ('bad"quotes"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
         ('obsolete."quoted".atom@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
-        ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
-        ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
-        ('\uFB2C111111122222222223333333333444444444455555555556666666666777777@example.com', 'After Unicode normalization: The email address is too long before the @-sign (2 characters too many).'),
         ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344444444445555555555.com', 'The email address is too long after the @-sign (1 character too many).'),
         ('me@中1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444.com', 'The email address is too long after the @-sign (1 byte too many after IDNA encoding).'),
         ('me@\uFB2C1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444.com', 'The email address is too long after the @-sign (5 bytes too many after IDNA encoding).'),
@@ -464,6 +461,22 @@ def test_email_invalid_syntax(email_input: str, error_msg: str) -> None:
     # checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, check_deliverability=False)
+    assert str(exc_info.value) == error_msg
+
+
+@pytest.mark.parametrize(
+    'email_input,error_msg',
+    [
+        ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
+        ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
+        ('\uFB2C111111122222222223333333333444444444455555555556666666666777777@example.com', 'After Unicode normalization: The email address is too long before the @-sign (2 characters too many).'),
+    ])
+def test_email_invalid_syntax_strict(email_input: str, error_msg: str) -> None:
+    # Since these all have syntax errors, deliverability
+    # checks do not arise.
+    validate_email(email_input, check_deliverability=False)  # pass without strict
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input, strict=True, check_deliverability=False)
     assert str(exc_info.value) == error_msg
 
 
@@ -727,6 +740,11 @@ def test_pyisemail_tests(email_input: str, status: str) -> None:
         # with any set of parsing options.
         validate_email(email_input, test_environment=True)
         validate_email(email_input, allow_quoted_local=True, allow_domain_literal=True, test_environment=True)
+
+    elif status == "ISEMAIL_RFC5322_LOCAL_TOOLONG":
+        # Requires strict.
+        with pytest.raises(EmailSyntaxError):
+            validate_email(email_input, strict=True, test_environment=True)
 
     elif status == "ISEMAIL_RFC5321_QUOTEDSTRING":
         # Quoted-literal local parts are only valid with an option.

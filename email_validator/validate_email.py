@@ -22,6 +22,7 @@ def validate_email(
     allow_quoted_local: Optional[bool] = None,
     allow_domain_literal: Optional[bool] = None,
     allow_display_name: Optional[bool] = None,
+    strict: Optional[bool] = None,
     check_deliverability: Optional[bool] = None,
     test_environment: Optional[bool] = None,
     globally_deliverable: Optional[bool] = None,
@@ -36,7 +37,7 @@ def validate_email(
 
     # Fill in default values of arguments.
     from . import ALLOW_SMTPUTF8, ALLOW_EMPTY_LOCAL, ALLOW_QUOTED_LOCAL, ALLOW_DOMAIN_LITERAL, ALLOW_DISPLAY_NAME, \
-        GLOBALLY_DELIVERABLE, CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
+        STRICT, GLOBALLY_DELIVERABLE, CHECK_DELIVERABILITY, TEST_ENVIRONMENT, DEFAULT_TIMEOUT
     if allow_smtputf8 is None:
         allow_smtputf8 = ALLOW_SMTPUTF8
     if allow_empty_local is None:
@@ -47,6 +48,8 @@ def validate_email(
         allow_domain_literal = ALLOW_DOMAIN_LITERAL
     if allow_display_name is None:
         allow_display_name = ALLOW_DISPLAY_NAME
+    if strict is None:
+        strict = STRICT
     if check_deliverability is None:
         check_deliverability = CHECK_DELIVERABILITY
     if test_environment is None:
@@ -95,7 +98,8 @@ def validate_email(
     local_part_info = validate_email_local_part(local_part,
                                                 allow_smtputf8=allow_smtputf8,
                                                 allow_empty_local=allow_empty_local,
-                                                quoted_local_part=is_quoted_local_part)
+                                                quoted_local_part=is_quoted_local_part,
+                                                strict=strict)
     ret.local_part = local_part_info["local_part"]
     ret.ascii_local_part = local_part_info["ascii_local_part"]
     ret.smtputf8 = local_part_info["smtputf8"]
@@ -118,7 +122,8 @@ def validate_email(
             validate_email_local_part(normalized_local_part,
                                       allow_smtputf8=allow_smtputf8,
                                       allow_empty_local=allow_empty_local,
-                                      quoted_local_part=is_quoted_local_part)
+                                      quoted_local_part=is_quoted_local_part,
+                                      strict=strict)
         except EmailSyntaxError as e:
             raise EmailSyntaxError("After Unicode normalization: " + str(e)) from e
         ret.local_part = normalized_local_part

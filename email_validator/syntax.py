@@ -229,7 +229,7 @@ class LocalPartValidationResult(TypedDict):
 
 
 def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_empty_local: bool = False,
-                              quoted_local_part: bool = False) -> LocalPartValidationResult:
+                              quoted_local_part: bool = False, strict: bool = False) -> LocalPartValidationResult:
     """Validates the syntax of the local part of an email address."""
 
     if len(local) == 0:
@@ -251,7 +251,7 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
     # internationalized, then the UTF-8 encoding may be longer, but
     # that may not be relevant. We will check the total address length
     # instead.
-    if len(local) > LOCAL_PART_MAX_LENGTH:
+    if strict and len(local) > LOCAL_PART_MAX_LENGTH:
         reason = get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
         raise EmailSyntaxError(f"The email address is too long before the @-sign {reason}.")
 

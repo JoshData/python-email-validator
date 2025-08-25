@@ -150,6 +150,7 @@ The `validate_email` function also accepts the following keyword arguments
 `allow_empty_local=False`: Set to `True` to allow an empty local part (i.e.
     `@example.com`), e.g. for validating Postfix aliases.
     
+`strict=False`: Set to `True` to perform additional syntax checks (currently only a local part length check). This should be used by mail service providers at address creation to ensure email addresses meet broad compatibility requirements.
 
 ### DNS timeout and cache
 
