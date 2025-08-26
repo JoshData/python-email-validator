@@ -1,5 +1,5 @@
 #!/bin/bash
-source env/bin/activate
+source venv/bin/activate
 pip3 install --upgrade build twine
 rm -rf dist
 python3 -m build

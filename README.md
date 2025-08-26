@@ -425,8 +425,7 @@ To release:
 * Update CHANGELOG.md.
 * Update the version number in `email_validator/version.py`.
 * Make & push a commit with the new version number and make sure tests pass.
-* Make & push a tag (see command below).
-* Make a release at https://github.com/JoshData/python-email-validator/releases/new.
+* Make a release at https://github.com/JoshData/python-email-validator/releases/new creating a new tag (or use command below).
 * Publish a source and wheel distribution to pypi (see command below).
 
 ```sh
