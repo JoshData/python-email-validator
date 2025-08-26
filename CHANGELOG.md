@@ -1,3 +1,12 @@
+2.3.0 (August 26, 2025)
+-----------------------
+
+* The package name is changed from using an underscore (email_validator) to a dash (email-validator) to match PyPi's normalized package name.
+* The library no longer checks that the local part is at most 64 characters because a more careful reading of RFC 5321 indicates the limit is optional and such email addresses have been found in the wild. However the check can be restored using a new `strict=True` parameter, and the overall 254 character email address length limit is still in place.
+* New EmailSyntaxError messages are used for some exiting syntax errors related to @-sign homoglyphs and invalid characters in internationalized domains.
+* When using `allow_display_name=True`, display names are now returned with Unicode NFC normalization.
+* TypeError is now raised if something other than str (or bytes) is passed as the email address.
+
 2.2.0 (June 20, 2024)
 ---------------------
 
