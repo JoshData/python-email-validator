@@ -48,6 +48,11 @@ def test_main_multi_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
     assert test_cases[2] in stdout
     assert test_cases[3] in stdout
 
+def test_getattr(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    input_email = b"gmail@gmail.com"
+    validated_email = validate_email(input_email, check_deliverability=True)
+    assert len(validated_email.mx) > 0
+
 
 def test_bytes_input() -> None:
     input_email = b"testaddr@example.tld"
