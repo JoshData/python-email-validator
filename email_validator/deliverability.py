@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, TypedDict
+from typing import Any, Optional, TypedDict
 
 import ipaddress
 
@@ -19,7 +19,7 @@ def caching_resolver(*, timeout: Optional[int] = None, cache: Any = None, dns_re
 
 
 DeliverabilityInfo = TypedDict("DeliverabilityInfo", {
-    "mx": List[Tuple[int, str]],
+    "mx": list[tuple[int, str]],
     "mx_fallback_type": Optional[str],
     "unknown-deliverability": str,
 }, total=False)

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Iterator, Optional
 
 import dns.exception
 import dns.rdataset
@@ -42,7 +42,7 @@ class MockedDnsResponseData:
         return caching_resolver(cache=MockedDnsResponseData.INSTANCE, dns_resolver=dns_resolver)
 
     def __init__(self) -> None:
-        self.data: Dict[dns.resolver.CacheKey, Optional[MockedDnsResponseData.Ans]] = {}
+        self.data: dict[dns.resolver.CacheKey, Optional[MockedDnsResponseData.Ans]] = {}
 
     # Loads the saved DNS response data from the JSON file and
     # re-structures it into dnspython classes.

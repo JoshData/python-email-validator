@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import re
@@ -69,7 +69,7 @@ def test_deliverability_dns_timeout() -> None:
 def test_caching_dns_resolver() -> None:
     class TestCache:
         def __init__(self) -> None:
-            self.cache: Dict[Any, Any] = {}
+            self.cache: dict[Any, Any] = {}
 
         def get(self, key: Any) -> Any:
             return self.cache.get(key)

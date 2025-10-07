@@ -8,10 +8,10 @@ import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 import ipaddress
-from typing import Optional, Tuple, TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 
-def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
+def split_email(email: str) -> tuple[Optional[str], str, str, bool]:
     # Return the display name, unescaped local part, and domain part
     # of the address, and whether the local part was quoted. If no
     # display name was present and angle brackets do not surround
@@ -47,7 +47,7 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
     # We assume the input string is already stripped of leading and
     # trailing CFWS.
 
-    def split_string_at_unquoted_special(text: str, specials: Tuple[str, ...]) -> Tuple[str, str]:
+    def split_string_at_unquoted_special(text: str, specials: tuple[str, ...]) -> tuple[str, str]:
         # Split the string at the first character in specials (an @-sign
         # or left angle bracket) that does not occur within quotes and
         # is not followed by a Unicode combining character.
@@ -112,7 +112,7 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
 
         return left_part, right_part
 
-    def unquote_quoted_string(text: str) -> Tuple[str, bool]:
+    def unquote_quoted_string(text: str) -> tuple[str, bool]:
         # Remove surrounding quotes and unescape escaped backslashes
         # and quotes. Escapes are parsed liberally. I think only
         # backslashes and quotes can be escaped but we'll allow anything

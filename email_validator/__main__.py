@@ -17,7 +17,7 @@
 import json
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .validate_email import validate_email, _Resolver
 from .deliverability import caching_resolver
@@ -28,7 +28,7 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
     # The dns_resolver argument is for tests.
 
     # Set options from environment variables.
-    options: Dict[str, Any] = {}
+    options: dict[str, Any] = {}
     for varname in ('ALLOW_SMTPUTF8', 'ALLOW_EMPTY_LOCAL', 'ALLOW_QUOTED_LOCAL', 'ALLOW_DOMAIN_LITERAL',
                     'ALLOW_DISPLAY_NAME',
                     'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):

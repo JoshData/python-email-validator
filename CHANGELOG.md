@@ -1,3 +1,8 @@
+In Development
+--------------
+
+* Python 3.8 is no longer supported.
+
 2.3.0 (August 26, 2025)
 -----------------------
 

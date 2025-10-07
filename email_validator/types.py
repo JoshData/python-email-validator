@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 
 class ValidatedEmail:
@@ -41,7 +41,7 @@ class ValidatedEmail:
 
     """If a deliverability check is performed and if it succeeds, a list of (priority, domain)
     tuples of MX records specified in the DNS for the domain."""
-    mx: List[Tuple[int, str]]
+    mx: list[tuple[int, str]]
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
@@ -68,7 +68,7 @@ class ValidatedEmail:
 
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""
-    def __getitem__(self, key: str) -> Union[Optional[str], bool, List[Tuple[int, str]]]:
+    def __getitem__(self, key: str) -> Union[Optional[str], bool, list[tuple[int, str]]]:
         warnings.warn("dict-like access to the return value of validate_email is deprecated and may not be supported in the future.", DeprecationWarning, stacklevel=2)
         if key == "email":
             return self.normalized
@@ -119,7 +119,7 @@ class ValidatedEmail:
             + ")"
 
     """Convenience method for accessing ValidatedEmail as a dict"""
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         d = self.__dict__
         if d.get('domain_address'):
             d['domain_address'] = repr(d['domain_address'])
