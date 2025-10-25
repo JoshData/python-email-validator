@@ -1,3 +1,4 @@
+import typing
 import pytest
 
 from email_validator import validate_email, EmailSyntaxError
@@ -14,6 +15,14 @@ def test_dict_accessor() -> None:
     valid_email = validate_email(input_email, check_deliverability=False)
     assert isinstance(valid_email.as_dict(), dict)
     assert valid_email.as_dict()["original"] == input_email
+
+
+def test_dict_accessor_with_domain_address() -> None:
+    input_email = "me@[127.0.0.1]"
+    valid_email = validate_email(input_email, check_deliverability=False, allow_domain_literal=True)
+    assert valid_email.domain == "[127.0.0.1]"
+    assert isinstance(valid_email.as_dict(), dict)
+    assert valid_email.as_dict()["domain_address"] == '"IPv4Address(\'127.0.0.1\')"'
 
 
 def test_main_single_good_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -65,3 +74,21 @@ def test_deprecation() -> None:
     valid_email = validate_email(input_email, check_deliverability=False)
     with pytest.deprecated_call():
         assert valid_email.email is not None
+
+
+@pytest.mark.parametrize('invalid_email', [
+    None,
+    12345,
+    [],
+    {},
+    lambda x: x,
+])
+def test_invalid_type(invalid_email: typing.Any) -> None:
+    with pytest.raises(TypeError, match="email must be str or bytes"):
+        validate_email(invalid_email, check_deliverability=False)
+
+
+def test_invalid_ascii() -> None:
+    invalid_email = b'\xd0\xba\xd0\xb2\xd1\x96\xd1\x82\xd0\xbe\xd1\x87\xd0\xba\xd0\xb0@\xd0\xbf\xd0\xbe\xd1\x88\xd1\x82\xd0\xb0.test'
+    with pytest.raises(EmailSyntaxError, match="The email address is not valid ASCII."):
+        validate_email(invalid_email, check_deliverability=False)
