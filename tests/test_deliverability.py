@@ -35,6 +35,7 @@ def test_deliverability_found(domain: str, expected_response: str) -> None:
         # No MX or A/AAAA records, but some other DNS records must
         # exist such that the response is NOANSWER instead of NXDOMAIN.
         ('justtxt.joshdata.me', 'The domain name {domain} does not accept email'),
+        ('ipv6only.joshdata.me', 'The domain name {domain} does not accept email'),
     ],
 )
 def test_deliverability_fails(domain: str, error: str) -> None:
@@ -63,6 +64,11 @@ def test_deliverability_dns_timeout() -> None:
     response = validate_email_deliverability('timeout.com', 'timeout.com', dns_resolver=RESOLVER)
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
+
+
+def test_timeout_and_resolver() -> None:
+    with pytest.raises(ValueError, match="It's not valid to pass both timeout and dns_resolver."):
+        validate_email_deliverability('timeout.com', 'timeout.com', timeout=1, dns_resolver=RESOLVER)
 
 
 @pytest.mark.network

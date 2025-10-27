@@ -129,7 +129,7 @@
    "type": "A",
    "class": "IN"
   },
-  "answer": []
+  "answer": ["127.0.0.1"]
  },
  {
   "query": {
@@ -138,6 +138,30 @@
    "class": "IN"
   },
   "answer": []
+ },
+ {
+  "query": {
+   "name": "ipv6only.joshdata.me",
+   "type": "MX",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "ipv6only.joshdata.me",
+   "type": "A",
+   "class": "IN"
+  },
+  "answer": []
+ },
+ {
+  "query": {
+   "name": "ipv6only.joshdata.me",
+   "type": "AAAA",
+   "class": "IN"
+  },
+  "answer": ["::1"]
  },
  {
   "query": {
