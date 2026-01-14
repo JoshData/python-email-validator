@@ -8,7 +8,7 @@ import re
 import unicodedata
 import idna  # implements IDNA 2008; Python's codec is only IDNA 2003
 import ipaddress
-from typing import Optional, TypedDict, Union
+from typing import Optional, TypedDict
 
 
 def split_email(email: str) -> tuple[Optional[str], str, str, bool]:
@@ -758,7 +758,7 @@ def validate_email_length(addrinfo: ValidatedEmail) -> None:
 
 
 class DomainLiteralValidationResult(TypedDict):
-    domain_address: Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+    domain_address: ipaddress.IPv4Address | ipaddress.IPv6Address
     domain: str
 
 
@@ -767,7 +767,7 @@ def validate_email_domain_literal(domain_literal: str) -> DomainLiteralValidatio
     # a compressed/normalized address.
     # RFC 5321 4.1.3 and RFC 5322 3.4.1.
 
-    addr: Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address
 
     # Try to parse the domain literal as an IPv4 address.
     # There is no tag for IPv4 addresses, so we can never

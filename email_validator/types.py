@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 
 class ValidatedEmail:
@@ -68,7 +68,7 @@ class ValidatedEmail:
 
     """For backwards compatibility, some fields are also exposed through a dict-like interface. Note
     that some of the names changed when they became attributes."""
-    def __getitem__(self, key: str) -> Union[Optional[str], bool, list[tuple[int, str]]]:
+    def __getitem__(self, key: str) -> Optional[str] | bool | list[tuple[int, str]]:
         warnings.warn("dict-like access to the return value of validate_email is deprecated and may not be supported in the future.", DeprecationWarning, stacklevel=2)
         if key == "email":
             return self.normalized

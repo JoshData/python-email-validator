@@ -1,4 +1,4 @@
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 import unicodedata
 
 from .exceptions import EmailSyntaxError
@@ -14,7 +14,7 @@ else:
 
 
 def validate_email(
-    email: Union[str, bytes],
+    email: str | bytes,
     /,  # prior arguments are positional-only
     *,  # subsequent arguments are keyword-only
     allow_smtputf8: Optional[bool] = None,
