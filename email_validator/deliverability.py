@@ -66,7 +66,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             deliverability_info["mx_fallback_type"] = None
 
         except dns.resolver.NoAnswer:
-            # If there was no MX record, fall back to an A or AAA record
+            # If there was no MX record, fall back to an A or AAAA record
             # (RFC 5321 Section 5). Check A first since it's more common.
 
             # If the A/AAAA response has no Globally Reachable IP address,
