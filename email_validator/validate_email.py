@@ -1,4 +1,5 @@
 from typing import Optional, TYPE_CHECKING
+import re
 import unicodedata
 
 from .exceptions import EmailSyntaxError
@@ -90,9 +91,16 @@ def validate_email(
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
-    ret.original = ((local_part if not is_quoted_local_part
-                    else ('"' + local_part + '"'))
-                    + "@" + domain_part)  # drop the display name, if any, for email length tests at the end
+    # Store the original email address without any display name, preserving
+    # the original form (including backslash escapes in quoted local parts).
+    # When no display name is present, use the original email string directly.
+    # When a display name is present, extract just the address from the angle
+    # brackets so that email length checks use the address-only form.
+    if display_name is None:
+        ret.original = email
+    else:
+        m = re.search(r'<(.+)>', email)
+        ret.original = m.group(1) if m else email
     ret.display_name = display_name
 
     # Validate the email address's local part syntax and get a normalized form.
