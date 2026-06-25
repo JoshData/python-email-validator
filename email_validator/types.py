@@ -93,7 +93,8 @@ class ValidatedEmail:
         if not isinstance(other, ValidatedEmail):
             return False
         return (
-            self.normalized == other.normalized
+            getattr(self, 'original', None) == getattr(other, 'original', None)
+            and self.normalized == other.normalized
             and self.local_part == other.local_part
             and self.domain == other.domain
             and getattr(self, 'ascii_email', None) == getattr(other, 'ascii_email', None)
@@ -110,7 +111,7 @@ class ValidatedEmail:
     def as_constructor(self) -> str:
         return "ValidatedEmail(" \
             + ",".join(f"\n  {key}={repr(getattr(self, key))}"
-                       for key in ('normalized', 'local_part', 'domain',
+                       for key in ('original', 'normalized', 'local_part', 'domain',
                                    'ascii_email', 'ascii_local_part', 'ascii_domain',
                                    'smtputf8', 'mx', 'mx_fallback_type',
                                    'display_name')

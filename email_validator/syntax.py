@@ -11,9 +11,9 @@ import ipaddress
 from typing import Optional, TypedDict
 
 
-def split_email(email: str) -> tuple[Optional[str], str, str, bool]:
-    # Return the display name, unescaped local part, and domain part
-    # of the address, and whether the local part was quoted. If no
+def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
+    # Return the display name, the original local part, the unescaped
+    # local part, and the domain part of the address. If no
     # display name was present and angle brackets do not surround
     # the address, display name will be None; otherwise, it will be
     # set to the display name or the empty string if there were
@@ -193,9 +193,9 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool]:
         domain_part = domain_part[1:]
 
     # Unquote the local part if it is quoted.
-    local_part, is_quoted_local_part = unquote_quoted_string(local_part)
+    local_part_unquoted, is_quoted_local_part = unquote_quoted_string(local_part)
 
-    return display_name, local_part, domain_part, is_quoted_local_part
+    return display_name, local_part, local_part_unquoted, is_quoted_local_part, domain_part
 
 
 def get_length_reason(addr: str, limit: int) -> str:

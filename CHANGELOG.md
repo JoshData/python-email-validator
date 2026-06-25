@@ -2,6 +2,7 @@ In Development
 --------------
 
 * Python 3.8 and 3.9 are no longer supported.
+* The `original` field of the returned validated email object incorrectly un-escaped the local part of the email address. Now it returns the original address, without any display name, as passed to validate_email.
 
 2.3.0 (August 26, 2025)
 -----------------------

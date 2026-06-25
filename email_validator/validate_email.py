@@ -77,7 +77,7 @@ def validate_email(
     # Normally, there is only one @-sign. But the awkward "quoted string"
     # local part form (RFC 5321 4.1.2) allows @-signs in the local
     # part if the local part is quoted.
-    display_name, local_part, domain_part, is_quoted_local_part \
+    display_name, original_local_part, unescaped_local_part, is_quoted_local_part, domain_part \
         = split_email(email)
 
     if display_name:
@@ -90,16 +90,14 @@ def validate_email(
 
     # Collect return values in this instance.
     ret = ValidatedEmail()
-    ret.original = ((local_part if not is_quoted_local_part
-                    else ('"' + local_part + '"'))
-                    + "@" + domain_part)  # drop the display name, if any, for email length tests at the end
+    ret.original = original_local_part + "@" + domain_part  # drop the display name, if any, for email length tests at the end
     ret.display_name = display_name
 
     # Validate the email address's local part syntax and get a normalized form.
     # If the original address was quoted and the decoded local part is a valid
     # unquoted local part, then we'll get back a normalized (unescaped) local
     # part.
-    local_part_info = validate_email_local_part(local_part,
+    local_part_info = validate_email_local_part(unescaped_local_part,
                                                 allow_smtputf8=allow_smtputf8,
                                                 allow_empty_local=allow_empty_local,
                                                 quoted_local_part=is_quoted_local_part,
