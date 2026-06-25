@@ -102,8 +102,33 @@ def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
             ),
         ),
         (
+            '"unnecessary.escaped.\\x.local.part"@example.org',
+            MakeValidatedEmail(
+                local_part='unnecessary.escaped.x.local.part',
+                ascii_local_part='unnecessary.escaped.x.local.part',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized='unnecessary.escaped.x.local.part@example.org',
+                ascii_email='unnecessary.escaped.x.local.part@example.org'
+            ),
+        ),
+        (
+            '"escaped.quote.\\".local.part"@example.org',
+            MakeValidatedEmail(
+                local_part='"escaped.quote.\\".local.part"',
+                ascii_local_part='"escaped.quote.\\".local.part"',
+                smtputf8=False,
+                ascii_domain='example.org',
+                domain='example.org',
+                normalized='"escaped.quote.\\".local.part"@example.org',
+                ascii_email='"escaped.quote.\\".local.part"@example.org'
+            ),
+        ),
+        (
             'MyName <me@example.org>',
             MakeValidatedEmail(
+                original='me@example.org',
                 local_part='me',
                 ascii_local_part='me',
                 smtputf8=False,
@@ -117,6 +142,7 @@ def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
         (
             'My Name <me@example.org>',
             MakeValidatedEmail(
+                original='me@example.org',
                 local_part='me',
                 ascii_local_part='me',
                 smtputf8=False,
@@ -130,6 +156,7 @@ def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
         (
             r'"My.\"Na\\me\".Is" <"me \" \\ me"@example.org>',
             MakeValidatedEmail(
+                original=r'"me \" \\ me"@example.org',
                 local_part=r'"me \" \\ me"',
                 ascii_local_part=r'"me \" \\ me"',
                 smtputf8=False,
@@ -143,6 +170,11 @@ def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
     ],
 )
 def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
+    # Simplfiy hard-coded expected values above by filling
+    # in 'original' when it isn't set.
+    if not hasattr(output, 'original'):
+        output.original = email_input
+
     # These addresses do not require SMTPUTF8. See test_email_valid_intl_local_part
     # for addresses that are valid but require SMTPUTF8. Check that it passes with
     # allow_smtput8 both on and off.
@@ -297,6 +329,7 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
         (
             '\"s\u0323\u0307\" <s\u0323\u0307@nfc.tld>',
             MakeValidatedEmail(
+                original='s\u0323\u0307@nfc.tld',
                 local_part='\u1E69',
                 smtputf8=True,
                 ascii_domain='nfc.tld',
@@ -318,6 +351,11 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
     ],
 )
 def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
+    # Simplfiy hard-coded expected values above by filling
+    # in 'original' when it isn't set.
+    if not hasattr(output, 'original'):
+        output.original = email_input
+
     # Check that it passes when allow_smtputf8 is True.
     assert validate_email(email_input, check_deliverability=False, allow_display_name=True) == output
 
