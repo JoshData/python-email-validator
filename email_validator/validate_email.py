@@ -58,6 +58,9 @@ def validate_email(
         globally_deliverable = GLOBALLY_DELIVERABLE
     if timeout is None and dns_resolver is None:
         timeout = DEFAULT_TIMEOUT
+    # bool subclasses int; timeout=True would silently become DNS lifetime 1s
+    if isinstance(timeout, bool):
+        raise TypeError("timeout must be an int or float, not bool")
 
     if isinstance(email, str):
         pass
