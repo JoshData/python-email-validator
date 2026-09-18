@@ -90,3 +90,18 @@ def test_caching_dns_resolver() -> None:
 
     validate_email("test@gmail.com", dns_resolver=resolver)
     assert len(cache.cache) == 1
+
+
+def test_timeout_rejects_bool() -> None:
+    """bool subclasses int; timeout=True must not silently become lifetime 1s."""
+    import pytest
+    from email_validator.deliverability import caching_resolver, validate_email_deliverability
+
+    for value in (True, False):
+        with pytest.raises(TypeError, match="timeout must be an int or float, not bool"):
+            caching_resolver(timeout=value)
+        with pytest.raises(TypeError, match="timeout must be an int or float, not bool"):
+            validate_email_deliverability("example.com", "example.com", timeout=value)
+    # valid int still accepted on caching_resolver
+    resolver = caching_resolver(timeout=5)
+    assert resolver.lifetime == 5
