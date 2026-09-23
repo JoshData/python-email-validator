@@ -36,7 +36,7 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
     #
     # Display names are either basic characters (the same basic characters
     # permitted in email addresses, but periods are not allowed and spaces
-    # are allowed; see RFC 5322 Appendix A.1.2), or or a quoted string with
+    # are allowed; see RFC 5322 Appendix A.1.2), or a quoted string with
     # the same rules as a quoted local part. (Multiple quoted strings might
     # be allowed? Unclear.) Optional space (RFC 5322 3.4 CFWS) and then the
     # email address follows in angle brackets.
