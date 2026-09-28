@@ -121,7 +121,7 @@ class ValidatedEmail:
 
     """Convenience method for accessing ValidatedEmail as a dict"""
     def as_dict(self) -> dict[str, Any]:
-        d = self.__dict__
+        d = dict(self.__dict__)
         if d.get('domain_address'):
             d['domain_address'] = repr(d['domain_address'])
         return d
