@@ -1,3 +1,4 @@
+import ipaddress
 import typing
 import pytest
 
@@ -21,8 +22,30 @@ def test_dict_accessor_with_domain_address() -> None:
     input_email = "me@[127.0.0.1]"
     valid_email = validate_email(input_email, check_deliverability=False, allow_domain_literal=True)
     assert valid_email.domain == "[127.0.0.1]"
-    assert isinstance(valid_email.as_dict(), dict)
-    assert valid_email.as_dict()["domain_address"] == '"IPv4Address(\'127.0.0.1\')"'
+    as_dict = valid_email.as_dict()
+    assert isinstance(as_dict, dict)
+    assert as_dict["domain_address"] == "IPv4Address('127.0.0.1')"
+
+
+def test_dict_accessor_does_not_modify_validated_email() -> None:
+    # as_dict() is only for reading: it must not replace the attributes of the
+    # object it is called on. The domain_address attribute is documented to hold
+    # the ipaddress.IPv4Address object.
+    input_email = "me@[127.0.0.1]"
+    valid_email = validate_email(input_email, check_deliverability=False, allow_domain_literal=True)
+    domain_address = valid_email.domain_address
+    assert isinstance(domain_address, ipaddress.IPv4Address)
+
+    first_dict = valid_email.as_dict()
+    assert first_dict["domain_address"] == "IPv4Address('127.0.0.1')"
+
+    # The object the dict was made from is unchanged, ...
+    assert valid_email.domain_address is domain_address
+    assert isinstance(valid_email.domain_address, ipaddress.IPv4Address)
+
+    # ... and asking for the dict again gives the same result rather than
+    # repr() of a string.
+    assert valid_email.as_dict() == first_dict
 
 
 def test_main_single_good_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
