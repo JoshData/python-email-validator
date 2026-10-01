@@ -407,6 +407,16 @@ def test_domain_literal() -> None:
     assert validated.domain == "[IPv6:::1]"
     assert repr(validated.domain_address) == "IPv6Address('::1')"
 
+    # Check that an IPv4 address in an IPv6 address is accepted.
+    validated = validate_email("me@[IPv6:::ffff:1.2.3.4]", allow_domain_literal=True)
+    assert validated.domain == "[IPv6:::ffff:1.2.3.4]"
+
+    # Check that IPv6 zone indexes are rejected.
+    for email_input in ("me@[IPv6:fe80::1%eth0]", "me@[IPv6:::1%]]"):
+        with pytest.raises(EmailSyntaxError) as exc_info:
+            validate_email(email_input, allow_domain_literal=True)
+        assert str(exc_info.value) == "The IPv6 address in brackets after the @-sign is not valid (It has a zone index)."
+
 
 @pytest.mark.parametrize(
     'email_input,error_msg',

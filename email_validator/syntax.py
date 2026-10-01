@@ -791,6 +791,10 @@ def validate_email_domain_literal(domain_literal: str) -> DomainLiteralValidatio
         except ValueError as e:
             raise EmailSyntaxError(f"The IPv6 address in brackets after the @-sign is not valid ({e}).") from e
 
+        # Python accepts a zone index ("%eth0") but RFC 5321 4.1.3 does not.
+        if addr.scope_id is not None:
+            raise EmailSyntaxError("The IPv6 address in brackets after the @-sign is not valid (It has a zone index).")
+
         # Return the IPv6Address object and construct a normalized
         # domain literal.
         return {
