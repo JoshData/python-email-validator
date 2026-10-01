@@ -178,7 +178,7 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
             raise EmailSyntaxError("There can't be anything after the email address.")
 
         # Remove the initial and trailing angle brackets.
-        addr_spec = right_part[1:].rstrip(">")
+        addr_spec = right_part[1:-1]
 
         # Split the email address at the first unquoted @-sign.
         local_part, domain_part = split_string_at_unquoted_special(addr_spec, ("@",))

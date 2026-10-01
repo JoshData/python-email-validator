@@ -521,6 +521,20 @@ def test_email_invalid_syntax_strict(email_input: str, error_msg: str) -> None:
 @pytest.mark.parametrize(
     'email_input',
     [
+        '<me@example.com>>',
+        'Display Name <me@example.com>>',
+        'Display Name <me@example.com>>>',
+    ])
+def test_email_invalid_syntax_display_name(email_input: str) -> None:
+    # Only one close angle bracket may follow the address.
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input, check_deliverability=False, allow_display_name=True)
+    assert str(exc_info.value) == "The part after the @-sign contains invalid characters: '>'."
+
+
+@pytest.mark.parametrize(
+    'email_input',
+    [
         ('me@anything.arpa'),
         ('me@valid.invalid'),
         ('me@link.local'),
