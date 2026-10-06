@@ -8,7 +8,14 @@ import dns.resolver
 import dns.exception
 
 
+def _reject_bool_timeout(timeout: Optional[int]) -> None:
+    # bool subclasses int; timeout=True would silently become lifetime 1s
+    if isinstance(timeout, bool):
+        raise TypeError("timeout must be an int or float, not bool")
+
+
 def caching_resolver(*, timeout: Optional[int] = None, cache: Any = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> dns.resolver.Resolver:
+    _reject_bool_timeout(timeout)
     if timeout is None:
         from . import DEFAULT_TIMEOUT
         timeout = DEFAULT_TIMEOUT
@@ -34,6 +41,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
     # If no dns.resolver.Resolver was given, get dnspython's default resolver.
     # Override the default resolver's timeout. This may affect other uses of
     # dnspython in this process.
+    _reject_bool_timeout(timeout)
     if dns_resolver is None:
         from . import DEFAULT_TIMEOUT
         if timeout is None:
