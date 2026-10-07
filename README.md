@@ -154,6 +154,8 @@ The `validate_email` function also accepts the following keyword arguments
 
 ### DNS timeout and cache
 
+The timeout is a budget shared by all MX, A, AAAA and TXT lookups for one validation. When a resolver is supplied, its current `lifetime` sets the budget for each validation. Validation does not change the settings of either a supplied resolver or dnspython's default resolver. Each lookup receives the non-negative remaining budget through dnspython's `lifetime` keyword argument, so cached answers remain eligible after the budget is exhausted. Custom `resolve` overrides must accept and honour that argument; overrides accepting only the domain and record type are incompatible. This is a soft timeout: resolver backoff and processing may take longer than the budget.
+
 When validating many email addresses or to control the timeout (the default is 15 seconds), create a caching [dns.resolver.Resolver](https://dnspython.readthedocs.io/en/latest/resolver-class.html) to reuse in each call. The `caching_resolver` function returns one easily for you:
 
 ```python
