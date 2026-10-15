@@ -33,10 +33,15 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
                     'ALLOW_DISPLAY_NAME',
                     'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
         if varname in os.environ:
-            options[varname.lower()] = bool(os.environ[varname])
+            # bool() would make any non-empty string True, so e.g.
+            # CHECK_DELIVERABILITY=false would enable the check.
+            options[varname.lower()] = os.environ[varname].strip().lower() not in ('', '0', 'false', 'no', 'off')
     for varname in ('DEFAULT_TIMEOUT',):
         if varname in os.environ:
-            options[varname.lower()] = float(os.environ[varname])
+            # DEFAULT_TIMEOUT is a module-level default read by
+            # caching_resolver(), not a keyword argument of validate_email.
+            import email_validator
+            email_validator.DEFAULT_TIMEOUT = int(os.environ[varname])
 
     if len(sys.argv) == 1:
         # Validate the email addresses passed line-by-line on STDIN.
