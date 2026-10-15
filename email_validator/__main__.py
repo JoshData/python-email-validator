@@ -36,11 +36,20 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
             options[varname.lower()] = bool(os.environ[varname])
     for varname in ('DEFAULT_TIMEOUT',):
         if varname in os.environ:
-            options[varname.lower()] = float(os.environ[varname])
+            # The environment variable is named after the DEFAULT_TIMEOUT module
+            # constant, but the validate_email() keyword argument for the DNS
+            # timeout is `timeout`.
+            options['timeout'] = float(os.environ[varname])
+
+    # validate_email() does not accept `timeout` together with a `dns_resolver`,
+    # and a resolver passed in by the caller already carries its own timeout.
+    if dns_resolver is not None:
+        options.pop('timeout', None)
 
     if len(sys.argv) == 1:
         # Validate the email addresses passed line-by-line on STDIN.
-        dns_resolver = dns_resolver or caching_resolver()
+        # The same resolver is used for every address, so the timeout goes on it.
+        dns_resolver = dns_resolver or caching_resolver(timeout=options.pop('timeout', None))
         for line in sys.stdin:
             email = line.strip()
             try:

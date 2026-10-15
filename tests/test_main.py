@@ -81,6 +81,55 @@ def test_main_multi_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
     assert test_cases[3] in stdout
 
 
+def test_main_default_timeout_env_arg(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    # The DEFAULT_TIMEOUT environment variable is named after the module constant,
+    # but the validate_email() keyword argument for the DNS timeout is `timeout`.
+    # Regression test: the CLI crashed for every address when it was set.
+    import json
+    test_email = "google@google.com"
+    monkeypatch.setenv('DEFAULT_TIMEOUT', '5')
+    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    output = json.loads(str(stdout))
+    assert output["original"] == test_email
+
+
+def test_main_default_timeout_env_stdin(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    # Same as above, for the STDIN path, which uses a resolver for every line.
+    import io
+    test_cases = ["google1@google.com", "test@.com"]
+    test_input = io.StringIO("\n".join(test_cases))
+    monkeypatch.setenv('DEFAULT_TIMEOUT', '5')
+    monkeypatch.setattr('sys.stdin', test_input)
+    monkeypatch.setattr('sys.argv', ['email_validator'])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    assert test_cases[0] not in stdout
+    assert test_cases[1] in stdout
+
+
+def test_main_default_timeout_env_sets_resolver_timeout(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    # On the STDIN path the CLI builds the resolver itself, so the timeout has to be
+    # handed to caching_resolver() rather than passed on to validate_email(), which
+    # refuses a timeout and a resolver together.
+    import io
+    captured: typing.Dict[str, typing.Any] = {}
+
+    def fake_caching_resolver(timeout: typing.Optional[float] = None) -> typing.Any:
+        captured['timeout'] = timeout
+        return RESOLVER
+
+    monkeypatch.setenv('DEFAULT_TIMEOUT', '5')
+    monkeypatch.setattr('email_validator.__main__.caching_resolver', fake_caching_resolver)
+    monkeypatch.setattr('sys.stdin', io.StringIO("google1@google.com\n"))
+    monkeypatch.setattr('sys.argv', ['email_validator'])
+    validator_command_line_tool()
+    stdout, _ = capsys.readouterr()
+    assert captured['timeout'] == 5.0
+    assert stdout == ''
+
+
 def test_bytes_input() -> None:
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
