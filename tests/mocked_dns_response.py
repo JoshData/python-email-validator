@@ -24,7 +24,7 @@ BUILD_MOCKED_DNS_RESPONSE_DATA = False
 class MockedDnsResponseData:
     DATA_PATH = os.path.dirname(__file__) + "/mocked-dns-answers.json"
 
-    INSTANCE = None
+    INSTANCE: Optional["MockedDnsResponseData"] = None
 
     @staticmethod
     def create_resolver() -> dns.resolver.Resolver:
