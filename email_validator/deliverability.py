@@ -1,6 +1,7 @@
 from typing import Any, Optional, TypedDict
 
 import ipaddress
+import time
 
 from .exceptions import EmailUndeliverableError
 
@@ -32,23 +33,27 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
     # with deliverability information.
 
     # If no dns.resolver.Resolver was given, get dnspython's default resolver.
-    # Override the default resolver's timeout. This may affect other uses of
-    # dnspython in this process.
     if dns_resolver is None:
         from . import DEFAULT_TIMEOUT
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
         dns_resolver = dns.resolver.get_default_resolver()
-        dns_resolver.lifetime = timeout
     elif timeout is not None:
         raise ValueError("It's not valid to pass both timeout and dns_resolver.")
 
     deliverability_info: DeliverabilityInfo = {}
 
     try:
+        budget = timeout if timeout is not None else dns_resolver.lifetime
+        deadline = time.monotonic() + budget
+
+        def resolve(record_type: str) -> dns.resolver.Answer:
+            remaining = max(0.0, deadline - time.monotonic())
+            return dns_resolver.resolve(domain, record_type, lifetime=remaining)
+
         try:
             # Try resolving for MX records (RFC 5321 Section 5).
-            response = dns_resolver.resolve(domain, "MX")
+            response = resolve("MX")
 
             # For reporting, put them in priority order and remove the trailing dot in the qnames.
             mtas = sorted([(r.preference, str(r.exchange).rstrip('.')) for r in response])
@@ -84,7 +89,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 return ipaddr.is_global
 
             try:
-                response = dns_resolver.resolve(domain, "A")
+                response = resolve("A")
 
                 if not any(is_global_addr(r.address) for r in response):
                     raise dns.resolver.NoAnswer  # fall back to AAAA
@@ -97,7 +102,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
                 # If there was no A record, fall back to an AAAA record.
                 # (It's unclear if SMTP servers actually do this.)
                 try:
-                    response = dns_resolver.resolve(domain, "AAAA")
+                    response = resolve("AAAA")
 
                     if not any(is_global_addr(r.address) for r in response):
                         raise dns.resolver.NoAnswer
@@ -118,7 +123,7 @@ def validate_email_deliverability(domain: str, domain_i18n: str, timeout: Option
             # absence of an MX record, this is probably a good sign that the
             # domain is not used for email.
             try:
-                response = dns_resolver.resolve(domain, "TXT")
+                response = resolve("TXT")
                 for rec in response:
                     value = b"".join(rec.strings)
                     if value.startswith(b"v=spf1 "):
