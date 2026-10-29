@@ -644,6 +644,13 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
         if ascii_domain == d or ascii_domain.endswith("." + d):
             raise EmailSyntaxError("The part after the @-sign is a special-use or reserved name that cannot be used with email.")
 
+    # Domains without Punycode labels come back unchanged from the IDNA round trip below.
+    if "xn--" not in ascii_domain:
+        return {
+            "ascii_domain": ascii_domain,
+            "domain": ascii_domain,
+        }
+
     # We may have been given an IDNA ASCII domain to begin with. Check
     # that the domain actually conforms to IDNA. It could look like IDNA
     # but not be actual IDNA. For ASCII-only domains, the conversion out
