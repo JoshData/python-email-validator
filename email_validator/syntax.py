@@ -784,8 +784,9 @@ def validate_email_domain_literal(domain_literal: str) -> DomainLiteralValidatio
             "domain": f"[{addr}]",
         }
 
-    # If it begins with "IPv6:" it's an IPv6 address.
-    if domain_literal.startswith("IPv6:"):
+    # If it begins with "IPv6:" it's an IPv6 address. The tag is case-insensitive
+    # like all ABNF literal strings (RFC 5234 2.3), so "ipv6:" is accepted too.
+    if domain_literal[:5].lower() == "ipv6:":
         try:
             addr = ipaddress.IPv6Address(domain_literal[5:])
         except ValueError as e:
