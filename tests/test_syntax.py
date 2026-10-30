@@ -407,6 +407,12 @@ def test_domain_literal() -> None:
     assert validated.domain == "[IPv6:::1]"
     assert repr(validated.domain_address) == "IPv6Address('::1')"
 
+    # Check that the IPv6 tag is case-insensitive and normalized.
+    for email_input in ("me@[ipv6:::1]", "me@[IPV6:::1]"):
+        validated = validate_email(email_input, allow_domain_literal=True)
+        assert validated.domain == "[IPv6:::1]"
+        assert repr(validated.domain_address) == "IPv6Address('::1')"
+
     # Check that an IPv4 address in an IPv6 address is accepted.
     validated = validate_email("me@[IPv6:::ffff:1.2.3.4]", allow_domain_literal=True)
     assert validated.domain == "[IPv6:::ffff:1.2.3.4]"

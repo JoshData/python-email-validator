@@ -4,6 +4,7 @@ In Development
 * Python 3.8 and 3.9 are no longer supported.
 * The `original` field of the returned validated email object incorrectly un-escaped the local part of the email address. Now it returns the original address, without any display name, as passed to validate_email.
 * add support python3.15
+* The IPv6 tag of a domain literal is now case-insensitive, as in the RFCs, so `me@[ipv6:::1]` is accepted (and normalized to `me@[IPv6:::1]`) when `allow_domain_literal=True`.
 
 2.3.0 (August 26, 2025)
 -----------------------
