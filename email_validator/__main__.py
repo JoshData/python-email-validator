@@ -33,7 +33,8 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
                     'ALLOW_DISPLAY_NAME',
                     'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
         if varname in os.environ:
-            options[varname.lower()] = bool(os.environ[varname])
+            # Any non-empty string is truthy, so the usual false values are recognized explicitly.
+            options[varname.lower()] = os.environ[varname].strip().lower() not in ('', '0', 'false', 'no', 'off')
     for varname in ('DEFAULT_TIMEOUT',):
         if varname in os.environ:
             options[varname.lower()] = float(os.environ[varname])

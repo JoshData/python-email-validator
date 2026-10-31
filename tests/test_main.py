@@ -81,6 +81,19 @@ def test_main_multi_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
     assert test_cases[3] in stdout
 
 
+@pytest.mark.parametrize(
+    ('value', 'allowed'),
+    [('1', True), ('true', True), ('yes', True), ('0', False), ('false', False), ('FALSE', False), ('no', False), ('', False)]
+)
+def test_main_boolean_environment_variable(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+                                           value: str, allowed: bool) -> None:
+    monkeypatch.setenv('ALLOW_DOMAIN_LITERAL', value)
+    monkeypatch.setattr('sys.argv', ['email_validator', 'me@[127.0.0.1]'])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    assert ('A bracketed IP address after the @-sign is not allowed here.' in stdout) is not allowed
+
+
 def test_bytes_input() -> None:
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)
