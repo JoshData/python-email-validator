@@ -120,17 +120,37 @@ def validate_email(
     # data, and I don't know whether the rules really apply in the wild.)
     normalized_local_part = unicodedata.normalize("NFC", ret.local_part)
     if normalized_local_part != ret.local_part:
+        # If the original local part was quoted, NFC normalization keeps
+        # the surrounding quotes. Unquote before re-validating so that
+        # validate_email_local_part (which expects an unquoted value and
+        # re-quotes it when quoted_local_part is True) does not double-escape.
+        if (is_quoted_local_part and len(normalized_local_part) >= 2
+                and normalized_local_part[0] == '"' and normalized_local_part[-1] == '"'):
+            to_validate = ""
+            escaped = False
+            for c in normalized_local_part[1:-1]:
+                if escaped:
+                    to_validate += c
+                    escaped = False
+                elif c == "\\":
+                    escaped = True
+                else:
+                    to_validate += c
+            revalidate_quoted = True
+        else:
+            to_validate = normalized_local_part
+            revalidate_quoted = is_quoted_local_part
         try:
             normalized_local_part_info = validate_email_local_part(
-                normalized_local_part,
+                to_validate,
                 allow_smtputf8=allow_smtputf8,
                 allow_empty_local=allow_empty_local,
-                quoted_local_part=is_quoted_local_part,
+                quoted_local_part=revalidate_quoted,
                 strict=strict,
             )
         except EmailSyntaxError as e:
             raise EmailSyntaxError("After Unicode normalization: " + str(e)) from e
-        ret.local_part = normalized_local_part
+        ret.local_part = normalized_local_part_info["local_part"]
         ret.ascii_local_part = normalized_local_part_info["ascii_local_part"]
         ret.smtputf8 = normalized_local_part_info["smtputf8"]
 
