@@ -121,14 +121,18 @@ def validate_email(
     normalized_local_part = unicodedata.normalize("NFC", ret.local_part)
     if normalized_local_part != ret.local_part:
         try:
-            validate_email_local_part(normalized_local_part,
-                                      allow_smtputf8=allow_smtputf8,
-                                      allow_empty_local=allow_empty_local,
-                                      quoted_local_part=is_quoted_local_part,
-                                      strict=strict)
+            normalized_local_part_info = validate_email_local_part(
+                normalized_local_part,
+                allow_smtputf8=allow_smtputf8,
+                allow_empty_local=allow_empty_local,
+                quoted_local_part=is_quoted_local_part,
+                strict=strict,
+            )
         except EmailSyntaxError as e:
             raise EmailSyntaxError("After Unicode normalization: " + str(e)) from e
         ret.local_part = normalized_local_part
+        ret.ascii_local_part = normalized_local_part_info["ascii_local_part"]
+        ret.smtputf8 = normalized_local_part_info["smtputf8"]
 
     # If a quoted local part isn't allowed but is present, now raise an exception.
     # This is done after any exceptions raised by validate_email_local_part so
