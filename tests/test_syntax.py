@@ -167,6 +167,18 @@ def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
                 display_name='My."Na\\me".Is'
             ),
         ),
+        (
+            'me@גבריאל.xn--4dbrk0ce.il',
+            MakeValidatedEmail(
+                local_part='me',
+                ascii_local_part='me',
+                smtputf8=False,
+                ascii_domain='xn--4dbbc3aq3e.xn--4dbrk0ce.il',
+                ascii_email='me@xn--4dbbc3aq3e.xn--4dbrk0ce.il',
+                domain='גבריאל.ישראל.il',
+                normalized='me@גבריאל.ישראל.il',
+            ),
+        ),
     ],
 )
 def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
