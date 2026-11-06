@@ -61,7 +61,14 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
             # the < as the start of "<email>" syntax in that case. Likewise,
             # if anything combines with an @ or ", we should probably not
             # treat it as a special character.
-            if unicodedata.normalize("NFC", text[i:])[0] != c:
+            #
+            # Only the characters right after c can combine with it, so
+            # look at a short window rather than normalizing the rest of
+            # the string at every position, which is quadratic in the
+            # length of the input. The window is c, the 30 combining
+            # characters in a row allowed by the Unicode Stream-Safe Text
+            # Format (UAX #15), and one more character.
+            if unicodedata.normalize("NFC", text[i:i + 32])[0] != c:
                 left_part += c
 
             elif inside_quote:
