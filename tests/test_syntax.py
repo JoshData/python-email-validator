@@ -489,8 +489,10 @@ def test_domain_literal() -> None:
         ('me@bad-tld-1', 'The part after the @-sign is not valid. It should have a period.'),
         ('me@bad.tld-2', 'The part after the @-sign is not valid. It is not within a valid top-level domain.'),
         ('me@xn--0.tld', 'The part after the @-sign is not valid IDNA (Invalid A-label).'),
-        ('me@1.אב.com', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
-        ('me@אב.1.com', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
+        # 1.xn--4dbc.com is 1.אב.com and xn--4dbc.1.com is אב.1.com
+        # (alef bet in Hebrew). Both display as the same string, so both are rejected.
+        ('me@1.xn--4dbc.com', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
+        ('me@xn--4dbc.1.com', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
         ('me@1.xn--4dbrk0ce', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
         ('me@yy--0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
         ('me@yy－－0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),

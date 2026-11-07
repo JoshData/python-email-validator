@@ -680,7 +680,8 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
     # Section 1.4 and 2, UTS #46 CheckBidi). The idna package only checks
     # each label on its own, so a label like "1" next to a right-to-left
     # label was accepted, and such domains can be displayed identically to
-    # a different domain (e.g. "1.אב.com" and "אב.1.com").
+    # a different domain (e.g. 1.xn--4dbc.com and xn--4dbc.1.com, which
+    # are 1.אב.com and אב.1.com in Unicode, with Hebrew alef bet).
     if any(unicodedata.bidirectional(c) in ("R", "AL", "AN") for c in domain_i18n):
         for label in domain_i18n.split("."):
             try:
