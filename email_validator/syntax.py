@@ -675,6 +675,20 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
         raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
     check_unsafe_chars(domain_i18n)
 
+    # If any label has right-to-left characters, the Bidi Rule applies to
+    # every label in the domain, including left-to-right ones (RFC 5893
+    # Section 1.4 and 2, UTS #46 CheckBidi). The idna package only checks
+    # each label on its own, so a label like "1" next to a right-to-left
+    # label was accepted, and such domains can be displayed identically to
+    # a different domain (e.g. 1.xn--4dbc.com and xn--4dbc.1.com, which
+    # are 1.אב.com and אב.1.com in Unicode, with Hebrew alef bet).
+    if any(unicodedata.bidirectional(c) in ("R", "AL", "AN") for c in domain_i18n):
+        for label in domain_i18n.split("."):
+            try:
+                idna.check_bidi(label, check_ltr=True)
+            except idna.IDNAError as e:
+                raise EmailSyntaxError(f"The part after the @-sign is not valid IDNA ({e}).") from e
+
     # Check that it can be encoded back to IDNA ASCII. We have no test
     # case for this.
     try:
