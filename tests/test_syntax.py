@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 import pytest
@@ -519,6 +520,7 @@ def test_domain_literal() -> None:
         ('<me@example.com', 'An open angle bracket at the start of the email address has to be followed by a close angle bracket at the end.'),
         ('<me@example.com> !', 'There can\'t be anything after the email address.'),
         ('<\u0338me@example.com', 'The email address contains invalid characters before the @-sign: \'<\'.'),
+        ('<\u0301\u0338me@example.com', 'The email address contains invalid characters before the @-sign: \'<\'.'),
         ('DisplayName <me@-example.com>', 'An email address cannot have a hyphen immediately after the @-sign.'),
         ('DisplayName <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
         ('Display Name <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
@@ -533,6 +535,15 @@ def test_email_invalid_syntax(email_input: str, error_msg: str) -> None:
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, check_deliverability=False)
     assert str(exc_info.value) == error_msg
+
+
+def test_email_long_input_is_not_quadratic() -> None:
+    # split_email used to NFC-normalize the rest of the string at every
+    # character, so rejecting this took about 15 seconds.
+    start = time.perf_counter()
+    with pytest.raises(EmailSyntaxError, match="unsafe characters"):
+        validate_email("\u0301" * 50000 + "@example.com", check_deliverability=False)
+    assert time.perf_counter() - start < 2
 
 
 @pytest.mark.parametrize(
