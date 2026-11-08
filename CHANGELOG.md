@@ -6,6 +6,7 @@ In Development
 * add support python3.15
 * The IPv6 tag of a domain literal is now case-insensitive, as in the RFCs, so `me@[ipv6:::1]` is accepted (and normalized to `me@[IPv6:::1]`) when `allow_domain_literal=True`.
 * Internationalized domains with a right-to-left label are now rejected if any other label breaks the IDNA Bidi Rule (RFC 5893), such as a label starting with a digit. Such domains, like `1.xn--4dbc.com` and `xn--4dbc.1.com` (`1.אב.com` and `אב.1.com` in Unicode), could be displayed identically.
+* Faster validation of domains without Punycode (xn--) labels.
 
 2.3.0 (August 26, 2025)
 -----------------------
