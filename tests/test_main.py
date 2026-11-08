@@ -81,6 +81,43 @@ def test_main_multi_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
     assert test_cases[3] in stdout
 
 
+@pytest.mark.parametrize('value', ['false', 'False', 'FALSE', '0', 'no', 'off', ' '])
+def test_main_falsy_boolean_option_from_env(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], value: str) -> None:
+    # Options are set from environment variables of the same name in upper
+    # case. A falsy value there must turn the option off, not on.
+    import json
+    test_email = 'test@xkxufoekjvjfjeodlfmdfjcu.com'  # this domain does not exist in DNS
+    monkeypatch.setenv('CHECK_DELIVERABILITY', value)
+    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    assert json.loads(str(stdout))["normalized"] == test_email
+
+
+@pytest.mark.parametrize('value', ['false', 'False', '0', 'no', 'off', ' '])
+def test_main_falsy_test_environment_from_env(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], value: str) -> None:
+    # test_environment off means the reserved "test" domain names are rejected.
+    monkeypatch.setenv('TEST_ENVIRONMENT', value)
+    monkeypatch.setattr('sys.argv', ['email_validator', 'me@foo.test'])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    assert stdout == 'The part after the @-sign is a special-use or reserved name that cannot be used with email.\n'
+
+
+def test_main_default_timeout_from_env(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    import json
+    import email_validator
+    test_email = 'google@google.com'
+    # Set up the restore of the module-level default, which main() overwrites.
+    monkeypatch.setattr('email_validator.DEFAULT_TIMEOUT', email_validator.DEFAULT_TIMEOUT)
+    monkeypatch.setenv('DEFAULT_TIMEOUT', '5')
+    monkeypatch.setattr('sys.argv', ['email_validator', test_email])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    assert json.loads(str(stdout))["normalized"] == test_email
+    assert email_validator.DEFAULT_TIMEOUT == 5
+
+
 def test_bytes_input() -> None:
     input_email = b"testaddr@example.tld"
     valid_email = validate_email(input_email, check_deliverability=False)

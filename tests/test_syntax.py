@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 import pytest
@@ -165,6 +166,18 @@ def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
                 normalized=r'"me \" \\ me"@example.org',
                 ascii_email=r'"me \" \\ me"@example.org',
                 display_name='My."Na\\me".Is'
+            ),
+        ),
+        (
+            'me@גבריאל.xn--4dbrk0ce.il',
+            MakeValidatedEmail(
+                local_part='me',
+                ascii_local_part='me',
+                smtputf8=False,
+                ascii_domain='xn--4dbbc3aq3e.xn--4dbrk0ce.il',
+                ascii_email='me@xn--4dbbc3aq3e.xn--4dbrk0ce.il',
+                domain='גבריאל.ישראל.il',
+                normalized='me@גבריאל.ישראל.il',
             ),
         ),
     ],
@@ -407,6 +420,12 @@ def test_domain_literal() -> None:
     assert validated.domain == "[IPv6:::1]"
     assert repr(validated.domain_address) == "IPv6Address('::1')"
 
+    # Check that the IPv6 tag is case-insensitive and normalized.
+    for email_input in ("me@[ipv6:::1]", "me@[IPV6:::1]"):
+        validated = validate_email(email_input, allow_domain_literal=True)
+        assert validated.domain == "[IPv6:::1]"
+        assert repr(validated.domain_address) == "IPv6Address('::1')"
+
     # Check that an IPv4 address in an IPv6 address is accepted.
     validated = validate_email("me@[IPv6:::ffff:1.2.3.4]", allow_domain_literal=True)
     assert validated.domain == "[IPv6:::ffff:1.2.3.4]"
@@ -472,7 +491,7 @@ def test_domain_literal() -> None:
         ('meme@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.com', 'The email address is too long (4 characters too many).'),
         ('my.long.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344444.info', 'The email address is too long (2 characters too many).'),
         ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-2 characters too many).'),
-        ('my.long.address@\uFB2C111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-3 characters too many).'),
+        ('my.long.address@\uFB2C111111111222222222233333333334444444444555555555.a666666666777777777788888888889999999999000000000.a111111111222222222233333333334444444444555555555.a666666666777777777788888888889999999999000000000.a111111111222222222233333333334444.info', 'The email address is too long (1-3 characters too many).'),
         ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444.info', 'The email address is too long (1 character too many).'),
         ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-2 characters too many).'),
         ('my.\u0073\u0323\u0307.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-2 characters too many).'),
@@ -483,6 +502,11 @@ def test_domain_literal() -> None:
         ('me@bad-tld-1', 'The part after the @-sign is not valid. It should have a period.'),
         ('me@bad.tld-2', 'The part after the @-sign is not valid. It is not within a valid top-level domain.'),
         ('me@xn--0.tld', 'The part after the @-sign is not valid IDNA (Invalid A-label).'),
+        # 1.xn--4dbc.com is 1.אב.com and xn--4dbc.1.com is אב.1.com
+        # (alef bet in Hebrew). Both display as the same string, so both are rejected.
+        ('me@1.xn--4dbc.com', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
+        ('me@xn--4dbc.1.com', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
+        ('me@1.xn--4dbrk0ce', 'The part after the @-sign is not valid IDNA (First codepoint in label \'1\' must be directionality L, R or AL).'),
         ('me@yy--0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
         ('me@yy－－0.tld', 'An email address cannot have two letters followed by two dashes immediately after the @-sign or after a period, except Punycode.'),
         ('me@[127.0.0.1]', 'A bracketed IP address after the @-sign is not allowed here.'),
@@ -496,6 +520,7 @@ def test_domain_literal() -> None:
         ('<me@example.com', 'An open angle bracket at the start of the email address has to be followed by a close angle bracket at the end.'),
         ('<me@example.com> !', 'There can\'t be anything after the email address.'),
         ('<\u0338me@example.com', 'The email address contains invalid characters before the @-sign: \'<\'.'),
+        ('<\u0301\u0338me@example.com', 'The email address contains invalid characters before the @-sign: \'<\'.'),
         ('DisplayName <me@-example.com>', 'An email address cannot have a hyphen immediately after the @-sign.'),
         ('DisplayName <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
         ('Display Name <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
@@ -510,6 +535,15 @@ def test_email_invalid_syntax(email_input: str, error_msg: str) -> None:
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, check_deliverability=False)
     assert str(exc_info.value) == error_msg
+
+
+def test_email_long_input_is_not_quadratic() -> None:
+    # split_email used to NFC-normalize the rest of the string at every
+    # character, so rejecting this took about 15 seconds.
+    start = time.perf_counter()
+    with pytest.raises(EmailSyntaxError, match="unsafe characters"):
+        validate_email("\u0301" * 50000 + "@example.com", check_deliverability=False)
+    assert time.perf_counter() - start < 2
 
 
 @pytest.mark.parametrize(

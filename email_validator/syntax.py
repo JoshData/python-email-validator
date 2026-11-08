@@ -61,7 +61,14 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
             # the < as the start of "<email>" syntax in that case. Likewise,
             # if anything combines with an @ or ", we should probably not
             # treat it as a special character.
-            if unicodedata.normalize("NFC", text[i:])[0] != c:
+            #
+            # Only the characters right after c can combine with it, so
+            # look at a short window rather than normalizing the rest of
+            # the string at every position, which is quadratic in the
+            # length of the input. The window is c, the 30 combining
+            # characters in a row allowed by the Unicode Stream-Safe Text
+            # Format (UAX #15), and one more character.
+            if unicodedata.normalize("NFC", text[i:i + 32])[0] != c:
                 left_part += c
 
             elif inside_quote:
@@ -682,6 +689,20 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
         raise EmailSyntaxError("The part after the @-sign contains invalid characters: " + ", ".join(sorted(bad_chars)) + ".")
     check_unsafe_chars(domain_i18n)
 
+    # If any label has right-to-left characters, the Bidi Rule applies to
+    # every label in the domain, including left-to-right ones (RFC 5893
+    # Section 1.4 and 2, UTS #46 CheckBidi). The idna package only checks
+    # each label on its own, so a label like "1" next to a right-to-left
+    # label was accepted, and such domains can be displayed identically to
+    # a different domain (e.g. 1.xn--4dbc.com and xn--4dbc.1.com, which
+    # are 1.אב.com and אב.1.com in Unicode, with Hebrew alef bet).
+    if any(unicodedata.bidirectional(c) in ("R", "AL", "AN") for c in domain_i18n):
+        for label in domain_i18n.split("."):
+            try:
+                idna.check_bidi(label, check_ltr=True)
+            except idna.IDNAError as e:
+                raise EmailSyntaxError(f"The part after the @-sign is not valid IDNA ({e}).") from e
+
     # Check that it can be encoded back to IDNA ASCII. We have no test
     # case for this.
     try:
@@ -791,8 +812,9 @@ def validate_email_domain_literal(domain_literal: str) -> DomainLiteralValidatio
             "domain": f"[{addr}]",
         }
 
-    # If it begins with "IPv6:" it's an IPv6 address.
-    if domain_literal.startswith("IPv6:"):
+    # If it begins with "IPv6:" it's an IPv6 address. The tag is case-insensitive
+    # like all ABNF literal strings (RFC 5234 2.3), so "ipv6:" is accepted too.
+    if domain_literal[:5].lower() == "ipv6:":
         try:
             addr = ipaddress.IPv6Address(domain_literal[5:])
         except ValueError as e:
