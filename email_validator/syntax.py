@@ -586,6 +586,17 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
         # doesn't give a nice error, so we call the underlying idna.alabel method
         # directly. idna.alabel checks label length and doesn't give great messages,
         # but we can't easily go to lower level methods.
+        #
+        # idna.encode also rejects a domain that is too long before it looks
+        # at any label, because checking or decoding a long label can take time
+        # quadratic in its length (a long Punycode "xn--" label, or, before idna
+        # 3.15, a long run of Arabic-Indic digits). Since we call idna.alabel
+        # directly, check the length first here. A label never gets shorter
+        # when it is converted to IDNA ASCII, so a domain this long would fail
+        # the length check below anyway.
+        if len(domain) > DOMAIN_MAX_LENGTH:
+            reason = get_length_reason(domain, limit=DOMAIN_MAX_LENGTH)
+            raise EmailSyntaxError(f"The email address is too long after the @-sign {reason}.")
         try:
             ascii_domain = ".".join(
                 idna.alabel(label).decode("ascii")
