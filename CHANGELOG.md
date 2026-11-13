@@ -7,6 +7,7 @@ In Development
 * The IPv6 tag of a domain literal is now case-insensitive, as in the RFCs, so `me@[ipv6:::1]` is accepted (and normalized to `me@[IPv6:::1]`) when `allow_domain_literal=True`.
 * Internationalized domains with a right-to-left label are now rejected if any other label breaks the IDNA Bidi Rule (RFC 5893), such as a label starting with a digit. Such domains, like `1.xn--4dbc.com` and `xn--4dbc.1.com` (`1.אב.com` and `אב.1.com` in Unicode), could be displayed identically.
 * Faster validation of domains without Punycode (xn--) labels.
+* With `allow_quoted_local=True`, a quoted local part containing U+037E (Greek question mark), which Unicode NFC normalization changes to a semicolon, was returned without its quotes in the normalized address (e.g. `a;b@example.com`), getting around the re-validation added in 2.2.0. The normalized local part is now quoted according to its normalized form, giving `"a;b"@example.com`.
 
 2.3.0 (August 26, 2025)
 -----------------------

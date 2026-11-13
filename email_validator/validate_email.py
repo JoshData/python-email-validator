@@ -118,17 +118,22 @@ def validate_email(
     # this library. (UTS #39 seems to require that the *input* be NKFC normalized
     # and has other requirements that are hard to check without additional Unicode
     # data, and I don't know whether the rules really apply in the wild.)
-    normalized_local_part = unicodedata.normalize("NFC", ret.local_part)
-    if normalized_local_part != ret.local_part:
+    #
+    # Normalize the unquoted and unescaped local part, not ret.local_part, and
+    # take the quoting from the second validation. ret.local_part has already
+    # had unnecessary quotes removed, so normalizing it would turn e.g.
+    # "a\u037eb" (quoted, with a Greek question mark) into a;b without quotes.
+    normalized_local_part = unicodedata.normalize("NFC", unescaped_local_part)
+    if normalized_local_part != unescaped_local_part:
         try:
-            validate_email_local_part(normalized_local_part,
-                                      allow_smtputf8=allow_smtputf8,
-                                      allow_empty_local=allow_empty_local,
-                                      quoted_local_part=is_quoted_local_part,
-                                      strict=strict)
+            normalized_local_part_info = validate_email_local_part(normalized_local_part,
+                                                                   allow_smtputf8=allow_smtputf8,
+                                                                   allow_empty_local=allow_empty_local,
+                                                                   quoted_local_part=is_quoted_local_part,
+                                                                   strict=strict)
         except EmailSyntaxError as e:
             raise EmailSyntaxError("After Unicode normalization: " + str(e)) from e
-        ret.local_part = normalized_local_part
+        ret.local_part = normalized_local_part_info["local_part"]
 
     # If a quoted local part isn't allowed but is present, now raise an exception.
     # This is done after any exceptions raised by validate_email_local_part so
