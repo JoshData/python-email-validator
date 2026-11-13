@@ -1,5 +1,6 @@
 from typing import Any
 
+import dns.resolver
 import pytest
 import re
 
@@ -64,6 +65,16 @@ def test_deliverability_dns_timeout() -> None:
     response = validate_email_deliverability('timeout.com', 'timeout.com', dns_resolver=RESOLVER)
     assert "mx" not in response
     assert response.get("unknown-deliverability") == "timeout"
+
+
+@pytest.mark.parametrize('dns_resolver', [RESOLVER, dns.resolver.Resolver(configure=False)])
+def test_validated_email_mx_unknown(dns_resolver: dns.resolver.Resolver) -> None:
+    # The saved resolver simulates a timeout; the empty resolver has no nameservers.
+    result = validate_email('me@timeout.com', dns_resolver=dns_resolver)
+    assert result.normalized == 'me@timeout.com'
+    assert result.mx is None
+    assert result.mx_fallback_type is None
+    assert result.as_dict()['mx'] is None
 
 
 def test_timeout_and_resolver() -> None:

@@ -199,9 +199,7 @@ def validate_email(
         deliverability_info = validate_email_deliverability(
             ret.ascii_domain, ret.domain, timeout, dns_resolver
         )
-        mx = deliverability_info.get("mx")
-        if mx is not None:
-            ret.mx = mx
+        ret.mx = deliverability_info.get("mx")
         ret.mx_fallback_type = deliverability_info.get("mx_fallback_type")
 
     return ret

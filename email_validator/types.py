@@ -40,8 +40,9 @@ class ValidatedEmail:
     smtputf8: bool
 
     """If a deliverability check is performed and if it succeeds, a list of (priority, domain)
-    tuples of MX records specified in the DNS for the domain."""
-    mx: list[tuple[int, str]]
+    tuples of MX records specified in the DNS for the domain. None if the check
+    could not be completed because of a temporary issue."""
+    mx: Optional[list[tuple[int, str]]]
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""
@@ -92,6 +93,8 @@ class ValidatedEmail:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ValidatedEmail):
             return False
+        self_mx = getattr(self, 'mx', None)
+        other_mx = getattr(other, 'mx', None)
         return (
             getattr(self, 'original', None) == getattr(other, 'original', None)
             and self.normalized == other.normalized
@@ -101,8 +104,8 @@ class ValidatedEmail:
             and getattr(self, 'ascii_local_part', None) == getattr(other, 'ascii_local_part', None)
             and getattr(self, 'ascii_domain', None) == getattr(other, 'ascii_domain', None)
             and self.smtputf8 == other.smtputf8
-            and repr(sorted(self.mx) if getattr(self, 'mx', None) else None)
-            == repr(sorted(other.mx) if getattr(other, 'mx', None) else None)
+            and repr(sorted(self_mx) if self_mx else None)
+            == repr(sorted(other_mx) if other_mx else None)
             and getattr(self, 'mx_fallback_type', None) == getattr(other, 'mx_fallback_type', None)
             and getattr(self, 'display_name', None) == getattr(other, 'display_name', None)
         )

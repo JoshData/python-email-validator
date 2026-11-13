@@ -1,6 +1,7 @@
 In Development
 --------------
 
+* The `mx` field is now `None` when a deliverability check cannot be completed, as documented, instead of being absent from the returned object.
 * Python 3.8 and 3.9 are no longer supported.
 * The `original` field of the returned validated email object incorrectly un-escaped the local part of the email address. Now it returns the original address, without any display name, as passed to validate_email.
 * add support python3.15
