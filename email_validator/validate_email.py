@@ -179,9 +179,7 @@ def validate_email(
     ret.normalized = ret.local_part + "@" + ret.domain
 
     # If the email address has an ASCII form, add it.
-    if not ret.smtputf8:
-        if not ret.ascii_domain:
-            raise Exception("Missing ASCII domain.")
+    if ret.ascii_local_part and ret.ascii_domain:
         ret.ascii_email = (ret.ascii_local_part or "") + "@" + ret.ascii_domain
     else:
         ret.ascii_email = None

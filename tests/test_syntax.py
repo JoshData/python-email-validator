@@ -361,6 +361,18 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
                 normalized='＠@fullwidth.at',
             ),
         ),
+        (
+            '\u1FEF@example.com',
+            MakeValidatedEmail(
+                local_part='`',
+                ascii_local_part='`',
+                smtputf8=True,
+                ascii_domain='example.com',
+                ascii_email='`@example.com',
+                domain='example.com',
+                normalized='`@example.com',
+            ),
+        ),
     ],
 )
 def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
