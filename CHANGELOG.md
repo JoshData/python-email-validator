@@ -1,14 +1,17 @@
-In Development
---------------
+2.4.0 (November 14, 2026)
+-------------------------
 
-* Python 3.8 and 3.9 are no longer supported.
+* Python 3.8 and 3.9 are no longer supported, and Python 3.14 and 3.15 are added to testing.
 * The `original` field of the returned validated email object incorrectly un-escaped the local part of the email address. Now it returns the original address, without any display name, as passed to validate_email.
-* add support python3.15
+* With `allow_quoted_local=True`, a quoted local part containing U+037E (Greek question mark), which Unicode NFC normalization changes to a semicolon, was returned without its quotes in the normalized address (e.g. `a;b@example.com`), getting around the re-validation added in 2.2.0. The normalized local part is now quoted according to its normalized form, giving `"a;b"@example.com`.
+* When parsing display names, multiple closing angle brackets at the end of the email address is now rejected.
 * The IPv6 tag of a domain literal is now case-insensitive, as in the RFCs, so `me@[ipv6:::1]` is accepted (and normalized to `me@[IPv6:::1]`) when `allow_domain_literal=True`.
+* IPv6 domain literals with a zone index are now rejected.
 * Internationalized domains with a right-to-left label are now rejected if any other label breaks the IDNA Bidi Rule (RFC 5893), such as a label starting with a digit. Such domains, like `1.xn--4dbc.com` and `xn--4dbc.1.com` (`1.אב.com` and `אב.1.com` in Unicode), could be displayed identically.
 * Faster validation of domains without Punycode (xn--) labels.
 * Internationalized domains longer than 253 characters are now rejected for their length before IDNA encoding, which could take time quadratic in the length of the input.
-* With `allow_quoted_local=True`, a quoted local part containing U+037E (Greek question mark), which Unicode NFC normalization changes to a semicolon, was returned without its quotes in the normalized address (e.g. `a;b@example.com`), getting around the re-validation added in 2.2.0. The normalized local part is now quoted according to its normalized form, giving `"a;b"@example.com`.
+* The command line tool now properly reads boolean environment variables and the DEFAULT_TIMEOUT environment variable.
+* Improvements in type hinting, code comments, and tests.
 
 2.3.0 (August 26, 2025)
 -----------------------
