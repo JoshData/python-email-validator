@@ -505,6 +505,14 @@ class DomainNameValidationResult(TypedDict):
 def validate_email_domain_name(domain: str, test_environment: bool = False, globally_deliverable: bool = True) -> DomainNameValidationResult:
     """Validates the syntax of the domain part of an email address."""
 
+    # A domain can get shorter through normalization (either from IDNA decoding or Unicode normalization),
+    # but the caller may use the original input, so the length check can apply up front. We also get a
+    # less helpful error via idna.uts46_remap and would rather do it ourselves. And it's important to
+    # prevent a DOS attack via idna: See below.
+    if len(domain) > DOMAIN_MAX_LENGTH:
+        reason = get_length_reason(domain, limit=DOMAIN_MAX_LENGTH)
+        raise EmailSyntaxError(f"The email address is too long after the @-sign {reason}.")
+
     # Check for invalid characters.
     # (RFC 952 plus RFC 6531 section 3.3 for internationalized addresses)
     bad_chars = {
@@ -591,12 +599,9 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
         # at any label, because checking or decoding a long label can take time
         # quadratic in its length (a long Punycode "xn--" label, or, before idna
         # 3.15, a long run of Arabic-Indic digits). Since we call idna.alabel
-        # directly, check the length first here. A label never gets shorter
+        # directly, check the length first above. A label never gets shorter
         # when it is converted to IDNA ASCII, so a domain this long would fail
         # the length check below anyway.
-        if len(domain) > DOMAIN_MAX_LENGTH:
-            reason = get_length_reason(domain, limit=DOMAIN_MAX_LENGTH)
-            raise EmailSyntaxError(f"The email address is too long after the @-sign {reason}.")
         try:
             ascii_domain = ".".join(
                 idna.alabel(label).decode("ascii")
