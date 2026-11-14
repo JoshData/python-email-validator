@@ -566,6 +566,19 @@ def test_email_long_input_is_not_quadratic() -> None:
     assert time.perf_counter() - start < 2
 
 
+def test_email_long_idna_domain_is_not_quadratic() -> None:
+    # Internationalized domains went to idna.alabel without the up-front
+    # length check idna.encode does. idna.ulabel Punycode-decodes the whole
+    # "xn--" label first, so rejecting the first address took about 5 seconds,
+    # and before idna 3.15 the Arabic-Indic digits in the second took about 35.
+    for email in ("me@\u00e9.xn--" + "9" * 200000 + ".com",
+                  "me@" + "\u0660" * 40000 + ".com"):
+        start = time.perf_counter()
+        with pytest.raises(EmailSyntaxError, match="too long after the @-sign"):
+            validate_email(email, check_deliverability=False)
+        assert time.perf_counter() - start < 2
+
+
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [
