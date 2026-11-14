@@ -389,6 +389,8 @@ def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -
         ('"unnecessarily.quoted.with.unicode.λ"@example.com', 'unnecessarily.quoted.with.unicode.λ'),
         ('"quoted.with..unicode.λ"@example.com', '"quoted.with..unicode.λ"'),
         ('"quoted.with.extraneous.\\escape"@example.com', 'quoted.with.extraneous.escape'),
+        # U+037E (Greek question mark) is valid unquoted but NFC normalizes to a semicolon, which needs the quotes.
+        ('"quoted.after.normalization.\u037e"@example.com', '"quoted.after.normalization.;"'),
     ])
 def test_email_valid_only_if_quoted_local_part(email_input: str, normalized_local_part: str) -> None:
     # These addresses are invalid with the default allow_quoted_local=False option.
