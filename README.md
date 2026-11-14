@@ -357,7 +357,9 @@ ValidatedEmail(
 
 Now `smtputf8` is `True` and `ascii_email` is `None` because the local
 part of the address is internationalized. The `local_part` and `normalized` fields
-return the normalized form of the address.
+return the normalized form of the address. (Because of Unicode normalization,
+it is possible in edge cases for `smtputf8` to be `True` based on the original
+email address when `ascii_email` is also present in the ValidatedEmail.)
 
 Return value
 ------------
