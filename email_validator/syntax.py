@@ -719,12 +719,20 @@ def validate_email_domain_name(domain: str, test_environment: bool = False, glob
             except idna.IDNAError as e:
                 raise EmailSyntaxError(f"The part after the @-sign is not valid IDNA ({e}).") from e
 
-    # Check that it can be encoded back to IDNA ASCII. We have no test
-    # case for this.
+    # Check that it can be encoded back to IDNA ASCII, and that it encodes
+    # back to the same IDNA ASCII domain we started with. A "fake A-label"
+    # (RFC 5890 2.3.2.1) like xn---bbk is a non-canonical Punycode spelling
+    # of xn--bbk that decodes to the same Unicode label, so without this
+    # check two different domains could give the same normalized domain and
+    # ascii_domain would not be the IDNA ASCII form of domain (RFC 5891 5.4).
+    # idna 3.19 and later reject these in idna.decode but earlier versions
+    # do not. We have no test case for the exception.
     try:
-        idna.encode(domain_i18n)
+        canonical_ascii_domain = idna.encode(domain_i18n).decode("ascii")
     except idna.IDNAError as e:
         raise EmailSyntaxError(f"The part after the @-sign became invalid after normalizing to international characters ({e}).") from e
+    if canonical_ascii_domain != ascii_domain:
+        raise EmailSyntaxError(f"The part after the @-sign is not valid IDNA (Its canonical IDNA ASCII form is {canonical_ascii_domain}).")
 
     # Return the IDNA ASCII-encoded form of the domain, which is how it
     # would be transmitted on the wire (except when used with SMTPUTF8
