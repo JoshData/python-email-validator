@@ -596,6 +596,38 @@ def test_email_invalid_syntax_strict(email_input: str, error_msg: str) -> None:
 
 
 @pytest.mark.parametrize(
+    'email_input,error_msg',
+    [
+        # 63 characters plus the two quotes needed because of the space.
+        ('"' + 'a' * 62 + ' "@example.com', 'The email address is too long before the @-sign (1 character too many).'),
+        # 32 escaped quotes are 64 characters plus the two surrounding quotes.
+        ('"' + '\\"' * 32 + '"@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
+        # 62 characters, of which one is a backslash that stays escaped, plus the two quotes.
+        ('"' + 'a' * 61 + '\\\\"@example.com', 'The email address is too long before the @-sign (1 character too many).'),
+    ])
+def test_email_invalid_syntax_strict_quoted(email_input: str, error_msg: str) -> None:
+    # The local part length limit applies to the quoted
+    # local part including its quotes and escapes.
+    validate_email(email_input, allow_quoted_local=True, check_deliverability=False)  # pass without strict
+    with pytest.raises(EmailSyntaxError) as exc_info:
+        validate_email(email_input, allow_quoted_local=True, strict=True, check_deliverability=False)
+    assert str(exc_info.value) == error_msg
+
+
+@pytest.mark.parametrize(
+    'email_input,normalized',
+    [
+        # 62 characters plus the two quotes is exactly 64.
+        ('"' + 'a' * 61 + ' "@example.com', '"' + 'a' * 61 + ' "@example.com'),
+        # Unnecessary escapes are removed before the length is checked.
+        ('"' + '\\a' * 64 + '"@example.com', 'a' * 64 + '@example.com'),
+    ])
+def test_email_valid_strict_quoted(email_input: str, normalized: str) -> None:
+    validated = validate_email(email_input, allow_quoted_local=True, strict=True, check_deliverability=False)
+    assert validated.normalized == normalized
+
+
+@pytest.mark.parametrize(
     'email_input',
     [
         '<me@example.com>>',

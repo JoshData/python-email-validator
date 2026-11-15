@@ -367,6 +367,14 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         if valid == "quoted":
             local = '"' + re.sub(r'(["\\])', r'\\\1', local) + '"'
 
+            # The length limit applies to the local part as it is transmitted
+            # (RFC 5321 4.5.3.1.1), which for a quoted string includes the
+            # surrounding quotes and any backslash escapes, so check it again
+            # now that they have been added back.
+            if strict and len(local) > LOCAL_PART_MAX_LENGTH:
+                reason = get_length_reason(local, limit=LOCAL_PART_MAX_LENGTH)
+                raise EmailSyntaxError(f"The email address is too long before the @-sign {reason}.")
+
         return {
             "local_part": local,
             "ascii_local_part": local if not requires_smtputf8 else None,
