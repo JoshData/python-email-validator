@@ -4,8 +4,11 @@ import ipaddress
 
 from .exceptions import EmailUndeliverableError
 
-import dns.resolver
-import dns.exception
+try:
+    import dns.resolver
+    import dns.exception
+except ImportError as e:
+    raise ImportError('deliverability option requires dnspython, run `pip install email-validator[dns]`') from e
 
 
 def caching_resolver(*, timeout: Optional[int] = None, cache: Any = None, dns_resolver: Optional[dns.resolver.Resolver] = None) -> dns.resolver.Resolver:
