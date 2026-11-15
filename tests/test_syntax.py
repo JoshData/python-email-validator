@@ -579,6 +579,17 @@ def test_email_long_idna_domain_is_not_quadratic() -> None:
         assert time.perf_counter() - start < 2
 
 
+def test_email_fake_a_label() -> None:
+    # xn---bbk is a non-canonical Punycode spelling of xn--bbk (U+307E
+    # HIRAGANA LETTER MA). Before idna 3.19, idna.decode accepted it, so
+    # me@xn---bbk.com was valid with the same normalized address as
+    # me@xn--bbk.com but with ascii_email me@xn---bbk.com, a different domain.
+    assert validate_email("me@xn--bbk.com", check_deliverability=False).ascii_email == "me@xn--bbk.com"
+    for email in ("me@xn---bbk.com", "me@xn---4dbrk0ce.com"):
+        with pytest.raises(EmailSyntaxError, match="The part after the @-sign is not valid IDNA"):
+            validate_email(email, check_deliverability=False)
+
+
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [

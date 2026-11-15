@@ -1,3 +1,8 @@
+In Development
+--------------
+
+* Internationalized domains with a "fake A-label", a non-canonical Punycode label such as `xn---bbk` that decodes to the same Unicode label as `xn--bbk`, are now rejected. With idna versions before 3.19, `me@xn---bbk.com` was accepted with the same normalized address as `me@xn--bbk.com` but with `ascii_email` holding the different domain `xn---bbk.com`.
+
 2.4.0 (November 14, 2026)
 -------------------------
 
