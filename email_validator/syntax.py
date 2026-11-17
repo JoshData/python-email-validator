@@ -54,46 +54,37 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
         # If no special character is found, raise an error.
         inside_quote = False
         escaped = False
-        left_part = ""
+        # Slice ordinary strings once, but retain string-subclass operations.
+        plain_text = type(text) is str
+        left_part = None if plain_text else ""
+        split_at = None
         for i, c in enumerate(text):
-            # < plus U+0338 (Combining Long Solidus Overlay) normalizes to
-            # ≮ U+226E (Not Less-Than), and  it would be confusing to treat
-            # the < as the start of "<email>" syntax in that case. Likewise,
-            # if anything combines with an @ or ", we should probably not
-            # treat it as a special character.
-            #
-            # Only the characters right after c can combine with it, so
-            # look at a short window rather than normalizing the rest of
-            # the string at every position, which is quadratic in the
-            # length of the input. The window is c, the 30 combining
-            # characters in a row allowed by the Unicode Stream-Safe Text
-            # Format (UAX #15), and one more character.
-            if unicodedata.normalize("NFC", text[i:i + 32])[0] != c:
-                left_part += c
-
+            # Normalize only characters that can change parser state. Keep
+            # the original window: < plus U+0338 composes to ≮, and a
+            # changed character must also leave a pending escape untouched.
+            if (not plain_text or escaped or c in ('"', '\\') or c in specials) and unicodedata.normalize("NFC", text[i:i + 32])[0] != c:
+                pass
             elif inside_quote:
-                left_part += c
                 if c == '\\' and not escaped:
                     escaped = True
                 elif c == '"' and not escaped:
-                    # The only way to exit the quote is an unescaped quote.
                     inside_quote = False
                     escaped = False
                 else:
                     escaped = False
             elif c == '"':
-                left_part += c
                 inside_quote = True
             elif c in specials:
-                # When unquoted, stop before a special character.
+                split_at = i
                 break
-            else:
+
+            if left_part is not None:
                 left_part += c
 
         # No special symbol found. The special symbols always
         # include an at-sign, so this always indicates a missing
         # at-sign. The other symbol is optional.
-        if len(left_part) == len(text):
+        if split_at is None:
             # The full-width at-sign might occur in CJK contexts.
             # We can't accept it because we only accept addresess
             # that are actually valid. But if this is common we
@@ -115,7 +106,9 @@ def split_email(email: str) -> tuple[Optional[str], str, str, bool, str]:
             raise EmailSyntaxError("An email address must have an @-sign.")
 
         # The right part is whatever is left.
-        right_part = text[len(left_part):]
+        right_part = text[split_at:]
+        if left_part is None:
+            left_part = text[:split_at]
 
         return left_part, right_part
 
