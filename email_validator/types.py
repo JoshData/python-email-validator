@@ -40,8 +40,9 @@ class ValidatedEmail:
     smtputf8: bool
 
     """If a deliverability check is performed and if it succeeds, a list of (priority, domain)
-    tuples of MX records specified in the DNS for the domain."""
-    mx: list[tuple[int, str]]
+    tuples of MX records specified in the DNS for the domain. May be None if the deliverability
+    check could not be completed because of a temporary issue like a timeout."""
+    mx: Optional[list[tuple[int, str]]]
 
     """If no MX records are actually specified in DNS and instead are inferred, through an obsolete
     mechanism, from A or AAAA records, the value is the type of DNS record used instead (`A` or `AAAA`)."""

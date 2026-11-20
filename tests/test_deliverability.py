@@ -66,6 +66,16 @@ def test_deliverability_dns_timeout() -> None:
     assert response.get("unknown-deliverability") == "timeout"
 
 
+def test_deliverability_dns_timeout_mx_is_none() -> None:
+    # When the deliverability check cannot be completed because of a
+    # timeout, the returned object must still have an mx attribute,
+    # set to None as documented, rather than no attribute at all
+    # (which made result.mx raise AttributeError). See issue #190.
+    result = validate_email('me@timeout.com', dns_resolver=RESOLVER)
+    assert result.mx is None
+    assert result.mx_fallback_type is None
+
+
 def test_timeout_and_resolver() -> None:
     with pytest.raises(ValueError, match="It's not valid to pass both timeout and dns_resolver."):
         validate_email_deliverability('timeout.com', 'timeout.com', timeout=1, dns_resolver=RESOLVER)
