@@ -672,7 +672,11 @@ def test_email_invalid_character_smtputf8_off(email_input: str, expected_error: 
 
 
 def test_email_empty_local() -> None:
-    validate_email("@test", allow_empty_local=True, test_environment=True)
+    validated = validate_email("@test", allow_empty_local=True, test_environment=True)
+
+    # An empty local part is ASCII, so the ASCII form of the address is set.
+    assert validated.ascii_local_part == ""
+    assert validated.ascii_email == "@test"
 
     # This next one might not be desirable.
     validate_email("\"\"@test", allow_empty_local=True, allow_quoted_local=True, test_environment=True)
