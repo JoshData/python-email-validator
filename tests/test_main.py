@@ -104,6 +104,16 @@ def test_main_falsy_test_environment_from_env(monkeypatch: pytest.MonkeyPatch, c
     assert stdout == 'The part after the @-sign is a special-use or reserved name that cannot be used with email.\n'
 
 
+@pytest.mark.parametrize('value', ['true', '1'])
+def test_main_strict_from_env(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], value: str) -> None:
+    monkeypatch.setenv('STRICT', value)
+    monkeypatch.setenv('CHECK_DELIVERABILITY', 'false')
+    monkeypatch.setattr('sys.argv', ['email_validator', 'a' * 65 + '@example.com'])
+    validator_command_line_tool(dns_resolver=RESOLVER)
+    stdout, _ = capsys.readouterr()
+    assert stdout == 'The email address is too long before the @-sign (1 character too many).\n'
+
+
 def test_main_default_timeout_from_env(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     import json
     import email_validator

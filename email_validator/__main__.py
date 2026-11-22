@@ -30,7 +30,7 @@ def main(dns_resolver: Optional[_Resolver] = None) -> None:
     # Set options from environment variables.
     options: dict[str, Any] = {}
     for varname in ('ALLOW_SMTPUTF8', 'ALLOW_EMPTY_LOCAL', 'ALLOW_QUOTED_LOCAL', 'ALLOW_DOMAIN_LITERAL',
-                    'ALLOW_DISPLAY_NAME',
+                    'ALLOW_DISPLAY_NAME', 'STRICT',
                     'GLOBALLY_DELIVERABLE', 'CHECK_DELIVERABILITY', 'TEST_ENVIRONMENT'):
         if varname in os.environ:
             # bool() would make any non-empty string True, so e.g.
