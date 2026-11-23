@@ -48,6 +48,12 @@ This package [is on PyPI](https://pypi.org/project/email-validator/), so:
 pip install email-validator
 ```
 
+If deliverability option will be used:
+
+```sh
+pip install email-validator[dns]
+```
+
 (You might need to use `pip3` depending on your local environment.)
 
 Quick Start
